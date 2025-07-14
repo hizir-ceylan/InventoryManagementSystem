@@ -230,6 +230,9 @@ namespace Inventory.Agent.Windows
                 SoftwareInfo = softwareInfoDto
             };
 
+            // --- Cihazı logla ---
+            DeviceLogger.LogDevice(device);
+
             // --- API'ye gönder ---
             string apiUrl = "https://localhost:7296/api/device";
             bool success = await ApiClient.PostDeviceAsync(device, apiUrl);
