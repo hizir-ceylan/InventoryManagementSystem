@@ -32,6 +32,7 @@ public static class DeviceLogger
 
         // 3. Dünkü logu oku ve karşılaştır
         object diff = "No change detected";
+        bool hasChanges = false;
         if (File.Exists(yesterdayPath))
         {
             var yesterdayJson = File.ReadAllText(yesterdayPath);
@@ -42,6 +43,7 @@ public static class DeviceLogger
             if (yesterdayDeviceJson != todayDeviceJson)
             {
                 diff = GetDetailedDiff(yesterdayDeviceJson, todayDeviceJson);
+                hasChanges = true;
             }
         }
 
@@ -55,6 +57,12 @@ public static class DeviceLogger
 
         // 5. Dosyaya yaz (üzerine yazar, her gün tek dosya)
         File.WriteAllText(todayPath, JsonConvert.SerializeObject(logObject, Formatting.Indented));
+
+        // 6. Eğer değişiklik varsa ayrı bir dosyaya kaydet
+        if (hasChanges && diff != null && diff.ToString() != "No change detected")
+        {
+            SaveChangesToSeparateFile(diff, today);
+        }
     }
 
     // Detaylı diff fonksiyonu - tüm önemli alanları karşılaştırır
@@ -412,5 +420,32 @@ public static class DeviceLogger
                module1.Manufacturer == module2.Manufacturer &&
                module1.PartNumber == module2.PartNumber &&
                module1.SerialNumber == module2.SerialNumber;
+    }
+
+    // Değişiklikleri ayrı bir dosyaya kaydet
+    private static void SaveChangesToSeparateFile(object changes, string dateString)
+    {
+        try
+        {
+            string changesFolder = Path.Combine(LogFolder, "Changes");
+            Directory.CreateDirectory(changesFolder);
+
+            string timestamp = DateTime.Now.ToString("HH-mm-ss");
+            string changeFilePath = Path.Combine(changesFolder, $"device-changes-{dateString}-{timestamp}.json");
+
+            var changeLogObject = new
+            {
+                DetectedAt = DateTime.Now,
+                DeviceName = Environment.MachineName,
+                Changes = changes
+            };
+
+            File.WriteAllText(changeFilePath, JsonConvert.SerializeObject(changeLogObject, Formatting.Indented));
+        }
+        catch (Exception ex)
+        {
+            // Hata durumunda devam et, ana log işlemini engelleme
+            Console.WriteLine($"Değişiklik dosyası kaydedilemedi: {ex.Message}");
+        }
     }
 }
