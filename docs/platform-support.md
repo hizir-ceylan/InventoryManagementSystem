@@ -41,9 +41,14 @@ The agent now supports both Windows and Linux platforms:
 - Detailed hardware and software enumeration
 
 #### Linux Support
-- Uses /proc filesystem and system commands for system information
+- Uses /proc filesystem and system commands for comprehensive system information
+- Real network interface detection using `ip addr show` and `/sys/class/net`
+- System information gathering using `dmidecode` and `/sys/class/dmi/id/`
+- Memory information from `/proc/meminfo` and `dmidecode` for detailed RAM modules
+- Package manager support for dpkg, rpm, pacman, yum, snap, and flatpak
+- GPU detection using `lspci` and `nvidia-smi` for NVIDIA cards
+- Real CPU, disk, and hardware information gathering
 - Cross-platform disk and memory information gathering
-- Basic package and user enumeration
 
 #### Platform Detection
 The system automatically detects the platform and uses appropriate methods:

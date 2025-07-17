@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Management;
 using LibreHardwareMonitor.Hardware;
 using Inventory.Agent.Windows.Models;
+using System.Linq;
 
 namespace Inventory.Agent.Windows
 {
@@ -196,6 +197,7 @@ namespace Inventory.Agent.Windows
 
             try
             {
+                // First get total memory from /proc/meminfo
                 if (File.Exists("/proc/meminfo"))
                 {
                     var lines = File.ReadAllLines("/proc/meminfo");
@@ -207,24 +209,139 @@ namespace Inventory.Agent.Windows
                             if (parts.Length > 1 && long.TryParse(parts[1], out long kb))
                             {
                                 totalGB = (int)(kb / (1024 * 1024));
-                                modules.Add(new RamModuleDto
-                                {
-                                    Slot = "DIMM0",
-                                    CapacityGB = totalGB,
-                                    SpeedMHz = "Unknown",
-                                    Manufacturer = "Unknown",
-                                    PartNumber = "Unknown",
-                                    SerialNumber = "Unknown"
-                                });
                             }
                             break;
                         }
                     }
                 }
+
+                // Try to get detailed RAM module information using dmidecode
+                try
+                {
+                    var process = new Process
+                    {
+                        StartInfo = new ProcessStartInfo
+                        {
+                            FileName = "dmidecode",
+                            Arguments = "-t memory",
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        }
+                    };
+
+                    process.Start();
+                    string output = process.StandardOutput.ReadToEnd();
+                    string error = process.StandardError.ReadToEnd();
+                    process.WaitForExit();
+
+                    if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
+                    {
+                        var lines = output.Split('\n');
+                        bool inMemoryDevice = false;
+                        var currentModule = new RamModuleDto();
+                        
+                        foreach (var line in lines)
+                        {
+                            var trimmedLine = line.Trim();
+                            
+                            if (trimmedLine.StartsWith("Memory Device"))
+                            {
+                                // Save previous module if it has valid data
+                                if (inMemoryDevice && !string.IsNullOrEmpty(currentModule.Slot) && currentModule.CapacityGB > 0)
+                                {
+                                    modules.Add(currentModule);
+                                }
+                                
+                                inMemoryDevice = true;
+                                currentModule = new RamModuleDto();
+                            }
+                            else if (inMemoryDevice)
+                            {
+                                if (trimmedLine.StartsWith("Locator:"))
+                                {
+                                    currentModule.Slot = trimmedLine.Substring(8).Trim();
+                                }
+                                else if (trimmedLine.StartsWith("Size:"))
+                                {
+                                    var sizeStr = trimmedLine.Substring(5).Trim();
+                                    if (sizeStr.Contains("GB"))
+                                    {
+                                        var sizeNumStr = sizeStr.Replace("GB", "").Trim();
+                                        if (double.TryParse(sizeNumStr, out double gb))
+                                        {
+                                            currentModule.CapacityGB = gb;
+                                        }
+                                    }
+                                    else if (sizeStr.Contains("MB"))
+                                    {
+                                        var sizeNumStr = sizeStr.Replace("MB", "").Trim();
+                                        if (double.TryParse(sizeNumStr, out double mb))
+                                        {
+                                            currentModule.CapacityGB = Math.Round(mb / 1024.0, 2);
+                                        }
+                                    }
+                                }
+                                else if (trimmedLine.StartsWith("Speed:"))
+                                {
+                                    currentModule.SpeedMHz = trimmedLine.Substring(6).Trim();
+                                }
+                                else if (trimmedLine.StartsWith("Manufacturer:"))
+                                {
+                                    currentModule.Manufacturer = trimmedLine.Substring(13).Trim();
+                                }
+                                else if (trimmedLine.StartsWith("Part Number:"))
+                                {
+                                    currentModule.PartNumber = trimmedLine.Substring(12).Trim();
+                                }
+                                else if (trimmedLine.StartsWith("Serial Number:"))
+                                {
+                                    currentModule.SerialNumber = trimmedLine.Substring(14).Trim();
+                                }
+                            }
+                        }
+                        
+                        // Add last module if valid
+                        if (inMemoryDevice && !string.IsNullOrEmpty(currentModule.Slot) && currentModule.CapacityGB > 0)
+                        {
+                            modules.Add(currentModule);
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(error) && error.Contains("Permission denied"))
+                    {
+                        Console.WriteLine("dmidecode requires root privileges for detailed memory information");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error running dmidecode for memory: {ex.Message}");
+                }
+
+                // If no modules found via dmidecode, create a generic one based on total memory
+                if (modules.Count == 0 && totalGB > 0)
+                {
+                    modules.Add(new RamModuleDto
+                    {
+                        Slot = "DIMM0",
+                        CapacityGB = totalGB,
+                        SpeedMHz = "Unknown",
+                        Manufacturer = "Unknown",
+                        PartNumber = "Unknown",
+                        SerialNumber = "Unknown"
+                    });
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                totalGB = 4; // Varsayılan değer
+                Console.WriteLine($"Error getting memory info: {ex.Message}");
+            }
+
+            // Fallback values if nothing was found
+            if (totalGB == 0)
+            {
+                totalGB = 4; // Default fallback
+                modules.Clear();
                 modules.Add(new RamModuleDto
                 {
                     Slot = "DIMM0",
@@ -286,15 +403,130 @@ namespace Inventory.Agent.Windows
 
             try
             {
-                // ip addr show komutu kullanılabilir ancak şimdilik basit implementation
-                adapters.Add(new NetworkAdapterDto
+                // Get network interfaces using 'ip addr show' command
+                var process = new Process
                 {
-                    Description = "Unknown Network Adapter",
-                    MacAddress = "00:00:00:00:00:00",
-                    IpAddress = "127.0.0.1"
-                });
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "ip",
+                        Arguments = "addr show",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                string output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+
+                if (process.ExitCode == 0)
+                {
+                    var lines = output.Split('\n');
+                    string currentInterface = "";
+                    string currentMac = "";
+                    string currentIp = "";
+                    
+                    foreach (var line in lines)
+                    {
+                        var trimmedLine = line.Trim();
+                        
+                        // New interface line
+                        if (Char.IsDigit(trimmedLine.FirstOrDefault()) && trimmedLine.Contains(":"))
+                        {
+                            // Save previous interface if we have data
+                            if (!string.IsNullOrEmpty(currentInterface) && currentInterface != "lo")
+                            {
+                                adapters.Add(new NetworkAdapterDto
+                                {
+                                    Description = $"Linux Network Interface {currentInterface}",
+                                    MacAddress = !string.IsNullOrEmpty(currentMac) ? currentMac : "00:00:00:00:00:00",
+                                    IpAddress = !string.IsNullOrEmpty(currentIp) ? currentIp : "N/A"
+                                });
+                            }
+                            
+                            // Reset for new interface
+                            var parts = trimmedLine.Split(':');
+                            if (parts.Length > 1)
+                            {
+                                currentInterface = parts[1].Trim().Split(' ')[0];
+                                currentMac = "";
+                                currentIp = "";
+                            }
+                        }
+                        // Find MAC address
+                        else if (trimmedLine.StartsWith("link/ether"))
+                        {
+                            var parts = trimmedLine.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length > 1)
+                            {
+                                currentMac = parts[1];
+                            }
+                        }
+                        // Find IP address
+                        else if (trimmedLine.StartsWith("inet ") && !trimmedLine.Contains("127.0.0.1"))
+                        {
+                            var parts = trimmedLine.Split(new char[] { ' ', '/' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length > 1)
+                            {
+                                currentIp = parts[1];
+                            }
+                        }
+                    }
+                    
+                    // Add last interface if valid
+                    if (!string.IsNullOrEmpty(currentInterface) && currentInterface != "lo")
+                    {
+                        adapters.Add(new NetworkAdapterDto
+                        {
+                            Description = $"Linux Network Interface {currentInterface}",
+                            MacAddress = !string.IsNullOrEmpty(currentMac) ? currentMac : "00:00:00:00:00:00",
+                            IpAddress = !string.IsNullOrEmpty(currentIp) ? currentIp : "N/A"
+                        });
+                    }
+                }
             }
-            catch
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting network adapters: {ex.Message}");
+            }
+
+            // Fallback - read from /sys/class/net if no adapters found
+            if (adapters.Count == 0)
+            {
+                try
+                {
+                    var interfaces = Directory.GetDirectories("/sys/class/net");
+                    foreach (var interfaceDir in interfaces)
+                    {
+                        var interfaceName = Path.GetFileName(interfaceDir);
+                        if (interfaceName == "lo") continue; // Skip loopback
+                        
+                        string macAddress = "00:00:00:00:00:00";
+                        string description = $"Linux Network Interface {interfaceName}";
+                        
+                        var addressPath = Path.Combine(interfaceDir, "address");
+                        if (File.Exists(addressPath))
+                        {
+                            macAddress = File.ReadAllText(addressPath).Trim();
+                        }
+                        
+                        adapters.Add(new NetworkAdapterDto
+                        {
+                            Description = description,
+                            MacAddress = macAddress,
+                            IpAddress = "N/A"
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error reading network interfaces from /sys: {ex.Message}");
+                }
+            }
+
+            // If still no adapters, add a default one
+            if (adapters.Count == 0)
             {
                 adapters.Add(new NetworkAdapterDto
                 {
@@ -309,8 +541,141 @@ namespace Inventory.Agent.Windows
 
         private static (string MacAddress, string IpAddress) GetLinuxNetworkInfo()
         {
-            // Basit implementasyon - gerçek network bilgilerini almak için daha gelişmiş yöntemler kullanılabilir
-            return ("00:00:00:00:00:00", "127.0.0.1");
+            string macAddress = "";
+            string ipAddress = "";
+
+            try
+            {
+                // Get network interfaces using 'ip addr show' command
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "ip",
+                        Arguments = "addr show",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                string output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+
+                if (process.ExitCode == 0)
+                {
+                    var lines = output.Split('\n');
+                    string currentInterface = "";
+                    
+                    foreach (var line in lines)
+                    {
+                        var trimmedLine = line.Trim();
+                        
+                        // Find interface line (contains 'state UP')
+                        if (trimmedLine.Contains("state UP") && !trimmedLine.Contains("lo:"))
+                        {
+                            // Extract interface name
+                            var parts = trimmedLine.Split(':');
+                            if (parts.Length > 1)
+                            {
+                                currentInterface = parts[1].Trim();
+                            }
+                        }
+                        // Find MAC address line
+                        else if (trimmedLine.StartsWith("link/ether") && !string.IsNullOrEmpty(currentInterface))
+                        {
+                            var parts = trimmedLine.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length > 1 && string.IsNullOrEmpty(macAddress))
+                            {
+                                macAddress = parts[1];
+                            }
+                        }
+                        // Find IP address line
+                        else if (trimmedLine.StartsWith("inet ") && !trimmedLine.Contains("127.0.0.1"))
+                        {
+                            var parts = trimmedLine.Split(new char[] { ' ', '/' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length > 1 && string.IsNullOrEmpty(ipAddress))
+                            {
+                                ipAddress = parts[1];
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting network info: {ex.Message}");
+            }
+
+            // Fallback to reading /sys/class/net if ip command fails
+            if (string.IsNullOrEmpty(macAddress) || string.IsNullOrEmpty(ipAddress))
+            {
+                try
+                {
+                    var interfaces = Directory.GetDirectories("/sys/class/net");
+                    foreach (var interfaceDir in interfaces)
+                    {
+                        var interfaceName = Path.GetFileName(interfaceDir);
+                        if (interfaceName == "lo") continue; // Skip loopback
+                        
+                        var operstatePath = Path.Combine(interfaceDir, "operstate");
+                        if (File.Exists(operstatePath))
+                        {
+                            var operstate = File.ReadAllText(operstatePath).Trim();
+                            if (operstate == "up")
+                            {
+                                // Get MAC address
+                                var addressPath = Path.Combine(interfaceDir, "address");
+                                if (File.Exists(addressPath) && string.IsNullOrEmpty(macAddress))
+                                {
+                                    macAddress = File.ReadAllText(addressPath).Trim();
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Get IP using hostname command if still empty
+                    if (string.IsNullOrEmpty(ipAddress))
+                    {
+                        var process = new Process
+                        {
+                            StartInfo = new ProcessStartInfo
+                            {
+                                FileName = "hostname",
+                                Arguments = "-I",
+                                RedirectStandardOutput = true,
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            }
+                        };
+
+                        process.Start();
+                        string output = process.StandardOutput.ReadToEnd().Trim();
+                        process.WaitForExit();
+
+                        if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
+                        {
+                            // Take first IP address
+                            var ips = output.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (ips.Length > 0)
+                            {
+                                ipAddress = ips[0];
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error reading network info from /sys: {ex.Message}");
+                }
+            }
+
+            // Use fallback values if nothing found
+            if (string.IsNullOrEmpty(macAddress)) macAddress = "00:00:00:00:00:00";
+            if (string.IsNullOrEmpty(ipAddress)) ipAddress = "127.0.0.1";
+
+            return (macAddress, ipAddress);
         }
 
         private static List<GpuInfoDto> GetLinuxGpuInfo()
@@ -319,14 +684,143 @@ namespace Inventory.Agent.Windows
 
             try
             {
-                // lspci komutu veya /proc/driver/nvidia/gpus gibi yöntemler kullanılabilir
-                gpus.Add(new GpuInfoDto
+                // Try using lspci command to get GPU information
+                var process = new Process
                 {
-                    Name = "Unknown GPU",
-                    MemoryGB = null
-                });
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "lspci",
+                        Arguments = "-v",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                string output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+
+                if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
+                {
+                    var lines = output.Split('\n');
+                    string currentDevice = "";
+                    bool isGpu = false;
+                    
+                    foreach (var line in lines)
+                    {
+                        var trimmedLine = line.Trim();
+                        
+                        // New PCI device line
+                        if (!line.StartsWith(" ") && !line.StartsWith("\t") && line.Contains(":"))
+                        {
+                            // Save previous GPU if found
+                            if (isGpu && !string.IsNullOrEmpty(currentDevice))
+                            {
+                                float? memoryGB = null;
+                                
+                                // Try to get memory info for NVIDIA GPUs using nvidia-smi
+                                if (currentDevice.ToLower().Contains("nvidia"))
+                                {
+                                    memoryGB = GetNvidiaGpuMemory();
+                                }
+                                
+                                gpus.Add(new GpuInfoDto
+                                {
+                                    Name = currentDevice,
+                                    MemoryGB = memoryGB
+                                });
+                            }
+                            
+                            // Check if this is a GPU device
+                            if (trimmedLine.ToLower().Contains("vga") || 
+                                trimmedLine.ToLower().Contains("3d") || 
+                                trimmedLine.ToLower().Contains("display"))
+                            {
+                                isGpu = true;
+                                // Extract device name (everything after the first space after the ID)
+                                var parts = trimmedLine.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                                if (parts.Length > 2)
+                                {
+                                    currentDevice = string.Join(" ", parts.Skip(2));
+                                }
+                            }
+                            else
+                            {
+                                isGpu = false;
+                                currentDevice = "";
+                            }
+                        }
+                    }
+                    
+                    // Add last GPU if found
+                    if (isGpu && !string.IsNullOrEmpty(currentDevice))
+                    {
+                        float? memoryGB = null;
+                        
+                        if (currentDevice.ToLower().Contains("nvidia"))
+                        {
+                            memoryGB = GetNvidiaGpuMemory();
+                        }
+                        
+                        gpus.Add(new GpuInfoDto
+                        {
+                            Name = currentDevice,
+                            MemoryGB = memoryGB
+                        });
+                    }
+                }
             }
-            catch
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting GPU info with lspci: {ex.Message}");
+            }
+
+            // Fallback: try reading /proc/driver/nvidia/gpus for NVIDIA cards
+            if (gpus.Count == 0)
+            {
+                try
+                {
+                    if (Directory.Exists("/proc/driver/nvidia/gpus"))
+                    {
+                        var gpuDirs = Directory.GetDirectories("/proc/driver/nvidia/gpus");
+                        foreach (var gpuDir in gpuDirs)
+                        {
+                            var informationPath = Path.Combine(gpuDir, "information");
+                            if (File.Exists(informationPath))
+                            {
+                                var content = File.ReadAllText(informationPath);
+                                var lines = content.Split('\n');
+                                
+                                string gpuName = "NVIDIA GPU";
+                                foreach (var line in lines)
+                                {
+                                    if (line.StartsWith("Model:"))
+                                    {
+                                        gpuName = line.Substring(6).Trim();
+                                        break;
+                                    }
+                                }
+                                
+                                float? memoryGB = GetNvidiaGpuMemory();
+                                
+                                gpus.Add(new GpuInfoDto
+                                {
+                                    Name = gpuName,
+                                    MemoryGB = memoryGB
+                                });
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error reading NVIDIA GPU info: {ex.Message}");
+                }
+            }
+
+            // If no GPUs found, add a placeholder
+            if (gpus.Count == 0)
             {
                 gpus.Add(new GpuInfoDto
                 {
@@ -338,6 +832,42 @@ namespace Inventory.Agent.Windows
             return gpus;
         }
 
+        private static float? GetNvidiaGpuMemory()
+        {
+            try
+            {
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "nvidia-smi",
+                        Arguments = "--query-gpu=memory.total --format=csv,noheader,nounits",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                string output = process.StandardOutput.ReadToEnd().Trim();
+                process.WaitForExit();
+
+                if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
+                {
+                    if (float.TryParse(output, out float memoryMB))
+                    {
+                        return memoryMB / 1024.0f; // Convert MB to GB
+                    }
+                }
+            }
+            catch
+            {
+                // nvidia-smi not available or failed
+            }
+
+            return null;
+        }
+
         private static (string BiosManufacturer, string BiosVersion, string Motherboard, string MotherboardSerial) GetLinuxSystemInfo()
         {
             string biosManufacturer = "Unknown";
@@ -347,12 +877,150 @@ namespace Inventory.Agent.Windows
 
             try
             {
-                // dmidecode komutu kullanılabilir ancak root yetkisi gerekebilir
-                // Şimdilik varsayılan değerler
+                // Try using dmidecode command (requires root privileges on some systems)
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "dmidecode",
+                        Arguments = "-t bios -t baseboard",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+
+                if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
+                {
+                    var lines = output.Split('\n');
+                    string currentSection = "";
+                    
+                    foreach (var line in lines)
+                    {
+                        var trimmedLine = line.Trim();
+                        
+                        if (trimmedLine.StartsWith("BIOS Information"))
+                        {
+                            currentSection = "BIOS";
+                        }
+                        else if (trimmedLine.StartsWith("Base Board Information"))
+                        {
+                            currentSection = "BASEBOARD";
+                        }
+                        else if (currentSection == "BIOS")
+                        {
+                            if (trimmedLine.StartsWith("Vendor:") && biosManufacturer == "Unknown")
+                            {
+                                biosManufacturer = trimmedLine.Substring(7).Trim();
+                            }
+                            else if (trimmedLine.StartsWith("Version:") && biosVersion == "Unknown")
+                            {
+                                biosVersion = trimmedLine.Substring(8).Trim();
+                            }
+                        }
+                        else if (currentSection == "BASEBOARD")
+                        {
+                            if (trimmedLine.StartsWith("Manufacturer:") || trimmedLine.StartsWith("Product Name:"))
+                            {
+                                var value = trimmedLine.Contains(":") ? trimmedLine.Split(':')[1].Trim() : "";
+                                if (!string.IsNullOrEmpty(value) && value != "Unknown" && motherboard == "Unknown")
+                                {
+                                    motherboard = value;
+                                }
+                            }
+                            else if (trimmedLine.StartsWith("Serial Number:") && motherboardSerial == "Unknown")
+                            {
+                                motherboardSerial = trimmedLine.Substring(14).Trim();
+                            }
+                        }
+                    }
+                }
+                else if (!string.IsNullOrEmpty(error) && error.Contains("Permission denied"))
+                {
+                    Console.WriteLine("dmidecode requires root privileges for full system information");
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                // Varsayılan değerler
+                Console.WriteLine($"Error running dmidecode: {ex.Message}");
+            }
+
+            // Fallback: try reading from /sys/class/dmi/id/ (available without root)
+            if (biosManufacturer == "Unknown" || biosVersion == "Unknown" || motherboard == "Unknown")
+            {
+                try
+                {
+                    var dmiPath = "/sys/class/dmi/id/";
+                    
+                    if (biosManufacturer == "Unknown")
+                    {
+                        var biosVendorPath = Path.Combine(dmiPath, "bios_vendor");
+                        if (File.Exists(biosVendorPath))
+                        {
+                            biosManufacturer = File.ReadAllText(biosVendorPath).Trim();
+                        }
+                    }
+                    
+                    if (biosVersion == "Unknown")
+                    {
+                        var biosVersionPath = Path.Combine(dmiPath, "bios_version");
+                        if (File.Exists(biosVersionPath))
+                        {
+                            biosVersion = File.ReadAllText(biosVersionPath).Trim();
+                        }
+                    }
+                    
+                    if (motherboard == "Unknown")
+                    {
+                        var boardVendorPath = Path.Combine(dmiPath, "board_vendor");
+                        var boardNamePath = Path.Combine(dmiPath, "board_name");
+                        
+                        string boardVendor = "";
+                        string boardName = "";
+                        
+                        if (File.Exists(boardVendorPath))
+                        {
+                            boardVendor = File.ReadAllText(boardVendorPath).Trim();
+                        }
+                        
+                        if (File.Exists(boardNamePath))
+                        {
+                            boardName = File.ReadAllText(boardNamePath).Trim();
+                        }
+                        
+                        if (!string.IsNullOrEmpty(boardVendor) && !string.IsNullOrEmpty(boardName))
+                        {
+                            motherboard = $"{boardVendor} {boardName}";
+                        }
+                        else if (!string.IsNullOrEmpty(boardName))
+                        {
+                            motherboard = boardName;
+                        }
+                        else if (!string.IsNullOrEmpty(boardVendor))
+                        {
+                            motherboard = boardVendor;
+                        }
+                    }
+                    
+                    if (motherboardSerial == "Unknown")
+                    {
+                        var boardSerialPath = Path.Combine(dmiPath, "board_serial");
+                        if (File.Exists(boardSerialPath))
+                        {
+                            motherboardSerial = File.ReadAllText(boardSerialPath).Trim();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error reading DMI information from /sys: {ex.Message}");
+                }
             }
 
             return (biosManufacturer, biosVersion, motherboard, motherboardSerial);
@@ -395,16 +1063,172 @@ namespace Inventory.Agent.Windows
 
             try
             {
-                // dpkg, rpm, pacman gibi paket yöneticilerini kontrol et
-                // Şimdilik basit bir implementasyon
-                packages.Add("Package listing requires specific package manager support");
+                // Try different package managers in order of preference
+                
+                // 1. Try dpkg (Debian/Ubuntu)
+                if (TryExecuteCommand("dpkg", "--get-selections", out string dpkgOutput))
+                {
+                    var lines = dpkgOutput.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (!string.IsNullOrWhiteSpace(line) && line.Contains("\tinstall"))
+                        {
+                            var parts = line.Split('\t');
+                            if (parts.Length > 0)
+                            {
+                                packages.Add(parts[0].Trim());
+                            }
+                        }
+                    }
+                    
+                    if (packages.Count > 0)
+                    {
+                        return packages.Take(100).ToList(); // Limit to first 100 packages
+                    }
+                }
+
+                // 2. Try rpm (Red Hat/CentOS/Fedora)
+                if (TryExecuteCommand("rpm", "-qa", out string rpmOutput))
+                {
+                    var lines = rpmOutput.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            packages.Add(line.Trim());
+                        }
+                    }
+                    
+                    if (packages.Count > 0)
+                    {
+                        return packages.Take(100).ToList(); // Limit to first 100 packages
+                    }
+                }
+
+                // 3. Try pacman (Arch Linux)
+                if (TryExecuteCommand("pacman", "-Q", out string pacmanOutput))
+                {
+                    var lines = pacmanOutput.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            packages.Add(line.Trim());
+                        }
+                    }
+                    
+                    if (packages.Count > 0)
+                    {
+                        return packages.Take(100).ToList(); // Limit to first 100 packages
+                    }
+                }
+
+                // 4. Try yum (older Red Hat systems)
+                if (TryExecuteCommand("yum", "list installed", out string yumOutput))
+                {
+                    var lines = yumOutput.Split('\n');
+                    bool installedSection = false;
+                    
+                    foreach (var line in lines)
+                    {
+                        if (line.Contains("Installed Packages"))
+                        {
+                            installedSection = true;
+                            continue;
+                        }
+                        
+                        if (installedSection && !string.IsNullOrWhiteSpace(line) && !line.StartsWith("Loading"))
+                        {
+                            var parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length > 0)
+                            {
+                                packages.Add(parts[0].Trim());
+                            }
+                        }
+                    }
+                    
+                    if (packages.Count > 0)
+                    {
+                        return packages.Take(100).ToList();
+                    }
+                }
+
+                // 5. Try snap packages
+                if (TryExecuteCommand("snap", "list", out string snapOutput))
+                {
+                    var lines = snapOutput.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (!string.IsNullOrWhiteSpace(line) && !line.StartsWith("Name") && !line.StartsWith("core"))
+                        {
+                            var parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length > 0)
+                            {
+                                packages.Add($"snap: {parts[0].Trim()}");
+                            }
+                        }
+                    }
+                }
+
+                // 6. Try flatpak packages
+                if (TryExecuteCommand("flatpak", "list", out string flatpakOutput))
+                {
+                    var lines = flatpakOutput.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            var parts = line.Split('\t');
+                            if (parts.Length > 0)
+                            {
+                                packages.Add($"flatpak: {parts[0].Trim()}");
+                            }
+                        }
+                    }
+                }
+
+                if (packages.Count == 0)
+                {
+                    packages.Add("No package manager found or no packages detected");
+                }
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error getting installed packages: {ex.Message}");
                 packages.Add("Package listing not available");
             }
 
-            return packages;
+            return packages.Take(100).ToList(); // Limit total packages returned
+        }
+
+        private static bool TryExecuteCommand(string fileName, string arguments, out string output)
+        {
+            output = "";
+            try
+            {
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = fileName,
+                        Arguments = arguments,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+
+                return process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static List<string> GetLinuxUsers()
