@@ -125,6 +125,12 @@ Ortak kütüphane bileşenleri.
 
 ## Veri Modelleri
 
+### Veritabanı Yapısı
+
+Aşağıda sistemin veritabanı şema diyagramı yer almaktadır:
+
+![Veritabanı Şeması](img//Database_Schema.png)
+
 ### Device Entity
 
 ```csharp
