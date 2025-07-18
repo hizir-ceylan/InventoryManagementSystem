@@ -2,23 +2,94 @@ using Microsoft.AspNetCore.Mvc;
 using Inventory.Domain.Entities;
 using Inventory.Api.Helpers;
 using Inventory.Api.DTOs;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace Inventory.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [SwaggerTag("Device management operations - supports both agent-installed and network-discovered devices")]
     public class DeviceController : ControllerBase
     {
-        // Ge�ici olarak bellekte cihaz listesi tutuyoruz
+        // Geçici olarak bellekte cihaz listesi tutuyoruz
         private static readonly List<Device> Devices = new();
 
         [HttpGet]
+        [SwaggerOperation(Summary = "Get all devices", Description = "Returns all devices in the inventory")]
+        [SwaggerResponse(200, "Returns the list of devices", typeof(IEnumerable<Device>))]
         public ActionResult<IEnumerable<Device>> GetAll()
         {
             return Ok(Devices);
         }
 
+        [HttpGet("agent-installed")]
+        [SwaggerOperation(Summary = "Get agent-installed devices", Description = "Returns only devices that have the agent installed")]
+        [SwaggerResponse(200, "Returns the list of agent-installed devices", typeof(IEnumerable<Device>))]
+        public ActionResult<IEnumerable<Device>> GetAgentInstalledDevices()
+        {
+            var agentDevices = Devices.Where(d => d.AgentInstalled || d.ManagementType == ManagementType.Agent).ToList();
+            return Ok(agentDevices);
+        }
+
+        [HttpGet("network-discovered")]
+        [SwaggerOperation(Summary = "Get network-discovered devices", Description = "Returns only devices discovered through network scanning")]
+        [SwaggerResponse(200, "Returns the list of network-discovered devices", typeof(IEnumerable<Device>))]
+        public ActionResult<IEnumerable<Device>> GetNetworkDiscoveredDevices()
+        {
+            var networkDevices = Devices.Where(d => !d.AgentInstalled && 
+                (d.ManagementType == ManagementType.NetworkDiscovery || d.DiscoveryMethod == DiscoveryMethod.NetworkDiscovery)).ToList();
+            return Ok(networkDevices);
+        }
+
+        [HttpGet("{id}/available-fields")]
+        [SwaggerOperation(Summary = "Get available fields for a device", Description = "Returns information about which fields are available for a specific device")]
+        [SwaggerResponse(200, "Returns the available fields information")]
+        [SwaggerResponse(404, "Device not found")]
+        public ActionResult<object> GetAvailableFields(Guid id)
+        {
+            var device = Devices.FirstOrDefault(d => d.Id == id);
+            if (device == null)
+                return NotFound();
+
+            var availableFields = new
+            {
+                Device = new
+                {
+                    HasBasicInfo = !string.IsNullOrEmpty(device.Name),
+                    HasIpAddress = !string.IsNullOrEmpty(device.IpAddress),
+                    HasMacAddress = !string.IsNullOrEmpty(device.MacAddress),
+                    HasDeviceType = device.DeviceType != DeviceType.Unknown,
+                    HasModel = !string.IsNullOrEmpty(device.Model),
+                    HasLocation = !string.IsNullOrEmpty(device.Location),
+                    HasManagementType = device.ManagementType != ManagementType.Unknown,
+                    HasDiscoveryMethod = device.DiscoveryMethod != DiscoveryMethod.Unknown
+                },
+                HardwareInfo = new
+                {
+                    Available = device.HardwareInfo != null,
+                    HasCpuInfo = device.HardwareInfo?.Cpu != null,
+                    HasMemoryInfo = device.HardwareInfo?.RamGB > 0,
+                    HasDiskInfo = device.HardwareInfo?.DiskGB > 0,
+                    HasDetailedSpecs = device.HardwareInfo?.RamModules?.Any() == true || device.HardwareInfo?.Disks?.Any() == true
+                },
+                SoftwareInfo = new
+                {
+                    Available = device.SoftwareInfo != null,
+                    HasOperatingSystem = !string.IsNullOrEmpty(device.SoftwareInfo?.OperatingSystem),
+                    HasInstalledApps = device.SoftwareInfo?.InstalledApps?.Any() == true,
+                    HasUsers = device.SoftwareInfo?.Users?.Any() == true
+                },
+                CanEdit = !device.AgentInstalled, // Network discovered devices can be edited
+                CanAssignType = device.DeviceType == DeviceType.Unknown
+            };
+
+            return Ok(availableFields);
+        }
+
         [HttpGet("{id}")]
+        [SwaggerOperation(Summary = "Get device by ID", Description = "Returns a specific device by its ID")]
+        [SwaggerResponse(200, "Returns the device", typeof(Device))]
+        [SwaggerResponse(404, "Device not found")]
         public ActionResult<Device> GetById(Guid id)
         {
             var device = Devices.FirstOrDefault(d => d.Id == id);
@@ -28,6 +99,9 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPost]
+        [SwaggerOperation(Summary = "Create a new device", Description = "Creates a new device in the inventory")]
+        [SwaggerResponse(201, "Device created successfully", typeof(Device))]
+        [SwaggerResponse(400, "Invalid device data")]
         public ActionResult<Device> Create(Device device)
         {
             // Validate device
@@ -51,6 +125,9 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPost("network-discovered")]
+        [SwaggerOperation(Summary = "Create a network-discovered device", Description = "Creates a new device discovered through network scanning")]
+        [SwaggerResponse(201, "Device created successfully", typeof(Device))]
+        [SwaggerResponse(400, "Invalid device data")]
         public ActionResult<Device> CreateNetworkDiscoveredDevice(NetworkDeviceRegistrationDto deviceDto)
         {
             // Create device from DTO
@@ -95,6 +172,10 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPost("register-by-ip-mac")]
+        [SwaggerOperation(Summary = "Register or update device by IP/MAC", Description = "Registers a new device or updates an existing one based on IP or MAC address")]
+        [SwaggerResponse(200, "Device updated successfully", typeof(Device))]
+        [SwaggerResponse(201, "Device created successfully", typeof(Device))]
+        [SwaggerResponse(400, "Invalid device data")]
         public ActionResult<Device> RegisterOrUpdateByIpMac(NetworkDeviceRegistrationDto deviceDto)
         {
             // Find existing device by IP or MAC
@@ -128,13 +209,17 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [SwaggerOperation(Summary = "Update a device", Description = "Updates an existing device")]
+        [SwaggerResponse(204, "Device updated successfully")]
+        [SwaggerResponse(404, "Device not found")]
+        [SwaggerResponse(400, "Invalid device data")]
         public IActionResult Update(Guid id, Device updatedDevice)
         {
             var device = Devices.FirstOrDefault(d => d.Id == id);
             if (device == null)
                 return NotFound();
 
-            // Basit g�ncelleme
+            // Basit güncelleme
             device.Name = updatedDevice.Name;
             device.MacAddress = updatedDevice.MacAddress;
             device.IpAddress = updatedDevice.IpAddress;
@@ -152,7 +237,74 @@ namespace Inventory.Api.Controllers
             return NoContent();
         }
 
+        [HttpPut("{id}/device-type")]
+        [SwaggerOperation(Summary = "Assign device type", Description = "Assigns a device type to a network-discovered device")]
+        [SwaggerResponse(204, "Device type assigned successfully")]
+        [SwaggerResponse(404, "Device not found")]
+        [SwaggerResponse(400, "Invalid request")]
+        public IActionResult AssignDeviceType(Guid id, [FromBody] DeviceType deviceType)
+        {
+            var device = Devices.FirstOrDefault(d => d.Id == id);
+            if (device == null)
+                return NotFound();
+
+            // Only allow type assignment for network-discovered devices
+            if (device.AgentInstalled)
+                return BadRequest(new { error = "Device type cannot be changed for agent-installed devices." });
+
+            device.DeviceType = deviceType;
+            device.LastSeen = DateTime.UtcNow;
+
+            return NoContent();
+        }
+
+        [HttpPut("{id}/network-discovered")]
+        [SwaggerOperation(Summary = "Update network-discovered device", Description = "Updates a network-discovered device")]
+        [SwaggerResponse(204, "Device updated successfully")]
+        [SwaggerResponse(404, "Device not found")]
+        [SwaggerResponse(400, "Invalid request")]
+        public IActionResult UpdateNetworkDiscoveredDevice(Guid id, [FromBody] NetworkDeviceRegistrationDto updateDto)
+        {
+            var device = Devices.FirstOrDefault(d => d.Id == id);
+            if (device == null)
+                return NotFound();
+
+            // Only allow updates for network-discovered devices
+            if (device.AgentInstalled)
+                return BadRequest(new { error = "Agent-installed devices cannot be updated through this endpoint." });
+
+            // Update only provided fields
+            if (!string.IsNullOrEmpty(updateDto.Name))
+                device.Name = updateDto.Name;
+            if (!string.IsNullOrEmpty(updateDto.IpAddress))
+                device.IpAddress = updateDto.IpAddress;
+            if (!string.IsNullOrEmpty(updateDto.MacAddress))
+                device.MacAddress = updateDto.MacAddress;
+            if (updateDto.DeviceType != DeviceType.Unknown)
+                device.DeviceType = updateDto.DeviceType;
+            if (!string.IsNullOrEmpty(updateDto.Model))
+                device.Model = updateDto.Model;
+            if (!string.IsNullOrEmpty(updateDto.Location))
+                device.Location = updateDto.Location;
+            if (updateDto.ManagementType != ManagementType.Unknown)
+                device.ManagementType = updateDto.ManagementType;
+
+            device.LastSeen = DateTime.UtcNow;
+
+            // Validate updated device
+            var validationErrors = DeviceValidator.ValidateDevice(device);
+            if (validationErrors.Any())
+            {
+                return BadRequest(new { errors = validationErrors });
+            }
+
+            return NoContent();
+        }
+
         [HttpDelete("{id}")]
+        [SwaggerOperation(Summary = "Delete a device", Description = "Deletes a device from the inventory")]
+        [SwaggerResponse(204, "Device deleted successfully")]
+        [SwaggerResponse(404, "Device not found")]
         public IActionResult Delete(Guid id)
         {
             var device = Devices.FirstOrDefault(d => d.Id == id);
