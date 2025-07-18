@@ -16,5 +16,11 @@ namespace Inventory.Domain.Entities
         public List<ChangeLog> ChangeLogs { get; set; }
         public DeviceHardwareInfo HardwareInfo { get; set; }
         public DeviceSoftwareInfo SoftwareInfo { get; set; }
+        
+        // Agent/Agentless distinction fields
+        public bool AgentInstalled { get; set; }
+        public ManagementType ManagementType { get; set; }
+        public DiscoveryMethod DiscoveryMethod { get; set; }
+        public DateTime? LastSeen { get; set; }
     }
 }
