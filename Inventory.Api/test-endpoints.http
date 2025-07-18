@@ -1,0 +1,91 @@
+### Network Device Registration API Tests
+
+# Test 1: Register a network device
+POST http://localhost:5093/api/device/network-discovered
+Content-Type: application/json
+
+{
+  "name": "Router-Main",
+  "ipAddress": "192.168.1.1",
+  "macAddress": "00:11:22:33:44:55",
+  "deviceType": 9,
+  "model": "Cisco ISR 4321",
+  "location": "Server Room",
+  "managementType": 4,
+  "agentInstalled": false
+}
+
+###
+
+# Test 2: Register/Update device by IP/MAC
+POST http://localhost:5093/api/device/register-by-ip-mac
+Content-Type: application/json
+
+{
+  "name": "Switch-Core",
+  "ipAddress": "192.168.1.10",
+  "macAddress": "00:11:22:33:44:66",
+  "deviceType": 10,
+  "model": "HP ProCurve 2920",
+  "location": "Network Closet",
+  "managementType": 2,
+  "agentInstalled": false
+}
+
+###
+
+# Test 3: IP Phone with validation
+POST http://localhost:5093/api/device/network-discovered
+Content-Type: application/json
+
+{
+  "name": "IP Phone 1",
+  "ipAddress": "192.168.1.200",
+  "macAddress": "00:11:22:33:44:77",
+  "deviceType": 7,
+  "model": "Cisco IP Phone 8841",
+  "location": "Office",
+  "managementType": 2,
+  "agentInstalled": false
+}
+
+###
+
+# Test 4: Validation error test (IP Phone without IP)
+POST http://localhost:5093/api/device/network-discovered
+Content-Type: application/json
+
+{
+  "name": "IP Phone 2",
+  "macAddress": "00:11:22:33:44:88",
+  "deviceType": 7,
+  "model": "Cisco IP Phone 8841",
+  "managementType": 2,
+  "agentInstalled": false
+}
+
+###
+
+# Test 5: Get all devices
+GET http://localhost:5093/api/device
+
+###
+
+# Test 6: Create regular device with agent
+POST http://localhost:5093/api/device
+Content-Type: application/json
+
+{
+  "name": "Laptop-001",
+  "ipAddress": "192.168.1.100",
+  "macAddress": "00:11:22:33:44:99",
+  "deviceType": 1,
+  "model": "Dell Latitude 5520",
+  "location": "Office",
+  "status": 1,
+  "agentInstalled": true,
+  "managementType": 1,
+  "discoveryMethod": 2
+}
+
+###
