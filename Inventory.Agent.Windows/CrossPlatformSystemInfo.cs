@@ -7,6 +7,7 @@ using System.Management;
 using LibreHardwareMonitor.Hardware;
 using Inventory.Agent.Windows.Models;
 using System.Linq;
+using Inventory.Domain.Entities;
 
 namespace Inventory.Agent.Windows
 {
@@ -43,7 +44,7 @@ namespace Inventory.Agent.Windows
             var device = new DeviceDto
             {
                 Name = Environment.MachineName,
-                DeviceType = "PC",
+                DeviceType = DeviceType.Desktop,
                 Location = "Unknown",
                 Status = 1,
                 ChangeLogs = new List<ChangeLogDto>
@@ -1487,7 +1488,7 @@ namespace Inventory.Agent.Windows
                 Name = Environment.MachineName,
                 MacAddress = macAddress,
                 IpAddress = ipAddress,
-                DeviceType = "PC",
+                DeviceType = DeviceType.Desktop,
                 Model = motherboardModel,
                 Location = "Ev",
                 Status = 1,

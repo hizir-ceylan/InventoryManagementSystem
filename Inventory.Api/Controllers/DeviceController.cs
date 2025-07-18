@@ -7,7 +7,7 @@ namespace Inventory.Api.Controllers
     [Route("api/[controller]")]
     public class DeviceController : ControllerBase
     {
-        // Geçici olarak bellekte cihaz listesi tutuyoruz
+        // Geï¿½ici olarak bellekte cihaz listesi tutuyoruz
         private static readonly List<Device> Devices = new();
 
         [HttpGet]
@@ -33,6 +33,23 @@ namespace Inventory.Api.Controllers
             return CreatedAtAction(nameof(GetById), new { id = device.Id }, device);
         }
 
+        [HttpPost("network-discovered")]
+        public ActionResult<Device> CreateNetworkDiscoveredDevice(Device device)
+        {
+            // Set specific properties for network-discovered devices
+            device.Id = Guid.NewGuid();
+            
+            // Mark as network-discovered device
+            if (device.Location == "Network Discovery")
+            {
+                // Additional logic for network-discovered devices
+                Console.WriteLine($"Network-discovered device: {device.Name} ({device.IpAddress})");
+            }
+            
+            Devices.Add(device);
+            return CreatedAtAction(nameof(GetById), new { id = device.Id }, device);
+        }
+
         [HttpPut("{id}")]
         public IActionResult Update(Guid id, Device updatedDevice)
         {
@@ -40,7 +57,7 @@ namespace Inventory.Api.Controllers
             if (device == null)
                 return NotFound();
 
-            // Basit güncelleme
+            // Basit gï¿½ncelleme
             device.Name = updatedDevice.Name;
             device.MacAddress = updatedDevice.MacAddress;
             device.IpAddress = updatedDevice.IpAddress;
