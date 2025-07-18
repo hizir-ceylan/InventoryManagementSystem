@@ -14,10 +14,12 @@ namespace Inventory.Agent.Windows
     public class NetworkScanner
     {
         private readonly string _networkRange;
+        private readonly CentralizedLogger _logger;
 
         public NetworkScanner(string networkRange = "192.168.1.0/24")
         {
             _networkRange = networkRange;
+            _logger = new CentralizedLogger("https://localhost:5001", "NetworkScanner");
         }
 
         public async Task<List<DeviceDto>> ScanNetworkAsync()
@@ -25,20 +27,31 @@ namespace Inventory.Agent.Windows
             var devices = new List<DeviceDto>();
             var tasks = new List<Task<DeviceDto?>>();
 
-            // Parse network range and create IP addresses to scan
-            var ipAddresses = GetIPAddressesFromRange(_networkRange);
-
-            foreach (var ip in ipAddresses)
+            try
             {
-                tasks.Add(ScanHostAsync(ip));
+                await _logger.LogInfoAsync($"Starting network scan for range: {_networkRange}");
+
+                // Parse network range and create IP addresses to scan
+                var ipAddresses = GetIPAddressesFromRange(_networkRange);
+
+                foreach (var ip in ipAddresses)
+                {
+                    tasks.Add(ScanHostAsync(ip));
+                }
+
+                var results = await Task.WhenAll(tasks);
+                
+                // Filter out null results
+                devices.AddRange(results.Where(device => device != null)!);
+
+                await _logger.LogInfoAsync($"Network scan completed. Found {devices.Count} devices");
+                return devices;
             }
-
-            var results = await Task.WhenAll(tasks);
-            
-            // Filter out null results
-            devices.AddRange(results.Where(device => device != null)!);
-
-            return devices;
+            catch (Exception ex)
+            {
+                await _logger.LogErrorAsync($"Network scan failed", ex);
+                throw;
+            }
         }
 
         private async Task<DeviceDto?> ScanHostAsync(IPAddress ipAddress)
@@ -56,7 +69,7 @@ namespace Inventory.Agent.Windows
                         var manufacturer = OuiLookup.GetManufacturer(macAddress);
                         var deviceType = OuiLookup.GuessDeviceType(macAddress, manufacturer);
 
-                        return new DeviceDto
+                        var device = new DeviceDto
                         {
                             Name = await GetHostNameAsync(ipAddress),
                             IpAddress = ipAddress.ToString(),
@@ -68,15 +81,19 @@ namespace Inventory.Agent.Windows
                             Location = "Network Discovery",
                             Model = "Unknown",
                             ChangeLogs = new List<ChangeLogDto>(),
-                            HardwareInfo = null,
-                            SoftwareInfo = null
+                            HardwareInfo = null, // Network discovered devices don't have hardware info
+                            SoftwareInfo = null  // Network discovered devices don't have software info
                         };
+
+                        await _logger.LogInfoAsync($"Device discovered: {device.Name} ({device.IpAddress}) - {device.Manufacturer}");
+                        return device;
                     }
                 }
             }
             catch (Exception ex)
             {
                 // Log error but don't throw - continue scanning other hosts
+                await _logger.LogWarningAsync($"Error scanning {ipAddress}: {ex.Message}");
                 Console.WriteLine($"Error scanning {ipAddress}: {ex.Message}");
             }
 

@@ -10,11 +10,13 @@ namespace Inventory.Agent.Windows
     {
         private readonly NetworkScanner _networkScanner;
         private readonly string _apiBaseUrl;
+        private readonly CentralizedLogger _logger;
 
         public NetworkDiscoveryReporter(string apiBaseUrl = "https://localhost:5001/api/devices", string networkRange = "192.168.1.0/24")
         {
             _networkScanner = new NetworkScanner(networkRange);
             _apiBaseUrl = apiBaseUrl;
+            _logger = new CentralizedLogger(apiBaseUrl.Replace("/api/devices", ""), "NetworkDiscoveryReporter");
         }
 
         public async Task<bool> DiscoverAndReportDevicesAsync()
@@ -22,11 +24,13 @@ namespace Inventory.Agent.Windows
             try
             {
                 Console.WriteLine("Starting network discovery...");
+                await _logger.LogInfoAsync("Starting network discovery");
                 
                 // Scan network for devices
                 var discoveredDevices = await _networkScanner.ScanNetworkAsync();
                 
                 Console.WriteLine($"Found {discoveredDevices.Count} devices on the network.");
+                await _logger.LogInfoAsync($"Found {discoveredDevices.Count} devices on the network");
 
                 // Report each device to the API
                 var successCount = 0;
@@ -36,15 +40,24 @@ namespace Inventory.Agent.Windows
                     {
                         Console.WriteLine($"Reporting device: {device.Name} ({device.IpAddress}) - {device.Manufacturer}");
                         
+                        // Ensure proper null/empty field handling
+                        device.HardwareInfo = null; // Network discovered devices don't have hardware info
+                        device.SoftwareInfo = null; // Network discovered devices don't have software info
+                        device.ChangeLogs = device.ChangeLogs ?? new List<ChangeLogDto>();
+                        device.Model = string.IsNullOrEmpty(device.Model) ? "Unknown" : device.Model;
+                        device.Location = string.IsNullOrEmpty(device.Location) ? "Network Discovery" : device.Location;
+                        
                         var success = await ApiClient.PostDeviceAsync(device, _apiBaseUrl);
                         if (success)
                         {
                             successCount++;
                             Console.WriteLine($"✓ Successfully reported {device.Name}");
+                            await _logger.LogInfoAsync($"Successfully reported device: {device.Name} ({device.IpAddress})");
                         }
                         else
                         {
                             Console.WriteLine($"✗ Failed to report {device.Name}");
+                            await _logger.LogWarningAsync($"Failed to report device: {device.Name} ({device.IpAddress})");
                         }
                     }
                     catch (Exception ex)

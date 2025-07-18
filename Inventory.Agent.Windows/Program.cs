@@ -61,8 +61,12 @@ namespace Inventory.Agent.Windows
 
         static async Task RunNetworkDiscoveryAsync()
         {
+            CentralizedLogger logger = null;
             try
             {
+                logger = new CentralizedLogger("https://localhost:7296", "Agent.NetworkDiscovery");
+                await logger.LogInfoAsync("Starting network discovery mode");
+                
                 Console.WriteLine("Network Discovery Mode");
                 Console.WriteLine("=====================");
                 
@@ -78,15 +82,25 @@ namespace Inventory.Agent.Windows
                 if (success)
                 {
                     Console.WriteLine("\n✓ Network discovery completed successfully!");
+                    await logger.LogInfoAsync("Network discovery completed successfully");
                 }
                 else
                 {
                     Console.WriteLine("\n✗ Network discovery failed or found no devices.");
+                    await logger.LogWarningAsync("Network discovery failed or found no devices");
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Network discovery error: {ex.Message}");
+                if (logger != null)
+                {
+                    await logger.LogErrorAsync("Network discovery error", ex);
+                }
+            }
+            finally
+            {
+                logger?.Dispose();
             }
         }
     }

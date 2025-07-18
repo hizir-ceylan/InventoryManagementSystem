@@ -1,4 +1,7 @@
 
+using Inventory.Api.Services;
+using Inventory.Api.BackgroundServices;
+
 namespace Inventory.Api
 {
     public class Program
@@ -8,11 +11,28 @@ namespace Inventory.Api
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers();
+            
+            // Register custom services
+            builder.Services.AddScoped<INetworkScanService, NetworkScanService>();
+            builder.Services.AddScoped<IDeviceService, DeviceService>();
+            builder.Services.AddSingleton<ICentralizedLoggingService, CentralizedLoggingService>();
+            
+            // Register background services
+            builder.Services.AddHostedService<NetworkScanBackgroundService>();
+            
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+                {
+                    Title = "Inventory Management System API",
+                    Version = "v1",
+                    Description = "API for managing inventory devices with support for both agent-installed and network-discovered devices"
+                });
+                c.EnableAnnotations();
+            });
 
             var app = builder.Build();
 
@@ -20,13 +40,16 @@ namespace Inventory.Api
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
-                app.UseSwaggerUI();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Inventory Management System API v1");
+                    c.RoutePrefix = string.Empty; // Makes Swagger UI available at the root
+                });
             }
 
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
