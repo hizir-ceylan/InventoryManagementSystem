@@ -330,7 +330,6 @@ namespace Inventory.Shared.Utils
             {"00:1D:09", "Dell"},
             {"00:1E:4F", "Dell"},
             {"00:1F:C6", "Dell"},
-            {"00:21:70", "Dell"},
             {"00:21:9B", "Dell"},
             {"00:22:19", "Dell"},
             {"00:23:AE", "Dell"},
