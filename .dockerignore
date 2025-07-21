@@ -1,0 +1,59 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+**/Dockerfile*
+**/docker-compose*
+**/.dockerignore
+
+# Documentation
+README*.md
+**/*.md
+docs/
+
+# IDE
+.vscode/
+.vs/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+**/publish/
+
+# Test results
+TestResults/
+**/*.trx
+
+# Logs
+**/logs/
+**/*.log
+**/ApiLogs/
+**/LocalLogs/
+
+# Data files
+**/Data/
+**/*.db
+**/*.sqlite
+
+# Temporary files
+**/tmp/
+**/temp/
+
+# Package files
+*.nupkg
+*.snupkg
+
+# Local development files
+appsettings.local.json
+*.user
+*.suo
