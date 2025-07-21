@@ -1,6 +1,7 @@
 
 using Inventory.Api.Services;
 using Inventory.Api.BackgroundServices;
+using Inventory.Api.Middleware;
 
 namespace Inventory.Api
 {
@@ -15,6 +16,7 @@ namespace Inventory.Api
             
             // Register custom services
             builder.Services.AddScoped<INetworkScanService, NetworkScanService>();
+            builder.Services.AddScoped<INetworkScannerService, NetworkScannerService>();
             builder.Services.AddScoped<IDeviceService, DeviceService>();
             builder.Services.AddSingleton<ICentralizedLoggingService, CentralizedLoggingService>();
             
@@ -46,6 +48,9 @@ namespace Inventory.Api
                     c.RoutePrefix = string.Empty; // Makes Swagger UI available at the root
                 });
             }
+
+            // Add request logging middleware
+            app.UseMiddleware<RequestLoggingMiddleware>();
 
             app.UseHttpsRedirection();
 
