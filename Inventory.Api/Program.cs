@@ -2,6 +2,8 @@
 using Inventory.Api.Services;
 using Inventory.Api.BackgroundServices;
 using Inventory.Api.Middleware;
+using Inventory.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Inventory.Api
 {
@@ -10,6 +12,27 @@ namespace Inventory.Api
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // Add database context
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                // Default to SQLite if no connection string is provided
+                connectionString = "Data Source=inventory.db";
+            }
+
+            if (connectionString.Contains("Data Source"))
+            {
+                // SQLite
+                builder.Services.AddDbContext<InventoryDbContext>(options =>
+                    options.UseSqlite(connectionString));
+            }
+            else
+            {
+                // SQL Server
+                builder.Services.AddDbContext<InventoryDbContext>(options =>
+                    options.UseSqlServer(connectionString));
+            }
 
             // Add services to the container.
             builder.Services.AddControllers();
@@ -36,23 +59,45 @@ namespace Inventory.Api
                 c.EnableAnnotations();
             });
 
+            // Add CORS support for Docker environment
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    builder =>
+                    {
+                        builder
+                            .AllowAnyOrigin()
+                            .AllowAnyMethod()
+                            .AllowAnyHeader();
+                    });
+            });
+
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            // Ensure database is created
+            using (var scope = app.Services.CreateScope())
             {
-                app.UseSwagger();
-                app.UseSwaggerUI(c =>
-                {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Inventory Management System API v1");
-                    c.RoutePrefix = string.Empty; // Makes Swagger UI available at the root
-                });
+                var context = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+                context.Database.EnsureCreated();
             }
+
+            // Configure the HTTP request pipeline.
+            // Enable Swagger in all environments for Docker testing
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Inventory Management System API v1");
+                c.RoutePrefix = string.Empty; // Makes Swagger UI available at the root
+            });
+
+            // Enable CORS
+            app.UseCors("AllowAll");
 
             // Add request logging middleware
             app.UseMiddleware<RequestLoggingMiddleware>();
 
-            app.UseHttpsRedirection();
+            // Remove HTTPS redirection for Docker environment
+            // app.UseHttpsRedirection();
 
             app.UseAuthorization();
 

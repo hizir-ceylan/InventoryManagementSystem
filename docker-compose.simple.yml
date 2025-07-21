@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # Inventory Management API - Simple SQLite version for testing
+  inventory-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventory-api-simple
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Data Source=/app/Data/inventory.db
+    volumes:
+      - ./Data/ApiLogs:/app/ApiLogs
+      - ./Data/SQLite:/app/Data
+    networks:
+      - inventory-network
+
+  # Test Agent Container (for testing purposes)
+  inventory-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: inventory-agent-test
+    restart: "no"
+    environment:
+      - ApiSettings__BaseUrl=http://inventory-api:5000
+      - ApiSettings__Timeout=30
+      - ApiSettings__RetryCount=3
+    volumes:
+      - ./Data/AgentLogs:/app/LocalLogs
+    depends_on:
+      - inventory-api
+    networks:
+      - inventory-network
+
+networks:
+  inventory-network:
+    driver: bridge

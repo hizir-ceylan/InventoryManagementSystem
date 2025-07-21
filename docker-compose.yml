@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # Inventory Management API
+  inventory-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventory-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InventoryDB;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=true;
+    volumes:
+      - ./Data/ApiLogs:/app/ApiLogs
+      - ./Data/SQLite:/app/Data
+    depends_on:
+      - sqlserver
+    networks:
+      - inventory-network
+
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: inventory-sqlserver
+    restart: unless-stopped
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Password123
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./database/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - inventory-network
+
+  # Alternative: PostgreSQL Database (uncomment if preferred over SQL Server)
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: inventory-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: inventorydb
+  #     POSTGRES_USER: inventoryuser
+  #     POSTGRES_PASSWORD: YourStrong@Password123
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./database/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
+  #   networks:
+  #     - inventory-network
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: inventory-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - inventory-network
+
+  # Nginx reverse proxy (optional for production)
+  nginx:
+    image: nginx:alpine
+    container_name: inventory-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - inventory-api
+    networks:
+      - inventory-network
+
+volumes:
+  sqlserver_data:
+    driver: local
+  # postgres_data:
+  #   driver: local
+  redis_data:
+    driver: local
+
+networks:
+  inventory-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

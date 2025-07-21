@@ -11,6 +11,24 @@
 *.sln.docstates
 *.env
 
+# Docker data directories
+Data/
+data/
+**/Data/
+**/data/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+logs/
+**/logs/
+*.log
+**/ApiLogs/
+**/LocalLogs/
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
