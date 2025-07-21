@@ -5,6 +5,7 @@ using Inventory.Agent.Windows.Models;
 using System.Collections.Generic;
 using LibreHardwareMonitor.Hardware;
 using System.Runtime.InteropServices;
+using Inventory.Agent.Windows.Configuration;
 
 namespace Inventory.Agent.Windows
 {
@@ -12,10 +13,13 @@ namespace Inventory.Agent.Windows
     {
         static async Task Main(string[] args)
         {
+            var apiSettings = ApiSettings.LoadFromEnvironment();
+            
             try
             {
                 Console.WriteLine("Inventory Management System - Agent");
                 Console.WriteLine("===================================");
+                Console.WriteLine($"API Base URL: {apiSettings.BaseUrl}");
                 
                 // Check for network discovery argument
                 bool networkDiscovery = args.Length > 0 && args[0].ToLower() == "network";
@@ -23,12 +27,12 @@ namespace Inventory.Agent.Windows
                 if (networkDiscovery)
                 {
                     Console.WriteLine("Starting network discovery...");
-                    await RunNetworkDiscoveryAsync();
+                    await RunNetworkDiscoveryAsync(apiSettings);
                 }
                 else
                 {
                     Console.WriteLine("Starting local system inventory...");
-                    await RunLocalInventoryAsync();
+                    await RunLocalInventoryAsync(apiSettings);
                 }
             }
             catch (PlatformNotSupportedException ex)
@@ -41,11 +45,37 @@ namespace Inventory.Agent.Windows
                 Console.WriteLine($"Bir hata oluştu: {ex.Message}");
             }
 
-            Console.WriteLine("\nİşlem tamamlandı. Çıkmak için bir tuşa basın.");
-            Console.ReadKey();
+            Console.WriteLine("\nİşlem tamamlandı.");
+            
+            // Only wait for key press if running interactively (not in Docker)
+            if (IsRunningInteractively())
+            {
+                Console.WriteLine("Çıkmak için bir tuşa basın.");
+                Console.ReadKey();
+            }
+            else
+            {
+                Console.WriteLine("Agent execution completed.");
+            }
+        }
+        
+        /// <summary>
+        /// Checks if the application is running in an interactive environment
+        /// </summary>
+        private static bool IsRunningInteractively()
+        {
+            try
+            {
+                // Check if console input is available and not redirected
+                return Environment.UserInteractive && !Console.IsInputRedirected;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
-        static async Task RunLocalInventoryAsync()
+        static async Task RunLocalInventoryAsync(ApiSettings apiSettings)
         {
             // Çapraz platform sistem bilgilerini topla
             var device = CrossPlatformSystemInfo.GatherSystemInformation();
@@ -54,17 +84,17 @@ namespace Inventory.Agent.Windows
             DeviceLogger.LogDevice(device);
 
             // --- API'ye gönder ---
-            string apiUrl = "https://localhost:7296/api/device";
+            string apiUrl = apiSettings.GetDeviceEndpoint();
             bool success = await ApiClient.PostDeviceAsync(device, apiUrl);
             Console.WriteLine(success ? "Cihaz başarıyla API'ye gönderildi!" : "Gönderim başarısız.");
         }
 
-        static async Task RunNetworkDiscoveryAsync()
+        static async Task RunNetworkDiscoveryAsync(ApiSettings apiSettings)
         {
             CentralizedLogger logger = null;
             try
             {
-                logger = new CentralizedLogger("https://localhost:7296", "Agent.NetworkDiscovery");
+                logger = new CentralizedLogger(apiSettings.BaseUrl, "Agent.NetworkDiscovery");
                 await logger.LogInfoAsync("Starting network discovery mode");
                 
                 Console.WriteLine("Network Discovery Mode");
@@ -72,7 +102,7 @@ namespace Inventory.Agent.Windows
                 
                 // Initialize network discovery reporter
                 var reporter = new NetworkDiscoveryReporter(
-                    apiBaseUrl: "https://localhost:7296/api/devices/network-discovered",
+                    apiBaseUrl: apiSettings.GetNetworkDiscoveryEndpoint(),
                     networkRange: "192.168.1.0/24"
                 );
 
