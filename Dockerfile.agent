@@ -35,8 +35,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     dmidecode \
     lshw \
-    lscpu \
-    lsblk \
+    util-linux \
     pciutils \
     usbutils \
     hdparm \
