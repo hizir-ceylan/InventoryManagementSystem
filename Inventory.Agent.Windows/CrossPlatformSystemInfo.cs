@@ -45,6 +45,7 @@ namespace Inventory.Agent.Windows
             {
                 Name = Environment.MachineName,
                 DeviceType = DeviceType.Desktop,
+                Model = "Unknown Linux System", // Fix: Set default model
                 Location = "Unknown",
                 Status = 1,
                 ChangeLogs = new List<ChangeLogDto>
@@ -72,6 +73,20 @@ namespace Inventory.Agent.Windows
             var networkInfo = GetLinuxNetworkInfo();
             device.MacAddress = networkInfo.MacAddress;
             device.IpAddress = networkInfo.IpAddress;
+
+            // Try to get actual model from DMI if available
+            try
+            {
+                var dmiModel = GetLinuxDmiInfo("product_name");
+                if (!string.IsNullOrWhiteSpace(dmiModel))
+                {
+                    device.Model = dmiModel;
+                }
+            }
+            catch
+            {
+                // Keep default model if DMI read fails
+            }
 
             return device;
         }
@@ -109,6 +124,7 @@ namespace Inventory.Agent.Windows
                 var systemInfo = GetLinuxSystemInfo();
                 hardware.BiosManufacturer = systemInfo.BiosManufacturer;
                 hardware.BiosVersion = systemInfo.BiosVersion;
+                hardware.BiosSerial = systemInfo.BiosSerial ?? "Unknown"; // Fix: Add BiosSerial
                 hardware.Motherboard = systemInfo.Motherboard;
                 hardware.MotherboardSerial = systemInfo.MotherboardSerial;
             }
@@ -133,6 +149,7 @@ namespace Inventory.Agent.Windows
                 software.OsArchitecture = RuntimeInformation.OSArchitecture.ToString();
                 software.RegisteredUser = Environment.UserName;
                 software.ActiveUser = Environment.UserName;
+                software.SerialNumber = GetLinuxSerialNumber(); // Fix: Add SerialNumber
 
                 // Yüklü paketler
                 software.InstalledApps = GetLinuxInstalledPackages();
@@ -149,9 +166,53 @@ namespace Inventory.Agent.Windows
                 software.InstalledApps = new List<string> { "Paket listesi alınamadı." };
                 software.Users = new List<string> { Environment.UserName };
                 software.Updates = new List<string>();
+                software.SerialNumber = "Unknown"; // Fix: Set default SerialNumber
             }
 
             return software;
+        }
+
+        private static string GetLinuxSerialNumber()
+        {
+            try
+            {
+                // Try to get serial number from DMI
+                var serialNumber = GetLinuxDmiInfo("product_serial");
+                if (!string.IsNullOrWhiteSpace(serialNumber))
+                {
+                    return serialNumber;
+                }
+                
+                // Try machine-id as fallback
+                if (File.Exists("/etc/machine-id"))
+                {
+                    return File.ReadAllText("/etc/machine-id").Trim();
+                }
+                
+                // Generate a unique identifier based on hostname
+                return $"LINUX-{Environment.MachineName}-{DateTime.UtcNow:yyyyMM}";
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        private static string GetLinuxDmiInfo(string key)
+        {
+            try
+            {
+                var dmiPath = $"/sys/class/dmi/id/{key}";
+                if (File.Exists(dmiPath))
+                {
+                    return File.ReadAllText(dmiPath).Trim();
+                }
+            }
+            catch
+            {
+                // Ignore DMI read errors
+            }
+            return "";
         }
 
         private static (string Name, int Cores, int LogicalCores, int ClockMHz) GetLinuxCpuInfo()
@@ -869,10 +930,11 @@ namespace Inventory.Agent.Windows
             return null;
         }
 
-        private static (string BiosManufacturer, string BiosVersion, string Motherboard, string MotherboardSerial) GetLinuxSystemInfo()
+        private static (string BiosManufacturer, string BiosVersion, string BiosSerial, string Motherboard, string MotherboardSerial) GetLinuxSystemInfo()
         {
             string biosManufacturer = "Unknown";
             string biosVersion = "Unknown";
+            string biosSerial = "Unknown"; // Fix: Add BiosSerial
             string motherboard = "Unknown";
             string motherboardSerial = "Unknown";
 
@@ -1024,7 +1086,7 @@ namespace Inventory.Agent.Windows
                 }
             }
 
-            return (biosManufacturer, biosVersion, motherboard, motherboardSerial);
+            return (biosManufacturer, biosVersion, biosSerial, motherboard, motherboardSerial);
         }
 
         private static (string Name, string Version) GetLinuxOsInfo()
