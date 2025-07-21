@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Inventory Management API - Simple SQLite version for testing
   inventory-api:
