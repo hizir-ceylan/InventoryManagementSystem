@@ -27,6 +27,55 @@ namespace Inventory.Data
                 entity.Property(e => e.Location).HasMaxLength(200);
                 entity.HasIndex(e => e.MacAddress);
                 entity.HasIndex(e => e.IpAddress);
+
+                // Configure DeviceHardwareInfo as owned entity
+                entity.OwnsOne(e => e.HardwareInfo, hardware =>
+                {
+                    hardware.Property(h => h.Cpu).HasMaxLength(200);
+                    hardware.Property(h => h.Motherboard).HasMaxLength(200);
+                    hardware.Property(h => h.MotherboardSerial).HasMaxLength(100);
+                    hardware.Property(h => h.BiosManufacturer).HasMaxLength(100);
+                    hardware.Property(h => h.BiosVersion).HasMaxLength(100);
+                    hardware.Property(h => h.BiosSerial).HasMaxLength(100);
+                    
+                    // Configure nested collections as owned
+                    hardware.OwnsMany(h => h.RamModules, ram =>
+                    {
+                        ram.Property(r => r.Slot).HasMaxLength(50);
+                        ram.Property(r => r.SpeedMHz).HasMaxLength(50);
+                        ram.Property(r => r.Manufacturer).HasMaxLength(100);
+                        ram.Property(r => r.PartNumber).HasMaxLength(100);
+                        ram.Property(r => r.SerialNumber).HasMaxLength(100);
+                    });
+                    
+                    hardware.OwnsMany(h => h.Disks, disk =>
+                    {
+                        disk.Property(d => d.DeviceId).HasMaxLength(200);
+                    });
+                    
+                    hardware.OwnsMany(h => h.Gpus, gpu =>
+                    {
+                        gpu.Property(g => g.Name).HasMaxLength(200);
+                    });
+                    
+                    hardware.OwnsMany(h => h.NetworkAdapters, adapter =>
+                    {
+                        adapter.Property(a => a.Description).HasMaxLength(200);
+                        adapter.Property(a => a.MacAddress).HasMaxLength(17);
+                        adapter.Property(a => a.IpAddress).HasMaxLength(15);
+                    });
+                });
+
+                // Configure DeviceSoftwareInfo as owned entity
+                entity.OwnsOne(e => e.SoftwareInfo, software =>
+                {
+                    software.Property(s => s.OperatingSystem).HasMaxLength(200);
+                    software.Property(s => s.OsVersion).HasMaxLength(100);
+                    software.Property(s => s.OsArchitecture).HasMaxLength(50);
+                    software.Property(s => s.RegisteredUser).HasMaxLength(200);
+                    software.Property(s => s.SerialNumber).HasMaxLength(100);
+                    software.Property(s => s.ActiveUser).HasMaxLength(200);
+                });
             });
 
             // Simple ChangeLog configuration
