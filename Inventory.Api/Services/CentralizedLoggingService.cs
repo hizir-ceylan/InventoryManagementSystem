@@ -18,10 +18,13 @@ namespace Inventory.Api.Services
         private readonly ILogger<CentralizedLoggingService> _logger;
         private readonly List<LogEntry> _logs = new();
         private readonly object _lockObject = new();
+        private readonly string _logFolder;
 
         public CentralizedLoggingService(ILogger<CentralizedLoggingService> logger)
         {
             _logger = logger;
+            _logFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ApiLogs");
+            Directory.CreateDirectory(_logFolder);
         }
 
         public async Task LogAsync(string source, string level, string message, object? data = null)
@@ -65,7 +68,71 @@ namespace Inventory.Api.Services
                     break;
             }
 
+            // Log to hourly files with 48-hour retention
+            await LogToFileAsync(logEntry);
+
             await Task.CompletedTask;
+        }
+
+        private async Task LogToFileAsync(LogEntry logEntry)
+        {
+            try
+            {
+                var currentHour = DateTime.UtcNow.ToString("yyyy-MM-dd-HH");
+                var logFile = Path.Combine(_logFolder, $"api-log-{currentHour}.json");
+                
+                var logObject = new
+                {
+                    logEntry.Id,
+                    logEntry.Timestamp,
+                    logEntry.Source,
+                    logEntry.Level,
+                    logEntry.Message,
+                    logEntry.Data
+                };
+
+                var logLine = JsonConvert.SerializeObject(logObject) + Environment.NewLine;
+                await File.AppendAllTextAsync(logFile, logLine);
+
+                // Clean up old files every 100 log entries to avoid excessive file operations
+                if (_logs.Count % 100 == 0)
+                {
+                    CleanupOldLogFiles();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to log to file");
+            }
+        }
+
+        private void CleanupOldLogFiles()
+        {
+            try
+            {
+                var cutoffTime = DateTime.UtcNow.AddHours(-48);
+                var files = Directory.GetFiles(_logFolder, "api-log-*.json");
+                
+                foreach (var file in files)
+                {
+                    var fileName = Path.GetFileNameWithoutExtension(file);
+                    if (fileName.StartsWith("api-log-"))
+                    {
+                        var dateTimeStr = fileName.Substring("api-log-".Length);
+                        if (DateTime.TryParseExact(dateTimeStr, "yyyy-MM-dd-HH", null, System.Globalization.DateTimeStyles.None, out DateTime fileDateTime))
+                        {
+                            if (fileDateTime < cutoffTime)
+                            {
+                                try { File.Delete(file); } catch { }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to cleanup old log files");
+            }
         }
 
         public async Task LogErrorAsync(string source, string message, Exception? exception = null)

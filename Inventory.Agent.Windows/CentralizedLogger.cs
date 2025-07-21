@@ -69,7 +69,9 @@ namespace Inventory.Agent.Windows
                 var logFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "LocalLogs");
                 Directory.CreateDirectory(logFolder);
 
-                var logFile = Path.Combine(logFolder, $"centralized-log-{DateTime.Now:yyyy-MM-dd}.log");
+                // Use hourly log files to match the main logging system
+                var currentHour = DateTime.Now.ToString("yyyy-MM-dd-HH");
+                var logFile = Path.Combine(logFolder, $"centralized-log-{currentHour}.log");
                 var logEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{level}] [{_source}] {message}";
                 
                 if (data != null)
@@ -78,10 +80,42 @@ namespace Inventory.Agent.Windows
                 }
 
                 await File.AppendAllTextAsync(logFile, logEntry + Environment.NewLine);
+
+                // Clean up old log files (older than 48 hours)
+                CleanupOldLogFiles(logFolder, "centralized-log-", 48);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Failed to log locally: {ex.Message}");
+            }
+        }
+
+        private void CleanupOldLogFiles(string logFolder, string filePrefix, int hoursToKeep)
+        {
+            try
+            {
+                var cutoffTime = DateTime.Now.AddHours(-hoursToKeep);
+                var files = Directory.GetFiles(logFolder, $"{filePrefix}*.log");
+                
+                foreach (var file in files)
+                {
+                    var fileName = Path.GetFileNameWithoutExtension(file);
+                    if (fileName.StartsWith(filePrefix))
+                    {
+                        var dateTimeStr = fileName.Substring(filePrefix.Length);
+                        if (DateTime.TryParseExact(dateTimeStr, "yyyy-MM-dd-HH", null, System.Globalization.DateTimeStyles.None, out DateTime fileDateTime))
+                        {
+                            if (fileDateTime < cutoffTime)
+                            {
+                                try { File.Delete(file); } catch { }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to cleanup old log files: {ex.Message}");
             }
         }
 

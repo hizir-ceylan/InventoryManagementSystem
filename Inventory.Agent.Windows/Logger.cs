@@ -14,35 +14,66 @@ public static class DeviceLogger
     {
         Directory.CreateDirectory(LogFolder);
 
-        // 1. Dosya adları
-        string today = DateTime.Now.ToString("yyyy-MM-dd");
-        string yesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
-        string todayPath = Path.Combine(LogFolder, $"device-log-{today}.json");
-        string yesterdayPath = Path.Combine(LogFolder, $"device-log-{yesterday}.json");
-
-        // 2. Eski log dosyalarını sil (yalnızca son 2 günün dosyasını tut)
+        // 1. Hourly log file names with proper 48-hour retention
+        string currentHour = DateTime.Now.ToString("yyyy-MM-dd-HH");
+        string currentLogPath = Path.Combine(LogFolder, $"device-log-{currentHour}.json");
+        
+        // 2. Clean up logs older than 48 hours (proper 2-day retention including weekends)
+        var cutoffTime = DateTime.Now.AddHours(-48);
         foreach (var file in Directory.GetFiles(LogFolder, "device-log-*.json"))
         {
             var fileName = Path.GetFileNameWithoutExtension(file);
-            if (!fileName.EndsWith(today) && !fileName.EndsWith(yesterday))
+            if (fileName.StartsWith("device-log-"))
             {
-                try { File.Delete(file); } catch { }
+                var dateTimeStr = fileName.Substring("device-log-".Length);
+                if (DateTime.TryParseExact(dateTimeStr, "yyyy-MM-dd-HH", null, System.Globalization.DateTimeStyles.None, out DateTime fileDateTime))
+                {
+                    if (fileDateTime < cutoffTime)
+                    {
+                        try { File.Delete(file); } catch { }
+                    }
+                }
+                else
+                {
+                    // Handle old daily format files - remove them if older than 48 hours
+                    if (DateTime.TryParseExact(dateTimeStr, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out DateTime fileDateTimeDaily))
+                    {
+                        if (fileDateTimeDaily.Date < cutoffTime.Date)
+                        {
+                            try { File.Delete(file); } catch { }
+                        }
+                    }
+                }
             }
         }
 
-        // 3. Dünkü logu oku ve karşılaştır
+        // 3. Find the most recent previous log for comparison (within last 48 hours)
         object diff = "No change detected";
         bool hasChanges = false;
-        if (File.Exists(yesterdayPath))
-        {
-            var yesterdayJson = File.ReadAllText(yesterdayPath);
-            dynamic yesterdayObj = JsonConvert.DeserializeObject(yesterdayJson);
-            string yesterdayDeviceJson = JsonConvert.SerializeObject(yesterdayObj.Device);
-            string todayDeviceJson = JsonConvert.SerializeObject(deviceSnapshot);
-
-            if (yesterdayDeviceJson != todayDeviceJson)
+        
+        // Look for the most recent log file before current hour
+        var logFiles = Directory.GetFiles(LogFolder, "device-log-*.json")
+            .Where(f => f != currentLogPath)
+            .Select(f => new
             {
-                diff = GetDetailedDiff(yesterdayDeviceJson, todayDeviceJson);
+                Path = f,
+                FileName = Path.GetFileNameWithoutExtension(f),
+                DateTime = TryParseLogDateTime(Path.GetFileNameWithoutExtension(f))
+            })
+            .Where(f => f.DateTime.HasValue && f.DateTime.Value < DateTime.Now)
+            .OrderByDescending(f => f.DateTime.Value)
+            .FirstOrDefault();
+
+        if (logFiles != null && File.Exists(logFiles.Path))
+        {
+            var previousJson = File.ReadAllText(logFiles.Path);
+            dynamic previousObj = JsonConvert.DeserializeObject(previousJson);
+            string previousDeviceJson = JsonConvert.SerializeObject(previousObj.Device);
+            string currentDeviceJson = JsonConvert.SerializeObject(deviceSnapshot);
+
+            if (previousDeviceJson != currentDeviceJson)
+            {
+                diff = GetDetailedDiff(previousDeviceJson, currentDeviceJson);
                 hasChanges = true;
             }
         }
@@ -55,14 +86,37 @@ public static class DeviceLogger
             Diff = diff
         };
 
-        // 5. Dosyaya yaz (üzerine yazar, her gün tek dosya)
-        File.WriteAllText(todayPath, JsonConvert.SerializeObject(logObject, Formatting.Indented));
+        // 5. Dosyaya yaz (üzerine yazar, her saat tek dosya)
+        File.WriteAllText(currentLogPath, JsonConvert.SerializeObject(logObject, Formatting.Indented));
 
         // 6. Eğer değişiklik varsa ayrı bir dosyaya kaydet
         if (hasChanges && diff != null && diff.ToString() != "No change detected")
         {
-            SaveChangesToSeparateFile(diff, today);
+            SaveChangesToSeparateFile(diff, currentHour);
         }
+    }
+
+    // Helper method to parse log file date times
+    private static DateTime? TryParseLogDateTime(string fileName)
+    {
+        if (fileName.StartsWith("device-log-"))
+        {
+            var dateTimeStr = fileName.Substring("device-log-".Length);
+            
+            // Try hourly format first
+            if (DateTime.TryParseExact(dateTimeStr, "yyyy-MM-dd-HH", null, System.Globalization.DateTimeStyles.None, out DateTime hourlyDateTime))
+            {
+                return hourlyDateTime;
+            }
+            
+            // Try daily format (for backward compatibility)
+            if (DateTime.TryParseExact(dateTimeStr, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out DateTime dailyDateTime))
+            {
+                return dailyDateTime;
+            }
+        }
+        
+        return null;
     }
 
     // Detaylı diff fonksiyonu - tüm önemli alanları karşılaştırır
@@ -423,7 +477,7 @@ public static class DeviceLogger
     }
 
     // Değişiklikleri ayrı bir dosyaya kaydet
-    private static void SaveChangesToSeparateFile(object changes, string dateString)
+    private static void SaveChangesToSeparateFile(object changes, string dateTimeString)
     {
         try
         {
@@ -431,7 +485,7 @@ public static class DeviceLogger
             Directory.CreateDirectory(changesFolder);
 
             string timestamp = DateTime.Now.ToString("HH-mm-ss");
-            string changeFilePath = Path.Combine(changesFolder, $"device-changes-{dateString}-{timestamp}.json");
+            string changeFilePath = Path.Combine(changesFolder, $"device-changes-{dateTimeString}-{timestamp}.json");
 
             var changeLogObject = new
             {
