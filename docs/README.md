@@ -14,9 +14,7 @@ Bu dizinde Inventory Management System'e ait tüm dokümantasyon profesyonel bir
 - **[CHANGELOG.md](CHANGELOG.md)** - Güncellemeler ve değişiklik geçmişi
 
 ### 🧪 Test ve Kurulum
-- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Hızlı test rehberi
 - **[server-deployment-testing.md](server-deployment-testing.md)** - Detaylı sunucu kurulumu ve test
-- **[SOLUTION_SUMMARY.md](SOLUTION_SUMMARY.md)** - Çözüm özeti ve problem çözümleri
 
 ### ⚙️ Özel Konfigürasyonlar
 - **[remote-server-configuration.md](remote-server-configuration.md)** - Uzak sunucu yapılandırması
