@@ -7,9 +7,14 @@ Bu dizinde Inventory Management System'e ait tüm dokümantasyon bulunmaktadır.
 **Ana dokümantasyon artık tek dosyada birleştirilmiştir:**
 - 📖 **[COMPLETE-DOCUMENTATION.md](COMPLETE-DOCUMENTATION.md)** - Tüm teknik dokümantasyon tek dosyada
 
-## Docker Kullanımı
+## Diğer Dokümantasyon
 
-**Docker ile test etmek için:**
+### 📋 Yeni Dosyalar
+- 📝 **[CHANGELOG.md](CHANGELOG.md)** - Güncellemeler ve değişiklik geçmişi
+- 📊 **[SOLUTION_SUMMARY.md](SOLUTION_SUMMARY.md)** - Çözüm özeti ve problem çözümleri
+- 🧪 **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Test rehberi
+
+### Docker Kullanımı
 - 🐳 **[DOCKER-GUIDE.md](DOCKER-GUIDE.md)** - Docker kurulum ve test rehberi
 
 ## Eski Dokümantasyon Dosyaları
@@ -49,7 +54,7 @@ Bu projede yeni eklenen Docker özellikleri:
 ### Hızlı Başlangıç
 1. [DOCKER-GUIDE.md](DOCKER-GUIDE.md) dosyasını okuyun
 2. `docker-compose.simple.yml` ile test edin
-3. `./test-docker.sh test` ile otomatik test çalıştırın
+3. `./scripts/test-docker.sh test` ile otomatik test çalıştırın
 
 ### Detaylı Bilgi
 1. [COMPLETE-DOCUMENTATION.md](COMPLETE-DOCUMENTATION.md) dosyasını inceleyin
