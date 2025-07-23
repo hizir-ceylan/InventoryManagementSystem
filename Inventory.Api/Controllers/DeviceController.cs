@@ -305,20 +305,79 @@ namespace Inventory.Api.Controllers
         [SwaggerOperation(Summary = "Batch upload devices", Description = "Uploads multiple devices in a single request")]
         [SwaggerResponse(200, "Batch upload completed", typeof(BatchUploadResultDto))]
         [SwaggerResponse(400, "Invalid batch data")]
-        public ActionResult<BatchUploadResultDto> BatchUpload([FromBody] Device[] devices)
+        public ActionResult<BatchUploadResultDto> BatchUpload([FromBody] DeviceBatchDto[] deviceDtos)
         {
             var result = new BatchUploadResultDto
             {
-                TotalDevices = devices.Length,
+                TotalDevices = deviceDtos.Length,
                 SuccessfulUploads = 0,
                 FailedUploads = 0,
                 Errors = new List<string>()
             };
 
-            foreach (var device in devices)
+            foreach (var deviceDto in deviceDtos)
             {
                 try
                 {
+                    // Convert DTO to Device entity
+                    var device = new Device
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = deviceDto.Name,
+                        MacAddress = deviceDto.MacAddress,
+                        IpAddress = deviceDto.IpAddress,
+                        DeviceType = deviceDto.DeviceType,
+                        Model = deviceDto.Model,
+                        Location = deviceDto.Location,
+                        LastSeen = DateTime.UtcNow,
+                        ManagementType = ManagementType.Agent,
+                        DiscoveryMethod = DiscoveryMethod.Agent,
+                        Status = 1, // Active
+                        ChangeLogs = new List<ChangeLog>()
+                    };
+
+                    // Set default values for required fields if they're null
+                    if (deviceDto.HardwareInfo == null)
+                    {
+                        device.HardwareInfo = new DeviceHardwareInfo
+                        {
+                            Cpu = "",
+                            Motherboard = "",
+                            MotherboardSerial = "",
+                            BiosManufacturer = "",
+                            BiosVersion = "",
+                            BiosSerial = "",
+                            RamModules = new List<RamModule>(),
+                            Disks = new List<DiskInfo>(),
+                            Gpus = new List<GpuInfo>(),
+                            NetworkAdapters = new List<NetworkAdapter>()
+                        };
+                    }
+                    else
+                    {
+                        device.HardwareInfo = deviceDto.HardwareInfo;
+                    }
+
+                    if (deviceDto.SoftwareInfo == null)
+                    {
+                        device.SoftwareInfo = new DeviceSoftwareInfo
+                        {
+                            OperatingSystem = "",
+                            OsVersion = "",
+                            OsArchitecture = "",
+                            RegisteredUser = "",
+                            SerialNumber = "",
+                            ActiveUser = "",
+                            InstalledApps = new List<string>(),
+                            Updates = new List<string>(),
+                            Users = new List<string>()
+                        };
+                    }
+                    else
+                    {
+                        device.SoftwareInfo = deviceDto.SoftwareInfo;
+                    }
+                    
                     // Validate device
                     var validationErrors = DeviceValidator.ValidateDevice(device);
                     if (validationErrors.Any())
@@ -327,15 +386,6 @@ namespace Inventory.Api.Controllers
                         result.Errors.Add($"Device {device.Name}: {string.Join(", ", validationErrors)}");
                         continue;
                     }
-
-                    // Set default values
-                    device.Id = Guid.NewGuid();
-                    device.LastSeen = DateTime.UtcNow;
-                    
-                    if (device.ManagementType == ManagementType.Unknown)
-                        device.ManagementType = ManagementType.Agent;
-                    if (device.DiscoveryMethod == DiscoveryMethod.Unknown)
-                        device.DiscoveryMethod = DiscoveryMethod.Agent;
 
                     // Check if device already exists
                     var existingDevice = FindDeviceByIpOrMac(device.IpAddress, device.MacAddress);
@@ -361,7 +411,7 @@ namespace Inventory.Api.Controllers
                 catch (Exception ex)
                 {
                     result.FailedUploads++;
-                    result.Errors.Add($"Device {device.Name}: {ex.Message}");
+                    result.Errors.Add($"Device {deviceDto.Name}: {ex.Message}");
                 }
             }
 
