@@ -37,6 +37,8 @@ RUN apt-get update && apt-get install -y \
     lshw \
     util-linux \
     pciutils \
+    libkmod2 \
+    kmod \
     usbutils \
     hdparm \
     smartmontools \

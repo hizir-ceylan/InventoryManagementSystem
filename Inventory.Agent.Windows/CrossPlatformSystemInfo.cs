@@ -754,6 +754,7 @@ namespace Inventory.Agent.Windows
                         FileName = "lspci",
                         Arguments = "-v",
                         RedirectStandardOutput = true,
+                        RedirectStandardError = true,
                         UseShellExecute = false,
                         CreateNoWindow = true
                     }
@@ -761,7 +762,21 @@ namespace Inventory.Agent.Windows
 
                 process.Start();
                 string output = process.StandardOutput.ReadToEnd();
+                string errorOutput = process.StandardError.ReadToEnd();
                 process.WaitForExit();
+
+                // Handle specific libkmod error gracefully
+                if (!string.IsNullOrEmpty(errorOutput))
+                {
+                    if (errorOutput.Contains("libkmod") || errorOutput.Contains("error -2"))
+                    {
+                        Console.WriteLine("lspci: libkmod resources not available, falling back to alternative GPU detection methods");
+                    }
+                    else if (errorOutput.Trim().Length > 0)
+                    {
+                        Console.WriteLine($"lspci warning: {errorOutput.Trim()}");
+                    }
+                }
 
                 if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
                 {
