@@ -301,6 +301,125 @@ namespace Inventory.Api.Controllers
             return NoContent();
         }
 
+        [HttpPost("batch")]
+        [SwaggerOperation(Summary = "Batch upload devices", Description = "Uploads multiple devices in a single request")]
+        [SwaggerResponse(200, "Batch upload completed", typeof(BatchUploadResultDto))]
+        [SwaggerResponse(400, "Invalid batch data")]
+        public ActionResult<BatchUploadResultDto> BatchUpload([FromBody] DeviceBatchDto[] deviceDtos)
+        {
+            var result = new BatchUploadResultDto
+            {
+                TotalDevices = deviceDtos.Length,
+                SuccessfulUploads = 0,
+                FailedUploads = 0,
+                Errors = new List<string>()
+            };
+
+            foreach (var deviceDto in deviceDtos)
+            {
+                try
+                {
+                    // Convert DTO to Device entity
+                    var device = new Device
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = deviceDto.Name,
+                        MacAddress = deviceDto.MacAddress,
+                        IpAddress = deviceDto.IpAddress,
+                        DeviceType = deviceDto.DeviceType,
+                        Model = deviceDto.Model,
+                        Location = deviceDto.Location,
+                        LastSeen = DateTime.UtcNow,
+                        ManagementType = ManagementType.Agent,
+                        DiscoveryMethod = DiscoveryMethod.Agent,
+                        Status = 1, // Active
+                        ChangeLogs = new List<ChangeLog>()
+                    };
+
+                    // Set default values for required fields if they're null
+                    if (deviceDto.HardwareInfo == null)
+                    {
+                        device.HardwareInfo = new DeviceHardwareInfo
+                        {
+                            Cpu = "",
+                            Motherboard = "",
+                            MotherboardSerial = "",
+                            BiosManufacturer = "",
+                            BiosVersion = "",
+                            BiosSerial = "",
+                            RamModules = new List<RamModule>(),
+                            Disks = new List<DiskInfo>(),
+                            Gpus = new List<GpuInfo>(),
+                            NetworkAdapters = new List<NetworkAdapter>()
+                        };
+                    }
+                    else
+                    {
+                        device.HardwareInfo = deviceDto.HardwareInfo;
+                    }
+
+                    if (deviceDto.SoftwareInfo == null)
+                    {
+                        device.SoftwareInfo = new DeviceSoftwareInfo
+                        {
+                            OperatingSystem = "",
+                            OsVersion = "",
+                            OsArchitecture = "",
+                            RegisteredUser = "",
+                            SerialNumber = "",
+                            ActiveUser = "",
+                            InstalledApps = new List<string>(),
+                            Updates = new List<string>(),
+                            Users = new List<string>()
+                        };
+                    }
+                    else
+                    {
+                        device.SoftwareInfo = deviceDto.SoftwareInfo;
+                    }
+                    
+                    // Validate device
+                    var validationErrors = DeviceValidator.ValidateDevice(device);
+                    if (validationErrors.Any())
+                    {
+                        result.FailedUploads++;
+                        result.Errors.Add($"Device {device.Name}: {string.Join(", ", validationErrors)}");
+                        continue;
+                    }
+
+                    // Check if device already exists
+                    var existingDevice = FindDeviceByIpOrMac(device.IpAddress, device.MacAddress);
+                    if (existingDevice != null)
+                    {
+                        // Update existing device
+                        existingDevice.Name = device.Name ?? existingDevice.Name;
+                        existingDevice.DeviceType = device.DeviceType != DeviceType.Unknown ? device.DeviceType : existingDevice.DeviceType;
+                        existingDevice.Model = device.Model ?? existingDevice.Model;
+                        existingDevice.Location = device.Location ?? existingDevice.Location;
+                        existingDevice.LastSeen = DateTime.UtcNow;
+                        existingDevice.HardwareInfo = device.HardwareInfo ?? existingDevice.HardwareInfo;
+                        existingDevice.SoftwareInfo = device.SoftwareInfo ?? existingDevice.SoftwareInfo;
+                    }
+                    else
+                    {
+                        // Add new device
+                        Devices.Add(device);
+                    }
+
+                    result.SuccessfulUploads++;
+                }
+                catch (Exception ex)
+                {
+                    result.FailedUploads++;
+                    result.Errors.Add($"Device {deviceDto.Name}: {ex.Message}");
+                }
+            }
+
+            Console.WriteLine($"Batch upload completed: {result.SuccessfulUploads} successful, {result.FailedUploads} failed");
+            
+            return Ok(result);
+        }
+
         [HttpDelete("{id}")]
         [SwaggerOperation(Summary = "Delete a device", Description = "Deletes a device from the inventory")]
         [SwaggerResponse(204, "Device deleted successfully")]

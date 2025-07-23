@@ -7,6 +7,10 @@ namespace Inventory.Agent.Windows.Configuration
         public string BaseUrl { get; set; } = "http://localhost:5000";
         public int Timeout { get; set; } = 30;
         public int RetryCount { get; set; } = 3;
+        public bool EnableOfflineStorage { get; set; } = true;
+        public string OfflineStoragePath { get; set; } = "Data/OfflineStorage";
+        public int BatchUploadInterval { get; set; } = 300; // 5 minutes in seconds
+        public int MaxOfflineRecords { get; set; } = 10000;
         
         public static ApiSettings LoadFromEnvironment()
         {
@@ -30,6 +34,30 @@ namespace Inventory.Agent.Windows.Configuration
             {
                 settings.RetryCount = retryValue;
             }
+
+            var enableOfflineStorage = Environment.GetEnvironmentVariable("ApiSettings__EnableOfflineStorage");
+            if (!string.IsNullOrEmpty(enableOfflineStorage) && bool.TryParse(enableOfflineStorage, out bool offlineValue))
+            {
+                settings.EnableOfflineStorage = offlineValue;
+            }
+
+            var offlineStoragePath = Environment.GetEnvironmentVariable("ApiSettings__OfflineStoragePath");
+            if (!string.IsNullOrEmpty(offlineStoragePath))
+            {
+                settings.OfflineStoragePath = offlineStoragePath;
+            }
+
+            var batchUploadInterval = Environment.GetEnvironmentVariable("ApiSettings__BatchUploadInterval");
+            if (!string.IsNullOrEmpty(batchUploadInterval) && int.TryParse(batchUploadInterval, out int intervalValue))
+            {
+                settings.BatchUploadInterval = intervalValue;
+            }
+
+            var maxOfflineRecords = Environment.GetEnvironmentVariable("ApiSettings__MaxOfflineRecords");
+            if (!string.IsNullOrEmpty(maxOfflineRecords) && int.TryParse(maxOfflineRecords, out int maxRecordsValue))
+            {
+                settings.MaxOfflineRecords = maxRecordsValue;
+            }
             
             return settings;
         }
@@ -42,6 +70,11 @@ namespace Inventory.Agent.Windows.Configuration
         public string GetNetworkDiscoveryEndpoint()
         {
             return $"{BaseUrl.TrimEnd('/')}/api/devices/network-discovered";
+        }
+
+        public string GetBatchUploadEndpoint()
+        {
+            return $"{BaseUrl.TrimEnd('/')}/api/device/batch";
         }
     }
 }

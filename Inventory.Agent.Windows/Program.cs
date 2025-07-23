@@ -6,20 +6,38 @@ using System.Collections.Generic;
 using LibreHardwareMonitor.Hardware;
 using System.Runtime.InteropServices;
 using Inventory.Agent.Windows.Configuration;
+using Inventory.Agent.Windows.Services;
+using System.Threading;
 
 namespace Inventory.Agent.Windows
 {
     class Program
     {
+        private static ConnectivityMonitorService? _connectivityMonitor;
+        
         static async Task Main(string[] args)
         {
             var apiSettings = ApiSettings.LoadFromEnvironment();
+            OfflineStorageService? offlineStorage = null;
             
             try
             {
                 Console.WriteLine("Inventory Management System - Agent");
                 Console.WriteLine("===================================");
                 Console.WriteLine($"API Base URL: {apiSettings.BaseUrl}");
+                Console.WriteLine($"Offline Storage: {(apiSettings.EnableOfflineStorage ? "Enabled" : "Disabled")}");
+                
+                // Initialize offline storage if enabled
+                if (apiSettings.EnableOfflineStorage)
+                {
+                    offlineStorage = new OfflineStorageService(apiSettings.OfflineStoragePath, apiSettings.MaxOfflineRecords);
+                    var offlineCount = await offlineStorage.GetStoredRecordCountAsync();
+                    Console.WriteLine($"Offline records pending: {offlineCount}");
+                    
+                    // Start connectivity monitoring
+                    _connectivityMonitor = new ConnectivityMonitorService(apiSettings, offlineStorage);
+                    _connectivityMonitor.StartMonitoring();
+                }
                 
                 // Check for network discovery argument
                 bool networkDiscovery = args.Length > 0 && args[0].ToLower() == "network";
@@ -32,7 +50,7 @@ namespace Inventory.Agent.Windows
                 else
                 {
                     Console.WriteLine("Starting local system inventory...");
-                    await RunLocalInventoryAsync(apiSettings);
+                    await RunLocalInventoryAsync(apiSettings, offlineStorage);
                 }
             }
             catch (PlatformNotSupportedException ex)
@@ -56,7 +74,17 @@ namespace Inventory.Agent.Windows
             else
             {
                 Console.WriteLine("Agent execution completed.");
+                
+                // If connectivity monitor is running, wait for a while to allow batch uploads
+                if (_connectivityMonitor != null)
+                {
+                    Console.WriteLine("Waiting for potential batch uploads...");
+                    await Task.Delay(TimeSpan.FromSeconds(30));
+                }
             }
+            
+            // Stop connectivity monitoring
+            _connectivityMonitor?.Stop();
         }
         
         /// <summary>
@@ -75,7 +103,7 @@ namespace Inventory.Agent.Windows
             }
         }
 
-        static async Task RunLocalInventoryAsync(ApiSettings apiSettings)
+        static async Task RunLocalInventoryAsync(ApiSettings apiSettings, OfflineStorageService? offlineStorage)
         {
             // Çapraz platform sistem bilgilerini topla
             var device = CrossPlatformSystemInfo.GatherSystemInformation();
@@ -85,8 +113,20 @@ namespace Inventory.Agent.Windows
 
             // --- API'ye gönder ---
             string apiUrl = apiSettings.GetDeviceEndpoint();
-            bool success = await ApiClient.PostDeviceAsync(device, apiUrl);
-            Console.WriteLine(success ? "Cihaz başarıyla API'ye gönderildi!" : "Gönderim başarısız.");
+            bool success = await ApiClient.PostDeviceAsync(device, apiUrl, offlineStorage);
+            
+            if (success)
+            {
+                Console.WriteLine("Cihaz başarıyla API'ye gönderildi!");
+            }
+            else if (offlineStorage != null)
+            {
+                Console.WriteLine("Gönderim başarısız, veri offline olarak saklandı.");
+            }
+            else
+            {
+                Console.WriteLine("Gönderim başarısız.");
+            }
         }
 
         static async Task RunNetworkDiscoveryAsync(ApiSettings apiSettings)
