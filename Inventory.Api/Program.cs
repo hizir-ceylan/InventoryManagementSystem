@@ -15,6 +15,16 @@ namespace Inventory.Api
 
             // Add database context
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            var serverSettings = builder.Configuration.GetSection("ServerSettings");
+            var serverMode = serverSettings.GetValue<string>("Mode", "Local");
+            var remoteConnectionString = serverSettings.GetValue<string>("RemoteDatabaseConnectionString", "");
+
+            // Use remote connection string if configured and mode is set to remote
+            if (!string.IsNullOrEmpty(remoteConnectionString) && serverMode.Equals("Remote", StringComparison.OrdinalIgnoreCase))
+            {
+                connectionString = remoteConnectionString;
+            }
+
             if (string.IsNullOrEmpty(connectionString))
             {
                 // Default to SQLite if no connection string is provided

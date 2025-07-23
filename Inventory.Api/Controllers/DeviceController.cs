@@ -301,6 +301,75 @@ namespace Inventory.Api.Controllers
             return NoContent();
         }
 
+        [HttpPost("batch")]
+        [SwaggerOperation(Summary = "Batch upload devices", Description = "Uploads multiple devices in a single request")]
+        [SwaggerResponse(200, "Batch upload completed", typeof(BatchUploadResultDto))]
+        [SwaggerResponse(400, "Invalid batch data")]
+        public ActionResult<BatchUploadResultDto> BatchUpload([FromBody] Device[] devices)
+        {
+            var result = new BatchUploadResultDto
+            {
+                TotalDevices = devices.Length,
+                SuccessfulUploads = 0,
+                FailedUploads = 0,
+                Errors = new List<string>()
+            };
+
+            foreach (var device in devices)
+            {
+                try
+                {
+                    // Validate device
+                    var validationErrors = DeviceValidator.ValidateDevice(device);
+                    if (validationErrors.Any())
+                    {
+                        result.FailedUploads++;
+                        result.Errors.Add($"Device {device.Name}: {string.Join(", ", validationErrors)}");
+                        continue;
+                    }
+
+                    // Set default values
+                    device.Id = Guid.NewGuid();
+                    device.LastSeen = DateTime.UtcNow;
+                    
+                    if (device.ManagementType == ManagementType.Unknown)
+                        device.ManagementType = ManagementType.Agent;
+                    if (device.DiscoveryMethod == DiscoveryMethod.Unknown)
+                        device.DiscoveryMethod = DiscoveryMethod.Agent;
+
+                    // Check if device already exists
+                    var existingDevice = FindDeviceByIpOrMac(device.IpAddress, device.MacAddress);
+                    if (existingDevice != null)
+                    {
+                        // Update existing device
+                        existingDevice.Name = device.Name ?? existingDevice.Name;
+                        existingDevice.DeviceType = device.DeviceType != DeviceType.Unknown ? device.DeviceType : existingDevice.DeviceType;
+                        existingDevice.Model = device.Model ?? existingDevice.Model;
+                        existingDevice.Location = device.Location ?? existingDevice.Location;
+                        existingDevice.LastSeen = DateTime.UtcNow;
+                        existingDevice.HardwareInfo = device.HardwareInfo ?? existingDevice.HardwareInfo;
+                        existingDevice.SoftwareInfo = device.SoftwareInfo ?? existingDevice.SoftwareInfo;
+                    }
+                    else
+                    {
+                        // Add new device
+                        Devices.Add(device);
+                    }
+
+                    result.SuccessfulUploads++;
+                }
+                catch (Exception ex)
+                {
+                    result.FailedUploads++;
+                    result.Errors.Add($"Device {device.Name}: {ex.Message}");
+                }
+            }
+
+            Console.WriteLine($"Batch upload completed: {result.SuccessfulUploads} successful, {result.FailedUploads} failed");
+            
+            return Ok(result);
+        }
+
         [HttpDelete("{id}")]
         [SwaggerOperation(Summary = "Delete a device", Description = "Deletes a device from the inventory")]
         [SwaggerResponse(204, "Device deleted successfully")]
