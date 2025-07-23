@@ -251,16 +251,16 @@ Use the provided test script for comprehensive testing:
 
 ```bash
 # Run all tests
-./test-docker.sh test
+./scripts/test-docker.sh test
 
 # Check container status
-./test-docker.sh status
+./scripts/test-docker.sh status
 
 # View logs
-./test-docker.sh logs
+./scripts/test-docker.sh logs
 
 # Cleanup
-./test-docker.sh cleanup
+./scripts/test-docker.sh cleanup
 ```
 
 #### Manual Testing Steps
@@ -693,7 +693,7 @@ dotnet build --configuration Release
 dotnet test
 
 # Manual API testing
-./test-docker.sh test
+./scripts/test-docker.sh test
 ```
 
 #### Docker Development

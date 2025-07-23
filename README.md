@@ -15,10 +15,10 @@ git clone https://github.com/hizir-ceylan/InventoryManagementSystem.git
 cd InventoryManagementSystem
 
 # 2. Hızlı başlangıç scripti ile başlatın
-./quick-start.sh
+./scripts/quick-start.sh
 
 # 3. Otomatik test çalıştırın
-./test-docker.sh test
+./scripts/test-docker.sh test
 ```
 
 **Erişim:**
@@ -53,7 +53,7 @@ cd InventoryManagementSystem
 
 ```bash
 # Hızlı başlangıç scripti
-./quick-start.sh
+./scripts/quick-start.sh
 
 # Manuel Docker Compose
 docker-compose -f docker-compose.simple.yml up --build -d
@@ -84,13 +84,13 @@ docker-compose up --build -d
 ### Test ve Doğrulama
 ```bash
 # Otomatik test suite
-./test-docker.sh test
+./scripts/test-docker.sh test
 
 # Container durumu
-./quick-start.sh status
+./scripts/quick-start.sh status
 
 # Logları görüntüleme
-./quick-start.sh logs
+./scripts/quick-start.sh logs
 ```
 
 ## 🧪 API Test Örnekleri
@@ -127,13 +127,13 @@ curl -X POST "http://localhost:5000/api/networkscan/start" \
 ### Docker Environment Test
 ```bash
 # 1. Sistem başlat
-./quick-start.sh
+./scripts/quick-start.sh
 
 # 2. API test et
 curl http://localhost:5000/api/device
 
 # 3. Tam test suite çalıştır
-./test-docker.sh test
+./scripts/test-docker.sh test
 
 # 4. Performans testi
 ab -n 100 -c 10 http://localhost:5000/api/device
