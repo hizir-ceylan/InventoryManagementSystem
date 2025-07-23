@@ -2,30 +2,39 @@
 
 Bu dizinde Inventory Management System'e ait tüm dokümantasyon bulunmaktadır.
 
-## Birleştirilmiş Dokümantasyon
+## Dokümantasyon Dizini
 
-**Ana dokümantasyon artık tek dosyada birleştirilmiştir:**
-- 📖 **[COMPLETE-DOCUMENTATION.md](COMPLETE-DOCUMENTATION.md)** - Tüm teknik dokümantasyon tek dosyada
+Bu dizinde Inventory Management System'e ait tüm dokümantasyon profesyonel bir şekilde organize edilmiştir.
 
-## Diğer Dokümantasyon
+## Ana Dokümantasyon
 
-### 📋 Yeni Dosyalar
-- 📝 **[CHANGELOG.md](CHANGELOG.md)** - Güncellemeler ve değişiklik geçmişi
-- 📊 **[SOLUTION_SUMMARY.md](SOLUTION_SUMMARY.md)** - Çözüm özeti ve problem çözümleri
-- 🧪 **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Test rehberi
+### 📖 Temel Kaynaklar
+- **[COMPLETE-DOCUMENTATION.md](COMPLETE-DOCUMENTATION.md)** - Kapsamlı teknik dokümantasyon (Ana kaynak)
+- **[DOCKER-GUIDE.md](DOCKER-GUIDE.md)** - Docker kurulum ve kullanım rehberi
+- **[CHANGELOG.md](CHANGELOG.md)** - Güncellemeler ve değişiklik geçmişi
 
-### Docker Kullanımı
-- 🐳 **[DOCKER-GUIDE.md](DOCKER-GUIDE.md)** - Docker kurulum ve test rehberi
+### 🧪 Test ve Kurulum
+- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Hızlı test rehberi
+- **[server-deployment-testing.md](server-deployment-testing.md)** - Detaylı sunucu kurulumu ve test
+- **[SOLUTION_SUMMARY.md](SOLUTION_SUMMARY.md)** - Çözüm özeti ve problem çözümleri
+
+### ⚙️ Özel Konfigürasyonlar
+- **[remote-server-configuration.md](remote-server-configuration.md)** - Uzak sunucu yapılandırması
+- **[platform-support.md](platform-support.md)** - Platform desteği ve değişiklik takibi
+
+### 📂 Diğer Kaynaklar
+- **[legacy/](legacy/)** - Eski dokümantasyon dosyaları (referans amaçlı)
+- **[img/](img/)** - Dokümantasyon görselleri
 
 ## Eski Dokümantasyon Dosyaları
 
-Aşağıdaki dosyalar artık birleştirilmiştir ve referans amaçlı tutulmaktadır:
+Aşağıdaki dosyalar artık `legacy/` klasöründe arşivlenmiştir:
 
-### Teknik Dokümantasyon
-- [technical-documentation.md](technical-documentation.md) - Eski teknik dokümantasyon
-- [installation-guide.md](installation-guide.md) - Eski kurulum rehberi
-- [server-deployment-testing.md](server-deployment-testing.md) - Eski sunucu kurulum rehberi
-- [platform-support.md](platform-support.md) - Platform desteği bilgisi
+### Arşiv Dosyaları
+- [legacy/technical-documentation.md](legacy/technical-documentation.md) - Eski teknik dokümantasyon
+- [legacy/installation-guide.md](legacy/installation-guide.md) - Eski kurulum rehberi
+
+*Not: Bu dosyalar COMPLETE-DOCUMENTATION.md dosyasında birleştirilmiştir.*
 
 ### Yeni Docker Özellikleri
 
