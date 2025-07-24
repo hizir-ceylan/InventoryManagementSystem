@@ -35,13 +35,13 @@ namespace Inventory.Agent.Windows
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    // Fall back to local logging if API is unavailable
+                    // API mevcut değilse yerel loglamaya geri dön
                     await LogLocallyAsync(level, message, data);
                 }
             }
             catch (Exception ex)
             {
-                // Fall back to local logging if API call fails
+                // API çağrısı başarısız olursa yerel loglamaya geri dön
                 await LogLocallyAsync(level, $"API logging failed: {ex.Message}. Original: {message}", data);
             }
         }
@@ -69,7 +69,7 @@ namespace Inventory.Agent.Windows
                 var logFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "LocalLogs");
                 Directory.CreateDirectory(logFolder);
 
-                // Use hourly log files to match the main logging system
+                // Ana loglama sistemiyle eşleşmesi için saatlik log dosyaları kullan
                 var currentHour = DateTime.Now.ToString("yyyy-MM-dd-HH");
                 var logFile = Path.Combine(logFolder, $"centralized-log-{currentHour}.log");
                 var logEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{level}] [{_source}] {message}";
@@ -81,7 +81,7 @@ namespace Inventory.Agent.Windows
 
                 await File.AppendAllTextAsync(logFile, logEntry + Environment.NewLine);
 
-                // Clean up old log files (older than 48 hours)
+                // Eski log dosyalarını temizle (48 saatten eski)
                 CleanupOldLogFiles(logFolder, "centralized-log-", 48);
             }
             catch (Exception ex)

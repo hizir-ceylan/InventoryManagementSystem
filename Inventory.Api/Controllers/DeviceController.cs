@@ -219,7 +219,7 @@ namespace Inventory.Api.Controllers
             if (device == null)
                 return NotFound();
 
-            // Basit güncelleme
+        // Basit güncelleme
             device.Name = updatedDevice.Name;
             device.MacAddress = updatedDevice.MacAddress;
             device.IpAddress = updatedDevice.IpAddress;

@@ -25,10 +25,10 @@ namespace Inventory.Agent.Windows.Services
 
         public void StartMonitoring()
         {
-            // Check connectivity immediately
+            // Bağlantıyı hemen kontrol et
             _ = Task.Run(CheckConnectivityAndUploadAsync);
 
-            // Start periodic monitoring
+            // Periyodik izlemeyi başlat
             _monitorTimer = new Timer(async _ => await CheckConnectivityAndUploadAsync(), 
                 null, 
                 TimeSpan.FromSeconds(_apiSettings.BatchUploadInterval), 

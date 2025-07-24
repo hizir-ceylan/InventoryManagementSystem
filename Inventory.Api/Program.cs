@@ -13,13 +13,13 @@ namespace Inventory.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add database context
+            // Veritabanı bağlamını ekle
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             var serverSettings = builder.Configuration.GetSection("ServerSettings");
             var serverMode = serverSettings.GetValue<string>("Mode", "Local");
             var remoteConnectionString = serverSettings.GetValue<string>("RemoteDatabaseConnectionString", "");
 
-            // Use remote connection string if configured and mode is set to remote
+            // Uzak bağlantı dizesi yapılandırılmış ve mod uzak olarak ayarlanmışsa onu kullan
             if (!string.IsNullOrEmpty(remoteConnectionString) && serverMode.Equals("Remote", StringComparison.OrdinalIgnoreCase))
             {
                 connectionString = remoteConnectionString;
@@ -27,7 +27,7 @@ namespace Inventory.Api
 
             if (string.IsNullOrEmpty(connectionString))
             {
-                // Default to SQLite if no connection string is provided
+                // Bağlantı dizesi sağlanmamışsa varsayılan olarak SQLite kullan
                 connectionString = "Data Source=inventory.db";
             }
 
@@ -44,19 +44,19 @@ namespace Inventory.Api
                     options.UseSqlServer(connectionString));
             }
 
-            // Add services to the container.
+            // Servisleri container'a ekle
             builder.Services.AddControllers();
             
-            // Register custom services
+            // Özel servisleri kaydet
             builder.Services.AddScoped<INetworkScanService, NetworkScanService>();
             builder.Services.AddScoped<INetworkScannerService, NetworkScannerService>();
             builder.Services.AddScoped<IDeviceService, DeviceService>();
             builder.Services.AddSingleton<ICentralizedLoggingService, CentralizedLoggingService>();
             
-            // Register background services
+            // Arka plan servislerini kaydet
             builder.Services.AddHostedService<NetworkScanBackgroundService>();
             
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            // Swagger/OpenAPI yapılandırması hakkında daha fazla bilgi için: https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
@@ -69,7 +69,7 @@ namespace Inventory.Api
                 c.EnableAnnotations();
             });
 
-            // Add CORS support for Docker environment
+            // Docker ortamı için CORS desteği ekle
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll",
@@ -84,29 +84,29 @@ namespace Inventory.Api
 
             var app = builder.Build();
 
-            // Ensure database is created
+            // Veritabanının oluşturulduğundan emin ol
             using (var scope = app.Services.CreateScope())
             {
                 var context = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
                 context.Database.EnsureCreated();
             }
 
-            // Configure the HTTP request pipeline.
-            // Enable Swagger in all environments for Docker testing
+            // HTTP istek pipeline'ını yapılandır
+            // Docker testleri için tüm ortamlarda Swagger'ı etkinleştir
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Inventory Management System API v1");
-                c.RoutePrefix = string.Empty; // Makes Swagger UI available at the root
+                c.RoutePrefix = string.Empty; // Swagger UI'ı kök dizinde kullanılabilir yapar
             });
 
-            // Enable CORS
+            // CORS'u etkinleştir
             app.UseCors("AllowAll");
 
-            // Add request logging middleware
+            // İstek günlükleme middleware'ini ekle
             app.UseMiddleware<RequestLoggingMiddleware>();
 
-            // Remove HTTPS redirection for Docker environment
+            // Docker ortamı için HTTPS yönlendirmesini kaldır
             // app.UseHttpsRedirection();
 
             app.UseAuthorization();
