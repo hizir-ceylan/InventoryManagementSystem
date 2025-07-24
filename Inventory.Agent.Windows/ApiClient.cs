@@ -16,7 +16,7 @@ namespace Inventory.Agent.Windows
             {
                 using (var client = new HttpClient())
                 {
-                    // Set timeout to 30 seconds
+                    // Timeout'u 30 saniyeye ayarla
                     client.Timeout = TimeSpan.FromSeconds(30);
                     
                     var json = JsonConvert.SerializeObject(device);
@@ -32,7 +32,7 @@ namespace Inventory.Agent.Windows
                     {
                         Console.WriteLine($"Error Response: {responseString}");
                         
-                        // Store offline if enabled and storage service is provided
+                        // Etkinleştirilmişse ve depolama servisi sağlanmışsa offline olarak sakla
                         if (offlineStorage != null)
                         {
                             await offlineStorage.StoreDeviceDataAsync(device);
@@ -52,7 +52,7 @@ namespace Inventory.Agent.Windows
             {
                 Console.WriteLine($"HTTP Error: {ex.Message}");
                 
-                // Store offline if enabled and storage service is provided
+                // Etkinleştirilmişse ve depolama servisi sağlanmışsa offline olarak sakla
                 if (offlineStorage != null)
                 {
                     await offlineStorage.StoreDeviceDataAsync(device);
@@ -95,7 +95,7 @@ namespace Inventory.Agent.Windows
             {
                 using (var client = new HttpClient())
                 {
-                    // Set timeout to 60 seconds for batch uploads
+                    // Toplu yüklemeler için timeout'u 60 saniyeye ayarla
                     client.Timeout = TimeSpan.FromSeconds(60);
                     
                     var json = JsonConvert.SerializeObject(devices);

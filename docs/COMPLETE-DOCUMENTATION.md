@@ -744,6 +744,101 @@ ApiSettings__RetryCount=3
 
 ---
 
+## Dosya Dokümantasyonu / File Documentation
+
+Bu bölüm projede yer alan her dosyanın amacını ve işlevselliğini açıklar.
+
+### Inventory.Api Projesi
+
+#### Controllers
+- **DeviceController.cs**: Cihaz yönetimi işlemleri için ana API controller'ı. Cihaz ekleme, listeleme, güncelleme, silme ve toplu yükleme işlemlerini yönetir. Hem agent-yüklü hem de ağ üzerinden keşfedilen cihazları destekler.
+- **LoggingController.cs**: Merkezi loglama operasyonları için API controller'ı. Agent'lar ve ağ tarayıcılarından gelen log kayıtlarını toplar ve yönetir.
+- **NetworkScanController.cs**: Ağ tarama işlemleri için API controller'ı. Manuel ve zamanlanmış ağ keşfi operasyonlarını yönetir.
+
+#### Services
+- **CentralizedLoggingService.cs**: Tüm bileşenlerden gelen logları merkezi olarak toplar ve dosyalara kaydeder. Farklı log seviyelerini destekler.
+- **NetworkScanService.cs**: Ağ tarama operasyonlarını yöneten servis. Zamanlanmış taramalar, manuel tetikleme ve ağ aralığı algılama işlemlerini koordine eder.
+- **NetworkScannerService.cs**: Fiziksel ağ tarama işlemlerini gerçekleştiren servis. IP aralıklarını tarar ve aktif cihazları keşfeder.
+
+#### Helpers
+- **DeviceValidator.cs**: Cihaz verilerinin doğruluğunu kontrol eden yardımcı sınıf. IP adresi, MAC adresi ve cihaz tipine özel validasyon kurallarını uygular.
+- **NetworkRangeDetector.cs**: Yerel ağ aralıklarını otomatik olarak algılayan yardımcı sınıf. Sistem ağ arayüzlerini analiz ederek CIDR notasyonunda ağ aralıkları üretir.
+
+#### DTOs (Data Transfer Objects)
+- **BatchUploadResultDto.cs**: Toplu cihaz yükleme işlemlerinin sonuçlarını temsil eden DTO.
+- **DeviceBatchDto.cs**: Toplu cihaz yükleme için kullanılan veri transfer objesi.
+- **NetworkDeviceRegistrationDto.cs**: Ağ üzerinden keşfedilen cihazların kaydı için kullanılan DTO.
+
+#### Middleware
+- **RequestLoggingMiddleware.cs**: HTTP isteklerini otomatik olarak günlükleyen middleware. API çağrılarının izlenmesi ve debugging için kullanılır.
+
+#### Background Services
+- **NetworkScanBackgroundService.cs**: Arka planda çalışan ağ tarama servisi. Zamanlanmış aralıklarla otomatik ağ taraması gerçekleştirir.
+
+#### Program.cs
+Ana uygulama başlangıç dosyası. Dependency injection, veritabanı yapılandırması, middleware pipeline'ı ve servislerin yapılandırılmasını yönetir.
+
+### Inventory.Domain Projesi
+
+#### Entities
+- **Device.cs**: Ana cihaz entity'si. Cihazın temel bilgilerini, donanım ve yazılım bilgilerini, management tipini ve keşif yöntemini içerir.
+- **DeviceChangeLog.cs**: Cihazlarda meydana gelen değişiklikleri takip eden entity.
+- **DeviceHardwareInfo.cs**: Cihazın donanım bilgilerini detaylı olarak saklayan entity. CPU, RAM, disk, GPU ve ağ adaptörü bilgilerini içerir.
+- **DeviceSoftwareInfo.cs**: Cihazın yazılım bilgilerini saklayan entity. İşletim sistemi, kullanıcılar, yüklü uygulamalar ve güncellemeler hakkında bilgi içerir.
+- **DeviceStatus.cs**: Cihaz durumlarını tanımlayan enum (Aktif, Pasif, Bakımda, vb.).
+- **DeviceType.cs**: Cihaz tiplerini tanımlayan enum (Desktop, Laptop, Server, Router, Switch, vb.).
+- **DiscoveryMethod.cs**: Cihazın nasıl keşfedildiğini belirten enum (Manuel, Agent, Ağ Keşfi).
+- **ManagementType.cs**: Cihazın nasıl yönetildiğini belirten enum (Manuel, Agent, Ağ Keşfi).
+
+### Inventory.Data Projesi
+
+#### InventoryDbContext.cs
+Entity Framework Core veritabanı context'i. Tüm entity'lerin veritabanı ile olan etkileşimini yönetir ve tablo yapılandırmalarını içerir.
+
+### Inventory.Agent.Windows Projesi
+
+#### ApiClient.cs
+API ile iletişim kuran istemci sınıfı. Cihaz verilerini API'ye gönderme, toplu yükleme ve offline depolama özelliklerini destekler.
+
+#### CentralizedLogger.cs
+Agent için merkezi loglama sınıfı. Local dosyalara yazma ve API üzerinden merkezi loglama desteği sağlar.
+
+#### CrossPlatformSystemInfo.cs
+Windows ve Linux sistemlerde sistem bilgilerini toplayan çapraz platform sınıfı. WMI (Windows) ve sistem dosyaları (Linux) kullanarak donanım ve yazılım bilgilerini toplar.
+
+#### Logger.cs
+Temel loglama işlevselliği sağlayan sınıf. Farklı log seviyelerini destekler ve dosya tabanlı loglama yapar.
+
+#### NetworkDiscoveryReporter.cs
+Ağ keşfi sonuçlarını API'ye raporlayan sınıf. Keşfedilen cihazları formatlar ve API'ye gönderir.
+
+#### NetworkScanner.cs
+Yerel ağda cihaz taraması yapan sınıf. IP aralıklarını tarar, ping atar ve MAC adreslerini tespit eder.
+
+#### Program.cs
+Agent uygulamasının ana giriş noktası. Sistem bilgilerini toplar, ağ taraması yapar ve periyodik olarak verileri API'ye gönderir.
+
+#### Configuration
+- **ApiSettings.cs**: API bağlantı ayarlarını yöneten yapılandırma sınıfı.
+
+#### Models
+- **ChangeLog.cs**: Değişiklik kayıtları için model sınıfı.
+- **DetailedDiff.cs**: Detaylı değişiklik karşılaştırması için model.
+- **DeviceDto.cs**: API iletişimi için cihaz DTO'su.
+- **DeviceHardwareInfoDto.cs**: Donanım bilgileri DTO'su.
+- **DeviceSoftwareInfoDto.cs**: Yazılım bilgileri DTO'su.
+
+#### Services
+- **ConnectivityMonitorService.cs**: API bağlantısını izleyen ve offline verileri yükleyen servis.
+- **OfflineStorageService.cs**: API'ye ulaşılamadığında verileri yerel olarak saklayan servis.
+
+### Inventory.Shared Projesi
+
+#### Utils
+- **OuiLookup.cs**: MAC adresi prefix'lerinden üretici bilgilerini ve cihaz tiplerini tahmin eden yardımcı sınıf.
+
+---
+
 ## Conclusion
 
 This comprehensive documentation covers all aspects of the Inventory Management System, from basic installation to advanced troubleshooting. The Docker implementation provides a robust, scalable solution for device inventory management across different platforms.

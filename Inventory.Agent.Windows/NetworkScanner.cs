@@ -76,13 +76,13 @@ namespace Inventory.Agent.Windows
                             MacAddress = macAddress,
                             DeviceType = deviceType,
                             Manufacturer = manufacturer,
-                            Status = 1, // Active
-                            AgentInstalled = false, // Network-discovered devices don't have agent
+                            Status = 1, // Aktif
+                            AgentInstalled = false, // Ağ üzerinden keşfedilen cihazlarda agent yok
                             Location = "Network Discovery",
                             Model = "Unknown",
                             ChangeLogs = new List<ChangeLogDto>(),
-                            HardwareInfo = null, // Network discovered devices don't have hardware info
-                            SoftwareInfo = null  // Network discovered devices don't have software info
+                            HardwareInfo = null, // Ağ üzerinden keşfedilen cihazlarda donanım bilgisi yok
+                            SoftwareInfo = null  // Ağ üzerinden keşfedilen cihazlarda yazılım bilgisi yok
                         };
 
                         await _logger.LogInfoAsync($"Device discovered: {device.Name} ({device.IpAddress}) - {device.Manufacturer}");
@@ -92,7 +92,7 @@ namespace Inventory.Agent.Windows
             }
             catch (Exception ex)
             {
-                // Log error but don't throw - continue scanning other hosts
+                // Hatayı günlükle ancak fırlat - diğer host'ları taramaya devam et
                 await _logger.LogWarningAsync($"Error scanning {ipAddress}: {ex.Message}");
                 Console.WriteLine($"Error scanning {ipAddress}: {ex.Message}");
             }
@@ -117,7 +117,7 @@ namespace Inventory.Agent.Windows
         {
             try
             {
-                // Use ARP table to get MAC address
+                // MAC adresini almak için ARP tablosunu kullan
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = "arp",
@@ -133,7 +133,7 @@ namespace Inventory.Agent.Windows
                     var output = await process.StandardOutput.ReadToEndAsync();
                     await process.WaitForExitAsync();
 
-                    // Parse ARP output to extract MAC address
+                    // MAC adresini çıkarmak için ARP çıktısını ayrıştır
                     var lines = output.Split('\n');
                     foreach (var line in lines)
                     {
@@ -181,7 +181,7 @@ namespace Inventory.Agent.Windows
             }
             else
             {
-                // Single IP address
+                // Tek IP adresi
                 ipAddresses.Add(IPAddress.Parse(networkRange));
             }
 

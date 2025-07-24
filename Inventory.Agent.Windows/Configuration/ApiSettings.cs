@@ -9,14 +9,14 @@ namespace Inventory.Agent.Windows.Configuration
         public int RetryCount { get; set; } = 3;
         public bool EnableOfflineStorage { get; set; } = true;
         public string OfflineStoragePath { get; set; } = "Data/OfflineStorage";
-        public int BatchUploadInterval { get; set; } = 300; // 5 minutes in seconds
+        public int BatchUploadInterval { get; set; } = 300; // 5 dakika (saniye cinsinden)
         public int MaxOfflineRecords { get; set; } = 10000;
         
         public static ApiSettings LoadFromEnvironment()
         {
             var settings = new ApiSettings();
             
-            // Load from environment variables with fallback to defaults
+            // Çevre değişkenlerinden yükle, yoksa varsayılanları kullan
             var baseUrl = Environment.GetEnvironmentVariable("ApiSettings__BaseUrl");
             if (!string.IsNullOrEmpty(baseUrl))
             {

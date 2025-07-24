@@ -19,7 +19,7 @@ namespace Inventory.Agent.Windows.Services
             _maxRecords = maxRecords;
             _deviceDataFile = Path.Combine(storageDirectory, "offline_devices.json");
             
-            // Ensure storage directory exists
+            // Depolama dizininin var olduğundan emin ol
             Directory.CreateDirectory(storageDirectory);
         }
 
@@ -38,7 +38,7 @@ namespace Inventory.Agent.Windows.Services
                 var existingRecords = await GetStoredDeviceDataAsync();
                 existingRecords.Add(offlineRecord);
 
-                // Limit the number of stored records
+                // Depolanan kayıt sayısını sınırla
                 if (existingRecords.Count > _maxRecords)
                 {
                     existingRecords = existingRecords.GetRange(existingRecords.Count - _maxRecords, _maxRecords);
