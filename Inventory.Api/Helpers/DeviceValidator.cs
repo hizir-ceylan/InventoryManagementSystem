@@ -9,19 +9,19 @@ namespace Inventory.Api.Helpers
         {
             var errors = new List<string>();
 
-            // Basic validation
+            // Temel doğrulama
             if (string.IsNullOrWhiteSpace(device.Name))
                 errors.Add("Device name is required");
 
-            // IP address validation
+            // IP adresi doğrulaması
             if (!string.IsNullOrWhiteSpace(device.IpAddress) && !IsValidIpAddress(device.IpAddress))
                 errors.Add("Invalid IP address format");
 
-            // MAC address validation
+            // MAC adresi doğrulaması
             if (!string.IsNullOrWhiteSpace(device.MacAddress) && !IsValidMacAddress(device.MacAddress))
                 errors.Add("Invalid MAC address format");
 
-            // Device type specific validation
+            // Cihaz tipine özel doğrulama
             errors.AddRange(ValidateByDeviceType(device));
 
             return errors;
@@ -37,7 +37,7 @@ namespace Inventory.Api.Helpers
                 case DeviceType.Switch:
                 case DeviceType.AccessPoint:
                 case DeviceType.NetworkDevice:
-                    // Network devices should have IP address
+                    // Ağ cihazları IP adresine sahip olmalıdır
                     if (string.IsNullOrWhiteSpace(device.IpAddress))
                         errors.Add("Network devices must have an IP address");
                     break;
@@ -45,20 +45,20 @@ namespace Inventory.Api.Helpers
                 case DeviceType.Laptop:
                 case DeviceType.Desktop:
                 case DeviceType.Server:
-                    // Computers should have more detailed hardware info if agent is installed
+                    // Agent yüklü bilgisayarlar daha detaylı donanım bilgisine sahip olmalıdır
                     if (device.AgentInstalled && device.HardwareInfo == null)
                         errors.Add("Agent-managed devices should have hardware information");
                     break;
 
                 case DeviceType.Printer:
                 case DeviceType.Scanner:
-                    // Printers/scanners should have a model
+                    // Yazıcılar/tarayıcılar bir modele sahip olmalıdır
                     if (string.IsNullOrWhiteSpace(device.Model))
                         errors.Add("Printers and scanners should have a model specified");
                     break;
 
                 case DeviceType.IPPhone:
-                    // IP phones must have IP address
+                    // IP telefonlar IP adresine sahip olmalıdır
                     if (string.IsNullOrWhiteSpace(device.IpAddress))
                         errors.Add("IP phones must have an IP address");
                     break;

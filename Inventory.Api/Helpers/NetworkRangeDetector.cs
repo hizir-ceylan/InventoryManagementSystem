@@ -7,9 +7,9 @@ namespace Inventory.Api.Helpers
     public static class NetworkRangeDetector
     {
         /// <summary>
-        /// Automatically detects the local network ranges based on the device's network interfaces
+        /// Cihazın ağ arayüzlerine göre yerel ağ aralıklarını otomatik olarak algılar
         /// </summary>
-        /// <returns>List of network ranges in CIDR notation (e.g., "192.168.1.0/24")</returns>
+        /// <returns>CIDR notasyonunda ağ aralıkları listesi (örn., "192.168.1.0/24")</returns>
         public static List<string> GetLocalNetworkRanges()
         {
             var networkRanges = new List<string>();
@@ -20,7 +20,7 @@ namespace Inventory.Api.Helpers
 
                 foreach (var networkInterface in networkInterfaces)
                 {
-                    // Skip loopback and non-operational interfaces
+                    // Loopback ve çalışmayan arayüzleri atla
                     if (networkInterface.NetworkInterfaceType == NetworkInterfaceType.Loopback ||
                         networkInterface.OperationalStatus != OperationalStatus.Up)
                     {
@@ -31,7 +31,7 @@ namespace Inventory.Api.Helpers
 
                     foreach (var unicastAddress in ipProperties.UnicastAddresses)
                     {
-                        // Only process IPv4 addresses
+                        // Sadece IPv4 adreslerini işle
                         if (unicastAddress.Address.AddressFamily == AddressFamily.InterNetwork)
                         {
                             var networkRange = CalculateNetworkRange(unicastAddress.Address, unicastAddress.IPv4Mask);
@@ -45,11 +45,11 @@ namespace Inventory.Api.Helpers
             }
             catch (Exception ex)
             {
-                // Log error but return empty list
+                // Hatayı günlükle ancak boş liste döndür
                 Console.WriteLine($"Error detecting network ranges: {ex.Message}");
             }
 
-            // If no ranges detected, add common private ranges as fallback
+            // Hiçbir aralık algılanmadıysa yedek olarak yaygın özel aralıkları ekle
             if (!networkRanges.Any())
             {
                 networkRanges.AddRange(new[]
@@ -64,9 +64,9 @@ namespace Inventory.Api.Helpers
         }
 
         /// <summary>
-        /// Gets the primary local network range (the first non-loopback interface)
+        /// Birincil yerel ağ aralığını alır (ilk loopback olmayan arayüz)
         /// </summary>
-        /// <returns>Primary network range in CIDR notation</returns>
+        /// <returns>CIDR notasyonunda birincil ağ aralığı</returns>
         public static string GetPrimaryNetworkRange()
         {
             var ranges = GetLocalNetworkRanges();
@@ -74,11 +74,11 @@ namespace Inventory.Api.Helpers
         }
 
         /// <summary>
-        /// Calculates the network range in CIDR notation from IP address and subnet mask
+        /// IP adresi ve alt ağ maskesinden CIDR notasyonunda ağ aralığını hesaplar
         /// </summary>
-        /// <param name="ipAddress">The IP address</param>
-        /// <param name="subnetMask">The subnet mask</param>
-        /// <returns>Network range in CIDR notation (e.g., "192.168.1.0/24")</returns>
+        /// <param name="ipAddress">IP adresi</param>
+        /// <param name="subnetMask">Alt ağ maskesi</param>
+        /// <returns>CIDR notasyonunda ağ aralığı (örn., "192.168.1.0/24")</returns>
         private static string CalculateNetworkRange(IPAddress ipAddress, IPAddress subnetMask)
         {
             try
@@ -86,7 +86,7 @@ namespace Inventory.Api.Helpers
                 var ipBytes = ipAddress.GetAddressBytes();
                 var maskBytes = subnetMask.GetAddressBytes();
 
-                // Calculate network address
+                // Ağ adresini hesapla
                 var networkBytes = new byte[4];
                 for (int i = 0; i < 4; i++)
                 {
@@ -95,7 +95,7 @@ namespace Inventory.Api.Helpers
 
                 var networkAddress = new IPAddress(networkBytes);
 
-                // Calculate CIDR prefix length
+                // CIDR önek uzunluğunu hesapla
                 var prefixLength = CalculatePrefixLength(subnetMask);
 
                 return $"{networkAddress}/{prefixLength}";
@@ -107,10 +107,10 @@ namespace Inventory.Api.Helpers
         }
 
         /// <summary>
-        /// Calculates the CIDR prefix length from subnet mask
+        /// Alt ağ maskesinden CIDR önek uzunluğunu hesaplar
         /// </summary>
-        /// <param name="subnetMask">The subnet mask</param>
-        /// <returns>CIDR prefix length</returns>
+        /// <param name="subnetMask">Alt ağ maskesi</param>
+        /// <returns>CIDR önek uzunluğu</returns>
         private static int CalculatePrefixLength(IPAddress subnetMask)
         {
             var maskBytes = subnetMask.GetAddressBytes();
@@ -135,9 +135,9 @@ namespace Inventory.Api.Helpers
         }
 
         /// <summary>
-        /// Gets the local IP address of the primary network interface
+        /// Birincil ağ arayüzünün yerel IP adresini alır
         /// </summary>
-        /// <returns>Local IP address</returns>
+        /// <returns>Yerel IP adresi</returns>
         public static string GetLocalIPAddress()
         {
             try
