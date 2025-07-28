@@ -2,10 +2,31 @@
 
 Kurumsal cihaz envanteri yönetimi, değişiklik takibi ve raporlaması için geliştirilen bir sistemdir.
 
-## ✨ Yeni Özellikler - Docker Desteği
+## ✨ Yeni Özellikler
 
-🐳 **Docker ile Kolay Test ve Deployment!**
-Bu proje artık Docker desteği ile birlikte gelir ve çok kolay test edilebilir.
+### 🔧 Windows Service Desteği (YENİ!)
+**Problem**: Agent çalıştırıldığında "Hedef makine etkin olarak reddettiğinden bağlantı kurulamadı" hatası  
+**Çözüm**: API ve Agent'ın Windows servisi olarak otomatik başlatılması
+
+```powershell
+# Hızlı kurulum - Yönetici PowerShell'de:
+.\scripts\Install-WindowsServices.ps1
+```
+
+✅ **Windows başlangıcında otomatik start**  
+✅ **API önce, Agent sonra başlar**  
+✅ **Arka planda sürekli çalışır**  
+✅ **Event Log entegrasyonu**  
+
+Detaylar: [Windows Service Kurulum Kılavuzu](WINDOWS-SERVICE-README.md)
+
+### 🐳 Docker Desteği
+Docker ile kolay test ve deployment imkanı.
+
+```bash
+# Hızlı Docker başlangıcı
+./scripts/quick-start.sh
+```
 
 ### Hızlı Docker Başlangıcı
 

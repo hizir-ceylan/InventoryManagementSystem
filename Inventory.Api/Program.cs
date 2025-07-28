@@ -13,6 +13,12 @@ namespace Inventory.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Windows Service support ekle
+            builder.Services.AddWindowsService(options =>
+            {
+                options.ServiceName = "InventoryManagementApi";
+            });
+
             // Veritabanı bağlamını ekle
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             var serverSettings = builder.Configuration.GetSection("ServerSettings");
