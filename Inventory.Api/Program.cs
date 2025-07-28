@@ -34,7 +34,18 @@ namespace Inventory.Api
             if (string.IsNullOrEmpty(connectionString))
             {
                 // Bağlantı dizesi sağlanmamışsa varsayılan olarak SQLite kullan
-                connectionString = "Data Source=inventory.db";
+                // Uygulama dizininde 'Data' klasörü oluştur ve veritabanını orada sakla
+                var appDirectory = AppContext.BaseDirectory;
+                var dataDirectory = Path.Combine(appDirectory, "Data");
+                
+                // Data klasörünün var olduğundan emin ol
+                if (!Directory.Exists(dataDirectory))
+                {
+                    Directory.CreateDirectory(dataDirectory);
+                }
+                
+                var dbPath = Path.Combine(dataDirectory, "inventory.db");
+                connectionString = $"Data Source={dbPath}";
             }
 
             if (connectionString.Contains("Data Source"))
@@ -93,8 +104,21 @@ namespace Inventory.Api
             // Veritabanının oluşturulduğundan emin ol
             using (var scope = app.Services.CreateScope())
             {
-                var context = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
-                context.Database.EnsureCreated();
+                try
+                {
+                    var context = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+                    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                    
+                    logger.LogInformation("Veritabanı bağlantısı kontrol ediliyor...");
+                    context.Database.EnsureCreated();
+                    logger.LogInformation("Veritabanı başarıyla oluşturuldu veya mevcut.");
+                }
+                catch (Exception ex)
+                {
+                    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                    logger.LogError(ex, "Veritabanı oluşturulurken hata oluştu: {ErrorMessage}", ex.Message);
+                    throw;
+                }
             }
 
             // HTTP istek pipeline'ını yapılandır

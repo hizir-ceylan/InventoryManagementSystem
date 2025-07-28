@@ -10,7 +10,7 @@ Kurumsal cihaz envanteri yönetimi, değişiklik takibi ve raporlaması için ge
 
 ```powershell
 # Hızlı kurulum - Yönetici PowerShell'de:
-.\scripts\Install-WindowsServices.ps1
+.\build-tools\Install-WindowsServices.ps1
 ```
 
 ✅ **Windows başlangıcında otomatik start**  
@@ -25,7 +25,7 @@ Docker ile kolay test ve deployment imkanı.
 
 ```bash
 # Hızlı Docker başlangıcı
-./scripts/quick-start.sh
+./build-tools/quick-start.sh
 ```
 
 ### Hızlı Docker Başlangıcı
@@ -36,10 +36,10 @@ git clone https://github.com/hizir-ceylan/InventoryManagementSystem.git
 cd InventoryManagementSystem
 
 # 2. Hızlı başlangıç scripti ile başlatın
-./scripts/quick-start.sh
+./build-tools/quick-start.sh
 
 # 3. Otomatik test çalıştırın
-./scripts/test-docker.sh test
+./build-tools/test-docker.sh test
 ```
 
 **Erişim:**
@@ -84,7 +84,7 @@ cd InventoryManagementSystem
 
 ```bash
 # Hızlı başlangıç scripti
-./scripts/quick-start.sh
+./build-tools/quick-start.sh
 
 # Manuel Docker Compose
 docker-compose -f docker-compose.simple.yml up --build -d
@@ -115,13 +115,13 @@ docker-compose up --build -d
 ### Test ve Doğrulama
 ```bash
 # Otomatik test suite
-./scripts/test-docker.sh test
+./build-tools/test-docker.sh test
 
 # Container durumu
-./scripts/quick-start.sh status
+./build-tools/quick-start.sh status
 
 # Logları görüntüleme
-./scripts/quick-start.sh logs
+./build-tools/quick-start.sh logs
 ```
 
 ## 🧪 API Test Örnekleri
@@ -158,13 +158,13 @@ curl -X POST "http://localhost:5093/api/networkscan/start" \
 ### Docker Environment Test
 ```bash
 # 1. Sistem başlat
-./scripts/quick-start.sh
+./build-tools/quick-start.sh
 
 # 2. API test et
 curl http://localhost:5093/api/device
 
 # 3. Tam test suite çalıştır
-./scripts/test-docker.sh test
+./build-tools/test-docker.sh test
 
 # 4. Performans testi
 ab -n 100 -c 10 http://localhost:5093/api/device
@@ -232,6 +232,33 @@ Projeye katkı sağlamak için:
 ## Lisans
 
 MIT lisansı ile açık kaynak olarak sunulmaktadır.
+
+---
+
+## 📁 Repository Structure
+
+```
+InventoryManagementSystem/
+├── Inventory.Api/           # Web API projesi
+├── Inventory.Agent.Windows/ # Windows Agent projesi
+├── Inventory.Data/          # Data katmanı (Entity Framework)
+├── Inventory.Domain/        # Domain modelleri
+├── Inventory.Shared/        # Paylaşılan sınıflar
+├── build-tools/            # Build, deployment ve kurulum scriptleri
+├── docs/                   # Tüm dokümantasyon dosyaları
+├── database/               # Database kurulum scriptleri
+├── nginx/                  # NGINX konfigürasyonu
+├── Published/              # Yayın dosyaları
+├── docker-compose.yml      # Docker compose dosyası
+├── Dockerfile             # API için Docker dosyası
+├── Dockerfile.agent       # Agent için Docker dosyası
+└── README.md              # Bu dosya
+```
+
+### Key Directories:
+- **build-tools/**: Tüm build, kurulum ve deployment scriptleri
+- **docs/**: Detaylı dokümantasyon ve kurulum rehberleri
+- **database/**: Database kurulum ve başlangıç scriptleri
 
 ---
 

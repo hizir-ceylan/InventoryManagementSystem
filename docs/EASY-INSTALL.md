@@ -12,11 +12,11 @@
 1. Open PowerShell as Administrator
 2. Run the following command:
 ```powershell
-iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/hizir-ceylan/InventoryManagementSystem/main/scripts/Install-InventorySystem.ps1'))
+iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/hizir-ceylan/InventoryManagementSystem/main/build-tools/Install-InventorySystem.ps1'))
 ```
 
 ### Option 3: Manual Download and Install
-1. Download the installer script: `scripts/Install-InventorySystem.ps1`
+1. Download the installer script: `build-tools/Install-InventorySystem.ps1`
 2. Open PowerShell as Administrator
 3. Navigate to the downloaded script location
 4. Run: `.\Install-InventorySystem.ps1`
