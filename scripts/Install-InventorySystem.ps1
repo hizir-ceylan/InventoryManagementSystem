@@ -1,6 +1,11 @@
-# InventoryManagementSystem - Automated Installation Script
-# This script downloads, builds, and installs the Inventory Management System
-# Requires: PowerShell 5.1+ and Administrator privileges
+<#
+.SYNOPSIS
+    Inventory Management System Kurulum Scripti (.NET yükleme yok, sadece kontrol)
+.DESCRIPTION
+    .NET 8 SDK'nın manuel olarak kurulu olduğunu varsayar. Sadece kontrol eder.
+    Git otomatik yüklenir, .NET 8 SDK ise kullanıcıdan manuel yüklenmesi istenir.
+    Tüm adımlar tamamen güncellendi.
+#>
 
 param(
     [Parameter(HelpMessage="Installation directory (default: C:\InventoryManagementSystem)")]
@@ -81,38 +86,25 @@ function Install-Git {
     }
 }
 
-# Download and install .NET 8 SDK if not present
-function Install-DotNet {
+# Check .NET 8 SDK (no install, only check)
+function Check-DotNet {
     try {
-        $dotnetVersion = & dotnet --version 2>$null
-        if ($LASTEXITCODE -eq 0 -and $dotnetVersion -like "8.*") {
-            Write-Log ".NET 8 SDK is already installed (version: $dotnetVersion)."
-            return
+        $dotnetSdks = & dotnet --list-sdks 2>$null
+        if ($dotnetSdks -match "^8\.")
+        {
+            Write-Log ".NET 8 SDK is installed."
+            return $true
+        } else {
+            Write-Log ".NET 8 SDK not found." -Level "ERROR"
+            return $false
         }
     } catch {
-        # dotnet not found
-    }
-    
-    Write-Log ".NET 8 SDK not found. Installing..."
-    try {
-        # Download .NET 8 SDK installer
-        $dotnetUrl = "https://download.microsoft.com/download/a/9/2/a9252387-202a-4b0a-8377-33368dcbdeba/dotnet-sdk-8.0.101-win-x64.exe"
-        $dotnetInstaller = Join-Path $env:TEMP "dotnet-sdk-installer.exe"
-        
-        Write-Log "Downloading .NET 8 SDK from $dotnetUrl"
-        Invoke-WebRequest -Uri $dotnetUrl -OutFile $dotnetInstaller -UseBasicParsing
-        
-        Write-Log "Installing .NET 8 SDK..."
-        Start-Process -FilePath $dotnetInstaller -ArgumentList "/quiet" -Wait
-        
-        Write-Log ".NET 8 SDK installation completed."
-    } catch {
-        Write-Log "Failed to install .NET 8 SDK: $($_.Exception.Message)" -Level "ERROR"
-        throw
+        Write-Log ".NET not found." -Level "ERROR"
+        return $false
     }
 }
 
-# Check and install dependencies
+# Check and install dependencies (only Git, .NET sadece kontrol edilir)
 function Install-Dependencies {
     if ($SkipDependencyCheck) {
         Write-Log "Skipping dependency checks as requested."
@@ -124,10 +116,14 @@ function Install-Dependencies {
     # Install Git
     Install-Git
     
-    # Install .NET 8 SDK
-    Install-DotNet
+    # Check .NET 8 SDK
+    if (-not (Check-DotNet)) {
+        Write-Log "Lütfen .NET 8 SDK'yı manuel olarak kurun: https://dotnet.microsoft.com/download/dotnet/8.0" -Level "ERROR"
+        Write-Host "`n[ERROR] .NET 8 SDK bulunamadı! Lütfen kurulumdan önce https://dotnet.microsoft.com/download/dotnet/8.0 adresinden .NET 8 SDK'yı indirip yükleyin."
+        exit 1
+    }
     
-    Write-Log "Dependency installation completed."
+    Write-Log "Dependency check completed."
 }
 
 # Clone repository
@@ -324,7 +320,7 @@ function Start-Installation {
     Write-Log "=============================================="
     
     try {
-        # Step 1: Install dependencies
+        # Step 1: Install dependencies (only Git, .NET sadece kontrol)
         Install-Dependencies
         
         # Step 2: Clone repository
