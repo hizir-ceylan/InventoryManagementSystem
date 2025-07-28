@@ -1,16 +1,53 @@
 using System;
+using System.IO;
 
 namespace Inventory.Agent.Windows.Configuration
 {
     public class ApiSettings
     {
-        public string BaseUrl { get; set; } = "http://localhost:5000";
+        public string BaseUrl { get; set; } = "http://localhost:5093";
         public int Timeout { get; set; } = 30;
         public int RetryCount { get; set; } = 3;
         public bool EnableOfflineStorage { get; set; } = true;
-        public string OfflineStoragePath { get; set; } = "Data/OfflineStorage";
+        public string OfflineStoragePath { get; set; } = GetDefaultOfflineStoragePath();
         public int BatchUploadInterval { get; set; } = 300; // 5 dakika (saniye cinsinden)
         public int MaxOfflineRecords { get; set; } = 10000;
+        
+        private static string GetDefaultOfflineStoragePath()
+        {
+            try
+            {
+                // Kullanıcının Belgeler klasörünü al
+                string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                
+                // Eğer Belgeler klasörü mevcut değilse veya boşsa, kullanıcının ana dizinini kullan
+                if (string.IsNullOrEmpty(documentsPath) || !Directory.Exists(documentsPath))
+                {
+                    string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                    if (!string.IsNullOrEmpty(userProfile))
+                    {
+                        documentsPath = Path.Combine(userProfile, "Documents");
+                        // Belgeler klasörünü oluştur
+                        Directory.CreateDirectory(documentsPath);
+                    }
+                    else
+                    {
+                        // Son çare olarak ev dizinini kullan
+                        documentsPath = Environment.GetEnvironmentVariable("HOME") ?? Path.GetTempPath();
+                    }
+                }
+                
+                // Uygulama için özel klasör oluştur
+                string appDataPath = Path.Combine(documentsPath, "InventoryManagementSystem", "OfflineStorage");
+                
+                return appDataPath;
+            }
+            catch
+            {
+                // Eğer hiçbir yol çalışmazsa, geçici dizini kullan
+                return Path.Combine(Path.GetTempPath(), "InventoryManagementSystem", "OfflineStorage");
+            }
+        }
         
         public static ApiSettings LoadFromEnvironment()
         {

@@ -97,15 +97,16 @@ manual_setup() {
     log_info "Container başlatılıyor..."
     docker run -d \
         --name inventory-api-manual \
-        -p 5000:5000 \
+        -p 5093:5093 \
         -e ASPNETCORE_ENVIRONMENT=Development \
         -e ConnectionStrings__DefaultConnection="Data Source=/app/Data/inventory.db" \
+        -e ASPNETCORE_URLS="http://+:5093" \
         -v "$(pwd)/Data:/app/Data" \
         inventory-api:latest
     
     log_info "Manuel setup tamamlandı!"
-    echo "API: http://localhost:5000"
-    echo "Swagger: http://localhost:5000/swagger"
+    echo "API: http://localhost:5093"
+    echo "Swagger: http://localhost:5093/swagger"
     return
 }
 
@@ -139,7 +140,7 @@ check_system() {
     # API'nin hazır olmasını bekle
     local counter=0
     while [ $counter -lt 30 ]; do
-        if curl -f -s http://localhost:5000/api/device > /dev/null 2>&1; then
+        if curl -f -s http://localhost:5093/api/device > /dev/null 2>&1; then
             log_info "API hazır! ✅"
             break
         fi
@@ -162,8 +163,8 @@ show_info() {
     echo "=========================================="
     echo
     echo "📍 Erişim Bilgileri:"
-    echo "   • API: http://localhost:5000"
-    echo "   • Swagger UI: http://localhost:5000/swagger"
+    echo "   • API: http://localhost:5093"
+    echo "   • Swagger UI: http://localhost:5093/swagger"
     if [ "$COMPOSE_FILE" = "docker-compose.yml" ]; then
         echo "   • Nginx: http://localhost"
         echo "   • SQL Server: localhost:1433"
@@ -185,7 +186,7 @@ show_info() {
 suggest_tests() {
     echo "🧪 Test Önerileri:"
     echo "   • Otomatik test: ./test-docker.sh test"
-    echo "   • Manuel API test: curl http://localhost:5000/api/device"
+    echo "   • Manuel API test: curl http://localhost:5093/api/device"
     echo "   • Cihaz ekleme test için Swagger UI kullanın"
     echo
 }
