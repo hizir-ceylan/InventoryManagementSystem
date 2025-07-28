@@ -4,7 +4,6 @@
 .DESCRIPTION
     .NET 8 SDK'nın manuel olarak kurulu olduğunu varsayar. Sadece kontrol eder.
     Git otomatik yüklenir, .NET 8 SDK ise kullanıcıdan manuel yüklenmesi istenir.
-    Tüm adımlar tamamen güncellendi.
 #>
 
 param(
@@ -65,20 +64,14 @@ function Install-Git {
     
     Write-Log "Git not found. Installing Git..."
     try {
-        # Download Git installer
         $gitUrl = "https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe"
         $gitInstaller = Join-Path $env:TEMP "Git-Installer.exe"
-        
         Write-Log "Downloading Git from $gitUrl"
         Invoke-WebRequest -Uri $gitUrl -OutFile $gitInstaller -UseBasicParsing
-        
         Write-Log "Installing Git..."
         Start-Process -FilePath $gitInstaller -ArgumentList "/VERYSILENT", "/NORESTART" -Wait
-        
-        # Add Git to PATH
         $env:PATH += ";C:\Program Files\Git\bin"
         [Environment]::SetEnvironmentVariable("PATH", $env:PATH, [EnvironmentVariableTarget]::Machine)
-        
         Write-Log "Git installation completed."
     } catch {
         Write-Log "Failed to install Git: $($_.Exception.Message)" -Level "ERROR"
@@ -112,8 +105,6 @@ function Install-Dependencies {
     }
     
     Write-Log "Checking and installing dependencies..."
-    
-    # Install Git
     Install-Git
     
     # Check .NET 8 SDK
@@ -122,14 +113,12 @@ function Install-Dependencies {
         Write-Host "`n[ERROR] .NET 8 SDK bulunamadı! Lütfen kurulumdan önce https://dotnet.microsoft.com/download/dotnet/8.0 adresinden .NET 8 SDK'yı indirip yükleyin."
         exit 1
     }
-    
     Write-Log "Dependency check completed."
 }
 
 # Clone repository
 function Get-Repository {
     Write-Log "Cloning repository from $RepoUrl"
-    
     if (Test-Path $InstallPath) {
         if (-not $Silent) {
             $response = Read-Host "Directory $InstallPath already exists. Do you want to remove it? (y/N)"
@@ -141,7 +130,6 @@ function Get-Repository {
         Write-Log "Removing existing directory $InstallPath"
         Remove-Item -Path $InstallPath -Recurse -Force
     }
-    
     try {
         & git clone --branch $Branch $RepoUrl $InstallPath
         if ($LASTEXITCODE -ne 0) {
@@ -157,37 +145,28 @@ function Get-Repository {
 # Build the solution
 function Build-Solution {
     Write-Log "Building the solution..."
-    
     Push-Location $InstallPath
     try {
-        # Restore packages
         Write-Log "Restoring NuGet packages..."
         & dotnet restore
         if ($LASTEXITCODE -ne 0) {
             throw "Package restore failed with exit code $LASTEXITCODE"
         }
-        
-        # Build solution
         Write-Log "Building solution in Release mode..."
         & dotnet build --configuration Release --no-restore
         if ($LASTEXITCODE -ne 0) {
             throw "Build failed with exit code $LASTEXITCODE"
         }
-        
-        # Publish API
         Write-Log "Publishing API..."
         & dotnet publish Inventory.Api --configuration Release --output "Published\Api" --no-build
         if ($LASTEXITCODE -ne 0) {
             throw "API publish failed with exit code $LASTEXITCODE"
         }
-        
-        # Publish Agent
         Write-Log "Publishing Agent..."
         & dotnet publish Inventory.Agent.Windows --configuration Release --output "Published\Agent" --no-build
         if ($LASTEXITCODE -ne 0) {
             throw "Agent publish failed with exit code $LASTEXITCODE"
         }
-        
         Write-Log "Build completed successfully."
     } catch {
         Write-Log "Build failed: $($_.Exception.Message)" -Level "ERROR"
@@ -203,11 +182,8 @@ function Install-WindowsServices {
         Write-Log "Skipping Windows Service installation as requested."
         return
     }
-    
     Write-Log "Installing Windows Services..."
-    
     try {
-        # Stop existing services if they exist
         foreach ($serviceName in $RequiredServices) {
             $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
             if ($service) {
@@ -216,25 +192,17 @@ function Install-WindowsServices {
                 & sc.exe delete $serviceName
             }
         }
-        
-        # Install API Service
         $apiPath = Join-Path $InstallPath "Published\Api\Inventory.Api.exe"
         Write-Log "Installing API service from $apiPath"
         & sc.exe create "InventoryManagementApi" binPath= "`"$apiPath`" --service" start= auto DisplayName= "Inventory Management API" depend= ""
-        
-        # Install Agent Service  
         $agentPath = Join-Path $InstallPath "Published\Agent\Inventory.Agent.Windows.exe"
         Write-Log "Installing Agent service from $agentPath"
         & sc.exe create "InventoryManagementAgent" binPath= "`"$agentPath`" --service" start= auto DisplayName= "Inventory Management Agent" depend= "InventoryManagementApi"
-        
-        # Start services
         Write-Log "Starting API service..."
         Start-Service -Name "InventoryManagementApi"
         Start-Sleep -Seconds 5
-        
         Write-Log "Starting Agent service..."
         Start-Service -Name "InventoryManagementAgent"
-        
         Write-Log "Windows Services installed and started successfully."
     } catch {
         Write-Log "Failed to install Windows Services: $($_.Exception.Message)" -Level "ERROR"
@@ -245,23 +213,17 @@ function Install-WindowsServices {
 # Create desktop shortcuts
 function Create-Shortcuts {
     Write-Log "Creating desktop shortcuts..."
-    
     try {
         $shell = New-Object -ComObject WScript.Shell
         $desktop = [Environment]::GetFolderPath("Desktop")
-        
-        # API Swagger shortcut
         $swaggerShortcut = $shell.CreateShortcut("$desktop\Inventory API (Swagger).lnk")
         $swaggerShortcut.TargetPath = "http://localhost:5093/swagger"
         $swaggerShortcut.Description = "Inventory Management System API Documentation"
         $swaggerShortcut.Save()
-        
-        # Installation folder shortcut
         $folderShortcut = $shell.CreateShortcut("$desktop\Inventory System Folder.lnk")
         $folderShortcut.TargetPath = $InstallPath
         $folderShortcut.Description = "Inventory Management System Installation Folder"
         $folderShortcut.Save()
-        
         Write-Log "Desktop shortcuts created successfully."
     } catch {
         Write-Log "Failed to create shortcuts: $($_.Exception.Message)" -Level "WARN"
@@ -271,14 +233,12 @@ function Create-Shortcuts {
 # Create uninstall script
 function Create-UninstallScript {
     Write-Log "Creating uninstall script..."
-    
     $uninstallScript = @"
 # Inventory Management System - Uninstall Script
 # Run as Administrator
 
 Write-Host "Uninstalling Inventory Management System..."
 
-# Stop and remove services
 foreach (`$service in @("InventoryManagementAgent", "InventoryManagementApi")) {
     `$svc = Get-Service -Name `$service -ErrorAction SilentlyContinue
     if (`$svc) {
@@ -288,20 +248,17 @@ foreach (`$service in @("InventoryManagementAgent", "InventoryManagementApi")) {
     }
 }
 
-# Remove installation directory
 if (Test-Path "$InstallPath") {
     Write-Host "Removing installation directory: $InstallPath"
     Remove-Item -Path "$InstallPath" -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-# Remove desktop shortcuts
 `$desktop = [Environment]::GetFolderPath("Desktop")
 Remove-Item -Path "`$desktop\Inventory API (Swagger).lnk" -ErrorAction SilentlyContinue
 Remove-Item -Path "`$desktop\Inventory System Folder.lnk" -ErrorAction SilentlyContinue
 
 Write-Host "Uninstallation completed."
 "@
-
     $uninstallPath = Join-Path $InstallPath "Uninstall.ps1"
     Set-Content -Path $uninstallPath -Value $uninstallScript
     Write-Log "Uninstall script created at $uninstallPath"
@@ -318,26 +275,13 @@ function Start-Installation {
     Write-Log "Install as Service: $InstallAsService"
     Write-Log "Log file: $LogFile"
     Write-Log "=============================================="
-    
     try {
-        # Step 1: Install dependencies (only Git, .NET sadece kontrol)
         Install-Dependencies
-        
-        # Step 2: Clone repository
         Get-Repository
-        
-        # Step 3: Build solution
         Build-Solution
-        
-        # Step 4: Install Windows Services
         Install-WindowsServices
-        
-        # Step 5: Create shortcuts
         Create-Shortcuts
-        
-        # Step 6: Create uninstall script
         Create-UninstallScript
-        
         Write-Log "=============================================="
         Write-Log "Installation completed successfully!"
         Write-Log "=============================================="
@@ -346,12 +290,10 @@ function Start-Installation {
         Write-Log "Installation folder: $InstallPath"
         Write-Log "Log file: $LogFile"
         Write-Log "=============================================="
-        
         if (-not $Silent) {
             Write-Host "`nInstallation completed! Press any key to exit..."
             $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         }
-        
     } catch {
         Write-Log "Installation failed: $($_.Exception.Message)" -Level "ERROR"
         Write-Log "Check the log file for details: $LogFile" -Level "ERROR"
@@ -359,5 +301,4 @@ function Start-Installation {
     }
 }
 
-# Start the installation
 Start-Installation
