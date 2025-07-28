@@ -18,6 +18,8 @@ data/
 **/data/
 
 # Database files
+Published/
+Setup/
 *.db
 *.db-shm
 *.db-wal
