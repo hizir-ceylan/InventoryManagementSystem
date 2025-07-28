@@ -10,7 +10,7 @@ echo "Inventory Management System - Docker Test Script"
 echo "=================================================="
 
 # Configuration
-API_URL="http://localhost:5000"
+API_URL="http://localhost:5093"
 WAIT_TIMEOUT=60
 TEST_DEVICE_NAME="DOCKER-TEST-$(date +%s)"
 

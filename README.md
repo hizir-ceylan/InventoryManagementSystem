@@ -43,8 +43,8 @@ cd InventoryManagementSystem
 ```
 
 **Erişim:**
-- API: http://localhost:5000
-- Swagger UI: http://localhost:5000/swagger
+- API: http://localhost:5093
+- Swagger UI: http://localhost:5093/swagger
 
 ## Özellikler
 
@@ -118,7 +118,7 @@ docker-compose up --build -d
 
 ### Cihaz Ekleme
 ```bash
-curl -X POST "http://localhost:5000/api/device" \
+curl -X POST "http://localhost:5093/api/device" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "TEST-PC-001",
@@ -133,12 +133,12 @@ curl -X POST "http://localhost:5000/api/device" \
 
 ### Cihaz Listeleme
 ```bash
-curl http://localhost:5000/api/device
+curl http://localhost:5093/api/device
 ```
 
 ### Network Scan Başlatma
 ```bash
-curl -X POST "http://localhost:5000/api/networkscan/start" \
+curl -X POST "http://localhost:5093/api/networkscan/start" \
   -H "Content-Type: application/json" \
   -d '{"networkRange": "192.168.1.0/24"}'
 ```
@@ -151,17 +151,17 @@ curl -X POST "http://localhost:5000/api/networkscan/start" \
 ./scripts/quick-start.sh
 
 # 2. API test et
-curl http://localhost:5000/api/device
+curl http://localhost:5093/api/device
 
 # 3. Tam test suite çalıştır
 ./scripts/test-docker.sh test
 
 # 4. Performans testi
-ab -n 100 -c 10 http://localhost:5000/api/device
+ab -n 100 -c 10 http://localhost:5093/api/device
 ```
 
 ### Manuel Test
-1. **Swagger UI**: http://localhost:5000/swagger adresine gidin
+1. **Swagger UI**: http://localhost:5093/swagger adresine gidin
 2. **Device endpoints**'ini test edin
 3. **Logging endpoints**'ini test edin
 4. **Network scan**'i başlatın
@@ -171,7 +171,7 @@ ab -n 100 -c 10 http://localhost:5000/api/device
 ### Development Environment
 ```bash
 # Development mode
-docker run -p 5000:5000 -e ASPNETCORE_ENVIRONMENT=Development inventory-api:latest
+docker run -p 5093:5093 -e ASPNETCORE_ENVIRONMENT=Development inventory-api:latest
 
 # Hot reload development
 dotnet watch run --project Inventory.Api --environment Development
@@ -198,7 +198,7 @@ docker network inspect inventory_inventory-network
 docker stats inventory-api-simple
 
 # Health check
-curl http://localhost:5000/api/device
+curl http://localhost:5093/api/device
 ```
 
 ### Log Dosyaları
@@ -229,7 +229,7 @@ MIT lisansı ile açık kaynak olarak sunulmaktadır.
 
 - **Windows kurulum problemleri**: [Windows Tam Kurulum Rehberi](docs/WINDOWS-INSTALLATION-GUIDE.md)
 - **Docker problemleri**: [Docker Rehberi](docs/DOCKER-GUIDE.md)
-- **API kullanımı**: http://localhost:5093/swagger (Windows) / http://localhost:5000/swagger (Docker)
+- **API kullanımı**: http://localhost:5093/swagger (Tüm platformlar)
 - **Tüm dokümantasyon**: [Tam Dokümantasyon](docs/COMPLETE-DOCUMENTATION.md)
 
 Her türlü soru ve öneriniz için lütfen [issue açın](https://github.com/hizir-ceylan/InventoryManagementSystem/issues) veya iletişime geçin.
