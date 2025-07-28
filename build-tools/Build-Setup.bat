@@ -56,7 +56,7 @@ mkdir "Setup"
 
 REM Restore NuGet packages
 echo Restoring NuGet packages...
-dotnet restore
+dotnet restore ..
 if %errorLevel% neq 0 (
     echo ERROR: Failed to restore NuGet packages!
     pause
@@ -65,7 +65,7 @@ if %errorLevel% neq 0 (
 
 REM Build solution
 echo Building solution...
-dotnet build --configuration Release --no-restore
+dotnet build .. --configuration Release --no-restore
 if %errorLevel% neq 0 (
     echo ERROR: Build failed!
     pause
@@ -74,7 +74,7 @@ if %errorLevel% neq 0 (
 
 REM Publish API
 echo Publishing API...
-dotnet publish Inventory.Api --configuration Release --output "Published\Api" --no-build --self-contained false
+dotnet publish ..\Inventory.Api --configuration Release --output "Published\Api" --no-build --self-contained false
 if %errorLevel% neq 0 (
     echo ERROR: Failed to publish API!
     pause
@@ -83,7 +83,7 @@ if %errorLevel% neq 0 (
 
 REM Publish Agent
 echo Publishing Agent...
-dotnet publish Inventory.Agent.Windows --configuration Release --output "Published\Agent" --no-build --self-contained false
+dotnet publish ..\Inventory.Agent.Windows --configuration Release --output "Published\Agent" --no-build --self-contained false
 if %errorLevel% neq 0 (
     echo ERROR: Failed to publish Agent!
     pause

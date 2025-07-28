@@ -89,7 +89,7 @@ Write-Status "Created build directories" "SUCCESS"
 Write-Host ""
 Write-Host "Restoring NuGet packages..."
 try {
-    & dotnet restore
+    & dotnet restore ..
     if ($LASTEXITCODE -eq 0) {
         Write-Status "NuGet packages restored successfully" "SUCCESS"
     } else {
@@ -103,7 +103,7 @@ try {
 Write-Host ""
 Write-Host "Building solution..."
 try {
-    & dotnet build --configuration $Configuration --no-restore
+    & dotnet build .. --configuration $Configuration --no-restore
     if ($LASTEXITCODE -eq 0) {
         Write-Status "Solution built successfully" "SUCCESS"
     } else {
@@ -126,7 +126,7 @@ if ($SelfContained) {
 Write-Host ""
 Write-Host "Publishing API..."
 try {
-    $apiArgs = $publishArgs + @("Inventory.Api", "--output", "Published\Api")
+    $apiArgs = $publishArgs + @("..\Inventory.Api", "--output", "Published\Api")
     & dotnet publish @apiArgs
     if ($LASTEXITCODE -eq 0) {
         Write-Status "API published successfully" "SUCCESS"
@@ -141,7 +141,7 @@ try {
 Write-Host ""
 Write-Host "Publishing Agent..."
 try {
-    $agentArgs = $publishArgs + @("Inventory.Agent.Windows", "--output", "Published\Agent")
+    $agentArgs = $publishArgs + @("..\Inventory.Agent.Windows", "--output", "Published\Agent")
     & dotnet publish @agentArgs
     if ($LASTEXITCODE -eq 0) {
         Write-Status "Agent published successfully" "SUCCESS"

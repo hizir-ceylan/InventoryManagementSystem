@@ -24,13 +24,13 @@ fi
 echo "Testing publish process..."
 mkdir -p Published/Api Published/Agent Setup
 
-dotnet publish Inventory.Api --configuration Release --output "Published/Api" --no-build --self-contained false
+dotnet publish ../Inventory.Api --configuration Release --output "Published/Api" --no-build --self-contained false
 if [ $? -ne 0 ]; then
     echo "❌ API publish failed!"
     exit 1
 fi
 
-dotnet publish Inventory.Agent.Windows --configuration Release --output "Published/Agent" --no-build --self-contained false
+dotnet publish ../Inventory.Agent.Windows --configuration Release --output "Published/Agent" --no-build --self-contained false
 if [ $? -ne 0 ]; then
     echo "❌ Agent publish failed!"
     exit 1

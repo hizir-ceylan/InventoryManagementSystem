@@ -75,18 +75,18 @@ publish_applications() {
     
     # API publish
     log_info "API publish ediliyor..."
-    dotnet publish Inventory.Api/Inventory.Api.csproj \
+    dotnet publish ../Inventory.Api/Inventory.Api.csproj \
         --configuration Release \
         --output publish/api \
         --no-restore
     
     # Agent publish - Windows (restore gerekliyse)
     log_info "Agent (Windows) restore ediliyor..."
-    dotnet restore Inventory.Agent.Windows/Inventory.Agent.Windows.csproj \
+    dotnet restore ../Inventory.Agent.Windows/Inventory.Agent.Windows.csproj \
         --runtime win-x64
     
     log_info "Agent (Windows) publish ediliyor..."
-    dotnet publish Inventory.Agent.Windows/Inventory.Agent.Windows.csproj \
+    dotnet publish ../Inventory.Agent.Windows/Inventory.Agent.Windows.csproj \
         --configuration Release \
         --runtime win-x64 \
         --self-contained true \
@@ -95,11 +95,11 @@ publish_applications() {
     
     # Agent publish - Linux (restore gerekliyse)
     log_info "Agent (Linux) restore ediliyor..."
-    dotnet restore Inventory.Agent.Windows/Inventory.Agent.Windows.csproj \
+    dotnet restore ../Inventory.Agent.Windows/Inventory.Agent.Windows.csproj \
         --runtime linux-x64
     
     log_info "Agent (Linux) publish ediliyor..."
-    dotnet publish Inventory.Agent.Windows/Inventory.Agent.Windows.csproj \
+    dotnet publish ../Inventory.Agent.Windows/Inventory.Agent.Windows.csproj \
         --configuration Release \
         --runtime linux-x64 \
         --self-contained true \
