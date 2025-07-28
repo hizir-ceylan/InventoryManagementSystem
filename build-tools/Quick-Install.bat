@@ -24,7 +24,7 @@ REM Create temp directory
 if not exist "%TEMP%\InventoryInstall" mkdir "%TEMP%\InventoryInstall"
 
 REM Download the installer script using PowerShell
-powershell -Command "& { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/hizir-ceylan/InventoryManagementSystem/master/scripts/Install-InventorySystem.ps1' -OutFile '%TEMP%\InventoryInstall\Install-InventorySystem.ps1' -UseBasicParsing }"
+powershell -Command "& { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/hizir-ceylan/InventoryManagementSystem/master/build-tools/Install-InventorySystem.ps1' -OutFile '%TEMP%\InventoryInstall\Install-InventorySystem.ps1' -UseBasicParsing }"
 
 if %errorLevel% neq 0 (
     echo Failed to download installer script.
