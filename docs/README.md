@@ -61,7 +61,7 @@ Bu projede yeni eklenen Docker özellikleri:
 ### Hızlı Başlangıç
 1. [DOCKER-GUIDE.md](DOCKER-GUIDE.md) dosyasını okuyun
 2. `docker-compose.simple.yml` ile test edin
-3. `./scripts/test-docker.sh test` ile otomatik test çalıştırın
+3. `./build-tools/test-docker.sh test` ile otomatik test çalıştırın
 
 ### Detaylı Bilgi
 1. [COMPLETE-DOCUMENTATION.md](COMPLETE-DOCUMENTATION.md) dosyasını inceleyin

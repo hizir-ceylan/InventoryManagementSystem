@@ -51,16 +51,16 @@ docker-compose logs -f
 
 ```bash
 # Tüm testleri çalıştır
-./scripts/test-docker.sh test
+./build-tools/test-docker.sh test
 
 # Container durumunu kontrol et
-./scripts/test-docker.sh status
+./build-tools/test-docker.sh status
 
 # Logları görüntüle
-./scripts/test-docker.sh logs
+./build-tools/test-docker.sh logs
 
 # Temizlik
-./scripts/test-docker.sh cleanup
+./build-tools/test-docker.sh cleanup
 ```
 
 ### Manuel Test Adımları

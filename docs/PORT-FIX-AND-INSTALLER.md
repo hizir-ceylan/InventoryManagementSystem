@@ -34,7 +34,7 @@
 ### PowerShell ile Tek Komut
 ```powershell
 # Yönetici PowerShell'de:
-iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/hizir-ceylan/InventoryManagementSystem/main/scripts/Install-InventorySystem.ps1'))
+iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/hizir-ceylan/InventoryManagementSystem/main/build-tools/Install-InventorySystem.ps1'))
 ```
 
 ## 📊 Kurulum Özellikleri
@@ -61,7 +61,7 @@ iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercon
 $computers = @("PC001", "PC002", "PC003", "PC004")
 
 Invoke-Command -ComputerName $computers -ScriptBlock {
-    iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/hizir-ceylan/InventoryManagementSystem/main/scripts/Install-InventorySystem.ps1'))
+    iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/hizir-ceylan/InventoryManagementSystem/main/build-tools/Install-InventorySystem.ps1'))
 }
 ```
 
@@ -77,7 +77,7 @@ Invoke-Command -ComputerName $computers -ScriptBlock {
 - `docker-compose.simple.yml`: Port ve environment variables
 - `Dockerfile`: EXPOSE 5000 → EXPOSE 5093  
 - `README.md`: Tüm URL örnekleri güncellendi
-- `scripts/test-docker.sh`: API URL güncellendi
+- `build-tools/test-docker.sh`: API URL güncellendi
 
 ### Artık Her Yerde 5093 Portu
 - **Development**: http://localhost:5093

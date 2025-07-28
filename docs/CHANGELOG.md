@@ -96,7 +96,7 @@ InventoryManagementSystem/
 │   └── technical-documentation.md    # Technical documentation
 ├── database/
 │   └── setup-database.sql        # Database setup script
-└── scripts/                      # Utility scripts
+└── build-tools/                      # Utility scripts
     ├── quick-start.sh            # Quick start script
     ├── test-docker.sh            # Docker testing
     └── test-logging.sh           # Logging tests
@@ -151,13 +151,13 @@ Server=localhost;Database=inventorydb;User Id=inventoryuser;Password=StrongPassw
 
 ### Logging Tests
 ```bash
-./scripts/test-logging.sh
+./build-tools/test-logging.sh
 ```
 
 ### API Tests
 ```bash
 # Automated test script available (see server-deployment-testing.md)
-./scripts/automated_test.sh http://your-server-ip
+./build-tools/automated_test.sh http://your-server-ip
 ```
 
 ### Database Tests
