@@ -54,8 +54,8 @@ Source: "Published\Agent\*"; DestDir: "{app}\Agent"; Flags: ignoreversion recurs
 Source: "Published\Api\appsettings.json"; DestDir: "{app}\Api"; Flags: ignoreversion
 Source: "Published\Agent\appsettings.json"; DestDir: "{app}\Agent"; Flags: ignoreversion; AfterInstall: CreateAgentConfig
 ; Documentation
-Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "WINDOWS-SERVICE-README.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\docs\WINDOWS-SERVICE-README.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Dirs]
 Name: "{app}\Data"

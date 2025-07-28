@@ -66,9 +66,9 @@ foreach ($dir in $directories) {
 Write-Host "`nUygulama build ediliyor ve deploy ediliyor..." -ForegroundColor Yellow
 try {
     Write-Host "API build ediliyor..."   -ForegroundColor Gray
-    $null = dotnet publish "Inventory.Api" -c Release -o "$InstallPath\Api" --self-contained false
+    $null = dotnet publish "..\Inventory.Api" -c Release -o "$InstallPath\Api" --self-contained false
     Write-Host "Agent build ediliyor..." -ForegroundColor Gray
-    $null = dotnet publish "Inventory.Agent.Windows" -c Release -o "$InstallPath\Agent" --self-contained false
+    $null = dotnet publish "..\Inventory.Agent.Windows" -c Release -o "$InstallPath\Agent" --self-contained false
     Write-Host "Build islemi tamamlandi." -ForegroundColor Green
 } catch {
     Write-Error "Build islemi basarisiz: $($_.Exception.Message)"

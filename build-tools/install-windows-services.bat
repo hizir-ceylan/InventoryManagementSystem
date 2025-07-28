@@ -58,9 +58,9 @@ if not exist "%INSTALL_DIR%\Data" mkdir "%INSTALL_DIR%\Data"
 if not exist "%INSTALL_DIR%\Logs" mkdir "%INSTALL_DIR%\Logs"
 
 REM Proje dizinini kontrol et
-if not exist "Inventory.Api\bin\Release\net8.0\publish" (
+if not exist "..\Inventory.Api\bin\Release\net8.0\publish" (
     echo Release build bulunamadı. Build işlemi başlatılıyor...
-    dotnet publish Inventory.Api -c Release -o "%INSTALL_DIR%\Api"
+    dotnet publish ..\Inventory.Api -c Release -o "%INSTALL_DIR%\Api"
     if %errorLevel% neq 0 (
         echo HATA: API build işlemi başarısız!
         pause
@@ -68,12 +68,12 @@ if not exist "Inventory.Api\bin\Release\net8.0\publish" (
     )
 ) else (
     echo API dosyaları kopyalanıyor...
-    xcopy /s /y "Inventory.Api\bin\Release\net8.0\publish\*" "%INSTALL_DIR%\Api\"
+    xcopy /s /y "..\Inventory.Api\bin\Release\net8.0\publish\*" "%INSTALL_DIR%\Api\"
 )
 
-if not exist "Inventory.Agent.Windows\bin\Release\net8.0\publish" (
+if not exist "..\Inventory.Agent.Windows\bin\Release\net8.0\publish" (
     echo Release build bulunamadı. Build işlemi başlatılıyor...
-    dotnet publish Inventory.Agent.Windows -c Release -o "%INSTALL_DIR%\Agent"
+    dotnet publish ..\Inventory.Agent.Windows -c Release -o "%INSTALL_DIR%\Agent"
     if %errorLevel% neq 0 (
         echo HATA: Agent build işlemi başarısız!
         pause
@@ -81,7 +81,7 @@ if not exist "Inventory.Agent.Windows\bin\Release\net8.0\publish" (
     )
 ) else (
     echo Agent dosyaları kopyalanıyor...
-    xcopy /s /y "Inventory.Agent.Windows\bin\Release\net8.0\publish\*" "%INSTALL_DIR%\Agent\"
+    xcopy /s /y "..\Inventory.Agent.Windows\bin\Release\net8.0\publish\*" "%INSTALL_DIR%\Agent\"
 )
 
 REM API Servisi oluştur
