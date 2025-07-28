@@ -1,4 +1,6 @@
-# Windows Service Kurulumu - Hızlı Başlangıç
+# Windows Service Kurulum - Hızlı Başlangıç
+
+> **Detaylı Kurulum Rehberi**: Build alma ve derleme dahil tüm adımlar için [Windows Tam Kurulum Rehberi](docs/WINDOWS-INSTALLATION-GUIDE.md) sayfasına bakın.
 
 ## Problem Çözümü
 
@@ -6,19 +8,39 @@
 
 **ÇÖZÜM**: API ve Agent'ın Windows servisi olarak otomatik başlatılması.
 
-## Hızlı Kurulum (3 Adım)
+## Hızlı Kurulum (Hazır Build ile)
 
-### 1. PowerShell'i Yönetici Olarak Açın
+### Gereksinimler
+- .NET 8.0 Runtime
+- Yönetici yetkileri
+- Port 5093'ün açık olması
+
+### 1. .NET 8 Runtime Kurulumu
+```powershell
+# Otomatik kurulum
+winget install Microsoft.DotNet.Runtime.8
+
+# Manuel kurulum: https://dotnet.microsoft.com/download/dotnet/8.0
+# "Run apps - Runtime" bölümünden "Download x64" seçin
+```
+
+### 2. Projeyi İndirin
+```powershell
+git clone https://github.com/hizir-ceylan/InventoryManagementSystem.git
+cd InventoryManagementSystem
+```
+
+### 3. PowerShell'i Yönetici Olarak Açın
 - Windows tuşu + X
 - "Windows PowerShell (Administrator)" seçin
 
-### 2. Kurulum Scriptini Çalıştırın
+### 4. Kurulum Scriptini Çalıştırın
 ```powershell
 cd "C:\YourProject\InventoryManagementSystem"
 .\scripts\Install-WindowsServices.ps1
 ```
 
-### 3. Test Edin
+### 5. Test Edin
 - Tarayıcıda açın: http://localhost:5093/swagger
 - Servis durumunu kontrol edin: `services.msc`
 
@@ -30,7 +52,7 @@ cd "C:\YourProject\InventoryManagementSystem"
 ✅ **Otomatik Yeniden Başlatma**: Hata durumunda servisler otomatik yeniden başlar  
 ✅ **Event Logging**: Sistem logları Windows Event Viewer'da görünür  
 
-## Servisleri Yönet
+## Yönetim
 
 ### Grafik Arayüz
 ```
@@ -43,13 +65,9 @@ Win + R → services.msc
 # Durum kontrol
 Get-Service -Name "InventoryManagement*"
 
-# Başlat
+# Başlat/Durdur
 Start-Service -Name "InventoryManagementApi"
-Start-Service -Name "InventoryManagementAgent"
-
-# Durdur  
 Stop-Service -Name "InventoryManagementAgent"
-Stop-Service -Name "InventoryManagementApi"
 ```
 
 ### Script ile Yönetim
@@ -71,21 +89,22 @@ netstat -an | findstr :5093
 
 ### Firewall Sorunu?
 ```powershell
-# Firewall kuralını kontrol et
 Get-NetFirewallRule -DisplayName "*Inventory*"
 ```
 
 ## Kaldırma
 
-```powershell
+```cmd
 # Yönetici olarak
 .\scripts\uninstall-windows-services.bat
 ```
 
-## Detaylı Bilgi
-
-Tam dokümantasyon: `docs/windows-service-setup.md`
-
 ---
+
+## Detaylı Rehber
+
+Bu sayfa sadece hızlı kurulum için. **Detaylı adımlar**, **troubleshooting**, **build alma** ve **gelişmiş yapılandırma** için:
+
+➡️ **[Windows Tam Kurulum Rehberi](docs/WINDOWS-INSTALLATION-GUIDE.md)**
 
 **Sonuç**: Artık bilgisayar her açıldığında API ve Agent otomatik olarak arka planda çalışacak!

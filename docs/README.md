@@ -11,9 +11,12 @@ Bu dizinde Inventory Management System'e ait tüm dokümantasyon profesyonel bir
 ### 📖 Temel Kaynaklar
 - **[COMPLETE-DOCUMENTATION.md](COMPLETE-DOCUMENTATION.md)** - Kapsamlı teknik dokümantasyon (Ana kaynak)
 - **[DOCKER-GUIDE.md](DOCKER-GUIDE.md)** - Docker kurulum ve kullanım rehberi
+- **[WINDOWS-INSTALLATION-GUIDE.md](WINDOWS-INSTALLATION-GUIDE.md)** - Windows tam kurulum rehberi (Build alma, derleme ve servis kurulumu)
 - **[CHANGELOG.md](CHANGELOG.md)** - Güncellemeler ve değişiklik geçmişi
 
 ### 🧪 Test ve Kurulum
+- **[WINDOWS-INSTALLATION-GUIDE.md](WINDOWS-INSTALLATION-GUIDE.md)** - Windows tam kurulum rehberi (Build alma, derleme ve servis kurulumu)
+- **[windows-service-setup.md](windows-service-setup.md)** - Windows servisi detaylı kılavuz
 - **[server-deployment-testing.md](server-deployment-testing.md)** - Detaylı sunucu kurulumu ve test
 
 ### ⚙️ Özel Konfigürasyonlar
@@ -21,18 +24,15 @@ Bu dizinde Inventory Management System'e ait tüm dokümantasyon profesyonel bir
 - **[platform-support.md](platform-support.md)** - Platform desteği ve değişiklik takibi
 
 ### 📂 Diğer Kaynaklar
-- **[legacy/](legacy/)** - Eski dokümantasyon dosyaları (referans amaçlı)
 - **[img/](img/)** - Dokümantasyon görselleri
 
-## Eski Dokümantasyon Dosyaları
+## Arşivlenmiş Dosyalar
 
-Aşağıdaki dosyalar artık `legacy/` klasöründe arşivlenmiştir:
+Aşağıdaki dosyalar artık kaldırılmış olup, güncel bilgiler ana dokümantasyonda birleştirilmiştir:
 
-### Arşiv Dosyaları
-- [legacy/technical-documentation.md](legacy/technical-documentation.md) - Eski teknik dokümantasyon
-- [legacy/installation-guide.md](legacy/installation-guide.md) - Eski kurulum rehberi
-
-*Not: Bu dosyalar COMPLETE-DOCUMENTATION.md dosyasında birleştirilmiştir.*
+### Kaldırılan Dosyalar
+- ~~`legacy/technical-documentation.md`~~ - Artık COMPLETE-DOCUMENTATION.md'de
+- ~~`legacy/installation-guide.md`~~ - Artık WINDOWS-INSTALLATION-GUIDE.md'de
 
 ### Yeni Docker Özellikleri
 
