@@ -81,18 +81,31 @@ function Install-Git {
 
 # Check .NET 8 SDK (no install, only check)
 function Check-DotNet {
-    try {
-        $dotnetSdks = & dotnet --list-sdks 2>$null
-        if ($dotnetSdks -match "^8\.")
-        {
-            Write-Log ".NET 8 SDK is installed."
-            return $true
+    $dotnetSdks = & dotnet --list-sdks 2>$null
+    if ($dotnetSdks -match "^8\.") {
+        Write-Log ".NET 8 SDK is installed."
+        return $true
+    }
+    elseif ($dotnetSdks -match "^9\.") {
+        Write-Log ".NET 9 SDK is installed, .NET 8 yok."
+        if (-not $Silent) {
+            $response = Read-Host "Sadece .NET 9 SDK mevcut. Devam etmek istiyor musunuz? (evet/hayır)"
+            if ($response -eq "evet" -or $response -eq "e") {
+                Write-Log "Kullanıcı .NET 9 ile devam etmeyi seçti."
+                return $true
+            }
+            else {
+                Write-Log "Kullanıcı iptal etti."
+                return $false
+            }
         } else {
-            Write-Log ".NET 8 SDK not found." -Level "ERROR"
+            # Silent modda .NET 9 ile devam etme riskli, istersen otomatik iptal edebilirsin!
+            Write-Log "Silent modda .NET 9 ile devam edilmiyor." -Level "ERROR"
             return $false
         }
-    } catch {
-        Write-Log ".NET not found." -Level "ERROR"
+    }
+    else {
+        Write-Log ".NET 8 veya .NET 9 SDK bulunamadı." -Level "ERROR"
         return $false
     }
 }
