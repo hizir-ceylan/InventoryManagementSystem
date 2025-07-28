@@ -9,10 +9,10 @@ services:
     container_name: inventory-api
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "5093:5093"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:5000
+      - ASPNETCORE_URLS=http://+:5093
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InventoryDB;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=true;
     volumes:
       - ./Data/ApiLogs:/app/ApiLogs

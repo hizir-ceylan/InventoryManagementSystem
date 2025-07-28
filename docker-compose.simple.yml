@@ -7,10 +7,10 @@ services:
     container_name: inventory-api-simple
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "5093:5093"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:5000
+      - ASPNETCORE_URLS=http://+:5093
       - ConnectionStrings__DefaultConnection=Data Source=/app/Data/inventory.db
     volumes:
       - ./Data/ApiLogs:/app/ApiLogs
@@ -26,7 +26,7 @@ services:
     container_name: inventory-agent-test
     restart: "no"
     environment:
-      - ApiSettings__BaseUrl=http://inventory-api:5000
+      - ApiSettings__BaseUrl=http://inventory-api:5093
       - ApiSettings__Timeout=30
       - ApiSettings__RetryCount=3
     volumes:

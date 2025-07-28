@@ -50,10 +50,10 @@ RUN mkdir -p /app/ApiLogs /app/Data
 
 # Set environment variables
 ENV ASPNETCORE_ENVIRONMENT=Production
-ENV ASPNETCORE_URLS=http://+:5000
+ENV ASPNETCORE_URLS=http://+:5093
 
 # Expose the port
-EXPOSE 5000
+EXPOSE 5093
 
 # Set the entry point
 ENTRYPOINT ["dotnet", "Inventory.Api.dll"]
