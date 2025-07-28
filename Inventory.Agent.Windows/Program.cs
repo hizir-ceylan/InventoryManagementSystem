@@ -8,6 +8,9 @@ using System.Runtime.InteropServices;
 using Inventory.Agent.Windows.Configuration;
 using Inventory.Agent.Windows.Services;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Inventory.Agent.Windows
 {
@@ -16,6 +19,50 @@ namespace Inventory.Agent.Windows
         private static ConnectivityMonitorService? _connectivityMonitor;
         
         static async Task Main(string[] args)
+        {
+            // Service modu kontrolü
+            bool isWindowsService = args.Length > 0 && args[0].ToLower() == "--service";
+            bool isNetworkDiscovery = args.Length > 0 && args[0].ToLower() == "network";
+
+            if (isWindowsService)
+            {
+                await RunAsServiceAsync();
+                return;
+            }
+
+            // Normal console mode - mevcut kod
+            await RunAsConsoleAsync(args);
+        }
+
+        static async Task RunAsServiceAsync()
+        {
+            var builder = Host.CreateApplicationBuilder();
+            
+            // Windows Service desteği ekle
+            builder.Services.AddWindowsService(options =>
+            {
+                options.ServiceName = "InventoryManagementAgent";
+            });
+
+            // Logging yapılandırması
+            builder.Services.AddLogging(logging =>
+            {
+                logging.ClearProviders();
+                logging.AddConsole();
+                if (OperatingSystem.IsWindows())
+                {
+                    logging.AddEventLog(); // Windows Event Log desteği
+                }
+            });
+
+            // Hosted service ekle
+            builder.Services.AddHostedService<InventoryAgentService>();
+
+            var host = builder.Build();
+            await host.RunAsync();
+        }
+
+        static async Task RunAsConsoleAsync(string[] args)
         {
             var apiSettings = ApiSettings.LoadFromEnvironment();
             OfflineStorageService? offlineStorage = null;
