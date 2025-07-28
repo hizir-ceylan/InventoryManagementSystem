@@ -433,3 +433,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Windows Service Installation Directory
+C:/Program Files/InventoryManagementSystem/

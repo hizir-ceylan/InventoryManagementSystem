@@ -18,7 +18,7 @@ Kurumsal cihaz envanteri yönetimi, değişiklik takibi ve raporlaması için ge
 ✅ **Arka planda sürekli çalışır**  
 ✅ **Event Log entegrasyonu**  
 
-Detaylar: [Windows Service Kurulum Kılavuzu](WINDOWS-SERVICE-README.md)
+**Detaylı Kurulum Rehberi**: [Windows Tam Kurulum Rehberi](docs/WINDOWS-INSTALLATION-GUIDE.md) (Build alma, derleme ve servis kurulumu dahil tüm adımlar)
 
 ### 🐳 Docker Desteği
 Docker ile kolay test ve deployment imkanı.
@@ -227,8 +227,9 @@ MIT lisansı ile açık kaynak olarak sunulmaktadır.
 
 ### 🆘 Destek
 
+- **Windows kurulum problemleri**: [Windows Tam Kurulum Rehberi](docs/WINDOWS-INSTALLATION-GUIDE.md)
 - **Docker problemleri**: [Docker Rehberi](docs/DOCKER-GUIDE.md)
-- **API kullanımı**: http://localhost:5000/swagger
+- **API kullanımı**: http://localhost:5093/swagger (Windows) / http://localhost:5000/swagger (Docker)
 - **Tüm dokümantasyon**: [Tam Dokümantasyon](docs/COMPLETE-DOCUMENTATION.md)
 
 Her türlü soru ve öneriniz için lütfen [issue açın](https://github.com/hizir-ceylan/InventoryManagementSystem/issues) veya iletişime geçin.

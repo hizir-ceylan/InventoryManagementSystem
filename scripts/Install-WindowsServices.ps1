@@ -180,5 +180,5 @@ try {
     Write-Host "  ✗ API test başarısız - Servislerin başlaması birkaç dakika sürebilir" -ForegroundColor Yellow
 }
 
-Write-Host "`nKurulum tamamlandı!" -ForegroundColor Green
-Read-Host "`nDevam etmek için Enter tuşuna basın"
+Write-Host "`nKurulum tamamlandi!" -ForegroundColor Green
+Read-Host "`nDevam etmek icin Enter tusuna basin"
