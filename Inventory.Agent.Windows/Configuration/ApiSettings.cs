@@ -48,6 +48,42 @@ namespace Inventory.Agent.Windows.Configuration
                 return Path.Combine(Path.GetTempPath(), "InventoryManagementSystem", "OfflineStorage");
             }
         }
+
+        public static string GetDefaultLogPath()
+        {
+            try
+            {
+                // Kullanıcının Belgeler klasörünü al
+                string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                
+                // Eğer Belgeler klasörü mevcut değilse veya boşsa, kullanıcının ana dizinini kullan
+                if (string.IsNullOrEmpty(documentsPath) || !Directory.Exists(documentsPath))
+                {
+                    string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                    if (!string.IsNullOrEmpty(userProfile))
+                    {
+                        documentsPath = Path.Combine(userProfile, "Documents");
+                        // Belgeler klasörünü oluştur
+                        Directory.CreateDirectory(documentsPath);
+                    }
+                    else
+                    {
+                        // Son çare olarak ev dizinini kullan
+                        documentsPath = Environment.GetEnvironmentVariable("HOME") ?? Path.GetTempPath();
+                    }
+                }
+                
+                // Uygulama için özel klasör oluştur
+                string logPath = Path.Combine(documentsPath, "InventoryManagementSystem", "LocalLogs");
+                
+                return logPath;
+            }
+            catch
+            {
+                // Eğer hiçbir yol çalışmazsa, geçici dizini kullan
+                return Path.Combine(Path.GetTempPath(), "InventoryManagementSystem", "LocalLogs");
+            }
+        }
         
         public static ApiSettings LoadFromEnvironment()
         {
