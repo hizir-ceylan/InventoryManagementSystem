@@ -70,7 +70,17 @@ cd InventoryManagementSystem
 
 ## Başlangıç Seçenekleri
 
-### 🚀 Docker ile Hızlı Başlangıç (Önerilen)
+### 🎯 Tek Tıkla Kurulum (Yeni! - En Kolay)
+
+**Windows için otomatik kurulum:**
+1. **[Quick-Install.bat](Quick-Install.bat)** dosyasını indirin
+2. Sağ tıklayıp **"Yönetici olarak çalıştır"** seçin
+3. Kurulum otomatik olarak tamamlanır
+4. API'ye erişin: http://localhost:5093/swagger
+
+**Detaylı kurulum rehberi**: [Kolay Kurulum Rehberi](EASY-INSTALL.md)
+
+### 🚀 Docker ile Hızlı Başlangıç
 
 ```bash
 # Hızlı başlangıç scripti
