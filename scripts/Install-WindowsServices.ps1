@@ -181,4 +181,4 @@ try {
 }
 
 Write-Host "`nKurulum tamamlandi!" -ForegroundColor Green
-Read-Host "`nDevam etmek icin Enter tusuna basin"
+Read-Host "`nDevam etmek için Enter tuşuna basın"
