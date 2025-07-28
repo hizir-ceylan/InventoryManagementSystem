@@ -1,5 +1,6 @@
 using System.Text;
 using Newtonsoft.Json;
+using Inventory.Agent.Windows.Configuration;
 
 namespace Inventory.Agent.Windows
 {
@@ -66,7 +67,7 @@ namespace Inventory.Agent.Windows
         {
             try
             {
-                var logFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "LocalLogs");
+                var logFolder = ApiSettings.GetDefaultLogPath();
                 Directory.CreateDirectory(logFolder);
 
                 // Ana loglama sistemiyle eşleşmesi için saatlik log dosyaları kullan

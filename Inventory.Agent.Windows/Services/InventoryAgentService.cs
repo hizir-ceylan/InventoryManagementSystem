@@ -14,7 +14,7 @@ namespace Inventory.Agent.Windows.Services
         private readonly ApiSettings _apiSettings;
         private ConnectivityMonitorService? _connectivityMonitor;
         private Timer? _inventoryTimer;
-        private readonly int _inventoryIntervalMinutes = 60; // Varsayılan olarak her saat
+        private readonly int _inventoryIntervalMinutes = 30; // Her 30 dakikada bir
 
         public InventoryAgentService(ILogger<InventoryAgentService> logger)
         {

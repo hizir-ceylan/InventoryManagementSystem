@@ -4,11 +4,12 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Inventory.Agent.Windows.Models;
+using Inventory.Agent.Windows.Configuration;
 
 public static class DeviceLogger
 {
     private static string LogFolder =>
-        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "LocalLogs");
+        ApiSettings.GetDefaultLogPath();
 
     public static void LogDevice(object deviceSnapshot)
     {
