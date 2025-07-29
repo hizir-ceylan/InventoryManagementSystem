@@ -72,83 +72,86 @@ namespace Inventory.Agent.Windows
         {
             try
             {
-                // Create application builder with optional configuration file
-                var builder = Host.CreateApplicationBuilder();
-                
-                // Override default configuration to make appsettings.json optional and use correct path
+                // Create application builder with controlled configuration loading
                 var executableDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
                 
-                // Clear existing configuration sources and add our own
-                builder.Configuration.Sources.Clear();
-                
-                // Add JSON file from executable directory (optional)
-                builder.Configuration.AddJsonFile(
-                    provider: null,
-                    path: Path.Combine(executableDir, "appsettings.json"),
-                    optional: true,
-                    reloadOnChange: false
-                );
-                
-                // Add environment variables
-                builder.Configuration.AddEnvironmentVariables();
+                // Use CreateDefaultBuilder but override configuration to prevent automatic appsettings.json loading
+                var builder = Host.CreateDefaultBuilder()
+                    .ConfigureAppConfiguration((context, config) =>
+                    {
+                        // Clear default configuration sources to prevent automatic loading
+                        config.Sources.Clear();
+                        
+                        // Add JSON file from executable directory (optional)
+                        config.AddJsonFile(
+                            path: Path.Combine(executableDir, "appsettings.json"),
+                            optional: true,
+                            reloadOnChange: false
+                        );
+                        
+                        // Add environment variables
+                        config.AddEnvironmentVariables();
+                    });
                 
                 // Windows Service desteği ekle - improved configuration for reliability
-                builder.Services.AddWindowsService(options =>
+                builder.ConfigureServices(services =>
                 {
-                    options.ServiceName = "InventoryManagementAgent";
-                });
-
-                // Logging yapılandırması - enhanced for service environment
-                builder.Services.AddLogging(logging =>
-                {
-                    logging.ClearProviders();
-                    
-                    // Service ortamında console logging genellikle çalışmaz, sadece debug için bırakıyoruz
-                    logging.AddConsole();
-                    
-                    if (OperatingSystem.IsWindows())
+                    services.AddWindowsService(options =>
                     {
+                        options.ServiceName = "InventoryManagementAgent";
+                    });
+                    // Logging yapılandırması - enhanced for service environment
+                    services.AddLogging(logging =>
+                    {
+                        logging.ClearProviders();
+                        
+                        // Service ortamında console logging genellikle çalışmaz, sadece debug için bırakıyoruz
+                        logging.AddConsole();
+                        
+                        if (OperatingSystem.IsWindows())
+                        {
+                            try
+                            {
+                                logging.AddEventLog(settings =>
+                                {
+                                    settings.SourceName = "InventoryManagementAgent";
+                                    settings.LogName = "Application";
+                                    settings.Filter = (category, level) => level >= Microsoft.Extensions.Logging.LogLevel.Information;
+                                });
+                            }
+                            catch
+                            {
+                                // Event log source oluşturulamadıysa devam et
+                            }
+                        }
+                        
+                        // File logging for service diagnostics
                         try
                         {
-                            logging.AddEventLog(settings =>
-                            {
-                                settings.SourceName = "InventoryManagementAgent";
-                                settings.LogName = "Application";
-                                settings.Filter = (category, level) => level >= Microsoft.Extensions.Logging.LogLevel.Information;
-                            });
+                            var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), 
+                                                     "Inventory Management System", "Logs");
+                            Directory.CreateDirectory(logPath);
+                            
+                            // Simple file logging implementation
+                            logging.AddProvider(new FileLoggerProvider(logPath));
                         }
                         catch
                         {
-                            // Event log source oluşturulamadıysa devam et
+                            // File logging başarısız olsa bile devam et
                         }
-                    }
-                    
-                    // File logging for service diagnostics
-                    try
-                    {
-                        var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), 
-                                                 "Inventory Management System", "Logs");
-                        Directory.CreateDirectory(logPath);
-                        
-                        // Simple file logging implementation
-                        logging.AddProvider(new FileLoggerProvider(logPath));
-                    }
-                    catch
-                    {
-                        // File logging başarısız olsa bile devam et
-                    }
-                });
+                    });
 
-                // Configure service for faster startup
-                builder.Services.Configure<HostOptions>(options =>
-                {
-                    options.ServicesStartConcurrently = true;
-                    options.ServicesStopConcurrently = true;
-                    options.ShutdownTimeout = TimeSpan.FromSeconds(15);
-                });
+                    // Configure service for faster startup
+                    services.Configure<HostOptions>(options =>
+                    {
+                        options.ServicesStartConcurrently = true;
+                        options.ServicesStopConcurrently = true;
+                        options.ShutdownTimeout = TimeSpan.FromSeconds(15);
+                    });
 
-                // Hosted service ekle
-                builder.Services.AddHostedService<InventoryAgentService>();
+                    // Hosted service ekle
+                    services.AddHostedService<InventoryAgentService>();
+                });
 
                 var host = builder.Build();
                 
