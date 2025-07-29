@@ -173,15 +173,11 @@ $apiConfig = @{
 Set-Content -Path "Published\Api\appsettings.json" -Value $apiConfig -Encoding UTF8
 
 $agentConfig = @{
-    ApiSettings = @{
-        BaseUrl = "http://localhost:5093"
-        EnableOfflineStorage = $true
-        OfflineStoragePath = "C:\Program Files\Inventory Management System\Data\OfflineStorage"
-    }
     Logging = @{
         LogLevel = @{
             Default = "Information"
             "Microsoft.Hosting.Lifetime" = "Information"
+            "Microsoft.Extensions.Hosting" = "Information"
         }
     }
 } | ConvertTo-Json -Depth 4

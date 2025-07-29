@@ -72,99 +72,103 @@ namespace Inventory.Agent.Windows
         {
             try
             {
-                // Create application builder with controlled configuration loading
-                var executableDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
-                
-                // Use CreateDefaultBuilder but override configuration to prevent automatic appsettings.json loading
-                var builder = Host.CreateDefaultBuilder()
-                    .ConfigureAppConfiguration((context, config) =>
-                    {
-                        // Clear default configuration sources to prevent automatic loading
-                        config.Sources.Clear();
-                        
-                        // Add JSON file from executable directory (optional)
-                        config.AddJsonFile(
-                            path: Path.Combine(executableDir, "appsettings.json"),
-                            optional: true,
-                            reloadOnChange: false
-                        );
-                        
-                        // Add environment variables
-                        config.AddEnvironmentVariables();
-                    });
-                
-                // Windows Service desteği ekle - improved configuration for reliability
-                builder.ConfigureServices(services =>
+                // Use CreateApplicationBuilder for better control over configuration
+                // This avoids the automatic configuration loading issues of CreateDefaultBuilder
+                var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
                 {
-                    services.AddWindowsService(options =>
+                    DisableDefaults = true, // Disable automatic configuration loading
+                    ContentRootPath = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory
+                });
+                
+                // Configure logging first - this is essential for service diagnostics
+                builder.Logging.ClearProviders();
+                
+                // Add console logging for debugging (will be ignored in service mode)
+                builder.Logging.AddConsole();
+                
+                // Add Windows Event Log if available
+                if (OperatingSystem.IsWindows())
+                {
+                    try
                     {
-                        options.ServiceName = "InventoryManagementAgent";
-                    });
-                    // Logging yapılandırması - enhanced for service environment
-                    services.AddLogging(logging =>
+                        builder.Logging.AddEventLog(settings =>
+                        {
+                            settings.SourceName = "InventoryManagementAgent";
+                            settings.LogName = "Application";
+                            settings.Filter = (category, level) => level >= Microsoft.Extensions.Logging.LogLevel.Information;
+                        });
+                    }
+                    catch
                     {
-                        logging.ClearProviders();
-                        
-                        // Service ortamında console logging genellikle çalışmaz, sadece debug için bırakıyoruz
-                        logging.AddConsole();
-                        
-                        if (OperatingSystem.IsWindows())
-                        {
-                            try
-                            {
-                                logging.AddEventLog(settings =>
-                                {
-                                    settings.SourceName = "InventoryManagementAgent";
-                                    settings.LogName = "Application";
-                                    settings.Filter = (category, level) => level >= Microsoft.Extensions.Logging.LogLevel.Information;
-                                });
-                            }
-                            catch
-                            {
-                                // Event log source oluşturulamadıysa devam et
-                            }
-                        }
-                        
-                        // File logging for service diagnostics
-                        try
-                        {
-                            var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), 
-                                                     "Inventory Management System", "Logs");
-                            Directory.CreateDirectory(logPath);
-                            
-                            // Simple file logging implementation
-                            logging.AddProvider(new FileLoggerProvider(logPath));
-                        }
-                        catch
-                        {
-                            // File logging başarısız olsa bile devam et
-                        }
-                    });
-
-                    // Configure service for faster startup
-                    services.Configure<HostOptions>(options =>
+                        // Event log source creation failed, continue without it
+                    }
+                }
+                
+                // Add file logging for service diagnostics
+                try
+                {
+                    var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), 
+                                             "Inventory Management System", "Logs");
+                    Directory.CreateDirectory(logPath);
+                    builder.Logging.AddProvider(new FileLoggerProvider(logPath));
+                }
+                catch
+                {
+                    // File logging failed, continue without it
+                }
+                
+                // Configure minimal configuration - prefer environment variables over files
+                builder.Configuration.Sources.Clear();
+                
+                // Add environment variables as primary configuration source
+                builder.Configuration.AddEnvironmentVariables();
+                
+                // Add optional JSON configuration file (won't fail if missing)
+                var executableDir = builder.Environment.ContentRootPath;
+                var configFile = Path.Combine(executableDir, "appsettings.json");
+                
+                // Only add JSON file if it exists - don't fail service startup if missing
+                if (File.Exists(configFile))
+                {
+                    try
                     {
-                        options.ServicesStartConcurrently = true;
-                        options.ServicesStopConcurrently = true;
-                        options.ShutdownTimeout = TimeSpan.FromSeconds(15);
-                    });
-
-                    // Hosted service ekle
-                    services.AddHostedService<InventoryAgentService>();
+                        builder.Configuration.AddJsonFile(configFile, optional: true, reloadOnChange: false);
+                    }
+                    catch
+                    {
+                        // JSON file loading failed, continue without it
+                        // Service will use environment variables and defaults
+                    }
+                }
+                
+                // Configure Windows Service support
+                builder.Services.AddWindowsService(options =>
+                {
+                    options.ServiceName = "InventoryManagementAgent";
+                });
+                
+                // Configure service for faster startup and better reliability
+                builder.Services.Configure<HostOptions>(options =>
+                {
+                    options.ServicesStartConcurrently = true;
+                    options.ServicesStopConcurrently = true;
+                    options.ShutdownTimeout = TimeSpan.FromSeconds(15);
                 });
 
+                // Add the main hosted service
+                builder.Services.AddHostedService<InventoryAgentService>();
+                // Build and run the host
                 var host = builder.Build();
                 
-                // Service'i başlat - SCM'e hızlı response için optimized
+                // Service'i başlat - optimized for Windows Service Manager
                 await host.RunAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                // Service startup başarısız olursa event log'a yazalım ama service'i crash ettirmeyelim
+                // Enhanced error logging for service startup failures
                 await LogServiceError("Service startup failed", ex);
                 
-                // Service'in başlamaması için exception throw etmeyelim - bunun yerine graceful exit
-                // SCM'e başarısız start sinyali göndermek için throw edelim
+                // Re-throw to signal service startup failure to Windows Service Manager
                 throw;
             }
         }

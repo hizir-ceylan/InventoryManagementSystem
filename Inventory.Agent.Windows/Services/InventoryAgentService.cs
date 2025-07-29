@@ -271,7 +271,12 @@ namespace Inventory.Agent.Windows.Services
             try
             {
                 _connectivityMonitor?.Stop();
-                _startupCancellation?.Cancel();
+                
+                // Check if cancellation token source is not already disposed
+                if (!_startupCancellation.IsCancellationRequested)
+                {
+                    _startupCancellation?.Cancel();
+                }
                 _startupCancellation?.Dispose();
             }
             catch (Exception ex)
@@ -284,8 +289,18 @@ namespace Inventory.Agent.Windows.Services
         {
             _logger.LogInformation("Inventory Agent Service durduruluyor...");
             
-            // Cancel startup operations
-            _startupCancellation?.Cancel();
+            // Cancel startup operations safely
+            try
+            {
+                if (!_startupCancellation.IsCancellationRequested)
+                {
+                    _startupCancellation?.Cancel();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already disposed, ignore
+            }
             
             await CleanupAsync();
             
