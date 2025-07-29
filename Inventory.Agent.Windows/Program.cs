@@ -85,11 +85,18 @@ namespace Inventory.Agent.Windows
                     logging.AddConsole();
                     if (OperatingSystem.IsWindows())
                     {
-                        logging.AddEventLog(settings =>
+                        try
                         {
-                            settings.SourceName = "InventoryManagementAgent";
-                            settings.LogName = "Application";
-                        });
+                            logging.AddEventLog(settings =>
+                            {
+                                settings.SourceName = "InventoryManagementAgent";
+                                settings.LogName = "Application";
+                            });
+                        }
+                        catch
+                        {
+                            // Event log source oluşturulamadıysa konsol ile devam et
+                        }
                     }
                 });
 
@@ -98,19 +105,19 @@ namespace Inventory.Agent.Windows
 
                 var host = builder.Build();
                 
-                // Service'i başlat
-                await host.RunAsync();
+                // Service'i başlat - timeout'ları önlemek için ConfigureAwait(false) kullan
+                await host.RunAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                // Service startup başarısız olursa event log'a yazalım
+                // Service startup başarısız olursa event log'a yazalım ama service'i crash ettirmeyelim
                 if (OperatingSystem.IsWindows())
                 {
                     try
                     {
                         using var eventLog = new System.Diagnostics.EventLog("Application");
                         eventLog.Source = "InventoryManagementAgent";
-                        eventLog.WriteEntry($"Service startup failed: {ex.Message}", 
+                        eventLog.WriteEntry($"Service startup failed: {ex.Message}\nStackTrace: {ex.StackTrace}", 
                                           System.Diagnostics.EventLogEntryType.Error);
                     }
                     catch
@@ -119,8 +126,11 @@ namespace Inventory.Agent.Windows
                     }
                 }
                 
-                // Exception'ı re-throw etme, service start timeout'una neden olabilir
+                // Service'in başlamaması için exception throw etmeyelim
                 Console.WriteLine($"Service startup error: {ex.Message}");
+                
+                // Kısa bir delay vererek service'in graceful shutdown yapmasına izin verelim
+                await Task.Delay(1000);
             }
         }
 
