@@ -2,7 +2,7 @@
 ; This script creates a setup.exe that installs both API and Agent services
 
 #define MyAppName "Inventory Management System"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "Hizir Ceylan"
 #define MyAppURL "https://github.com/hizir-ceylan/InventoryManagementSystem"
 #define MyAppExeName "Inventory.Api.exe"
@@ -55,7 +55,6 @@ Source: "Published\Api\appsettings.json"; DestDir: "{app}\Api"; Flags: ignorever
 Source: "Published\Agent\appsettings.json"; DestDir: "{app}\Agent"; Flags: ignoreversion; AfterInstall: CreateAgentConfig
 ; Documentation
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\docs\WINDOWS-SERVICE-README.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Dirs]
 Name: "{app}\Data"
