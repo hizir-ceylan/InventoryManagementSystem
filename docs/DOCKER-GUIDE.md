@@ -1,8 +1,8 @@
-# Inventory Management System - Docker Implementation
+# Docker Kurulum ve Kullanım Rehberi
 
-## Quick Start Guide
+## Hızlı Başlangıç
 
-Bu döküman Inventory Management System'in Docker kullanarak nasıl test edileceğini ve çalıştırılacağını açıklar.
+Bu dokümantasyon, Inventory Management System'in Docker kullanarak nasıl kurulup çalıştırılacağını açıklar.
 
 ### Ön Gereksinimler
 

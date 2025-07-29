@@ -1,20 +1,20 @@
-# Inventory Management System - Changelog
+# Değişiklik Geçmişi
 
-## Recent Updates and Fixes
+## Son Güncellemeler ve Düzeltmeler
 
-### ✅ Weekend Logging Issue Fixed
-**Problem**: Logs created on Friday were being deleted when the system ran on Monday.
-**Solution**: 
-- Switched from daily logging to hourly logging
-- Implemented 48-hour sliding window for proper retention
-- File format: `device-log-2024-01-15-14.json` (includes hour)
+### ✅ Hafta Sonu Log Sorunu Çözüldü
+**Problem**: Cuma günü oluşturulan loglar Pazartesi günü sistem çalıştığında siliniyordu.
+**Çözüm**: 
+- Günlük log sisteminden saatlik log sistemine geçiş
+- 48 saatlik kayan pencere sistemi uygulandı
+- Dosya formatı: `device-log-2024-01-15-14.json` (saat bilgisi dahil)
 
-### ✅ Hourly Logging Added
-- Log creation every hour
-- 48-hour (2-day) retention period
-- Automatic cleanup of old files
+### ✅ Saatlik Loglama Eklendi
+- Her saat log oluşturma
+- 48 saatlik (2 günlük) saklama süresi
+- Eski dosyaların otomatik temizliği
 
-### ✅ Configuration Updated
+### ✅ Konfigürasyon Güncellendi
 ```json
 {
   "Agent": {
@@ -25,29 +25,29 @@
 }
 ```
 
-## New Documentation
+## Yeni Dokümantasyon
 
-### 📚 Installation Guide (`installation-guide.md`)
-- System requirements
-- Step-by-step installation (Windows/Linux)
-- Agent deployment methods
-- Troubleshooting guide
+### 📚 Kurulum Rehberi
+- Sistem gereksinimleri
+- Adım adım kurulum (Windows/Linux)
+- Agent deployment yöntemleri
+- Sorun giderme rehberi
 
-### 🚀 Server Setup (`server-deployment-testing.md`)
-- Quick start (1-minute test)
-- Detailed server setup
-- API test scenarios
-- Real data testing
+### 🚀 Sunucu Kurulumu
+- Hızlı başlangıç (1 dakikalık test)
+- Detaylı sunucu kurulumu
+- API test senaryoları
+- Gerçek veri testleri
 
-### 🗄️ Database Setup (`database/setup-database.sql`)
-- Complete SQL Server schema
-- Sample data for testing
-- Indexes and optimizations
-- Automatic cleanup
+### 🗄️ Veritabanı Kurulumu
+- Komple SQL Server şeması
+- Test için örnek veriler
+- İndeksler ve optimizasyonlar
+- Otomatik temizlik
 
-## Quick Start
+## Hızlı Başlangıç
 
-### 1. Test Environment (with SQLite)
+### 1. Test Ortamı (SQLite ile)
 ```bash
 git clone https://github.com/hizir-ceylan/InventoryManagementSystem.git
 cd InventoryManagementSystem/Inventory.Api
@@ -55,54 +55,54 @@ dotnet run --urls="http://0.0.0.0:5000"
 ```
 Swagger UI: `http://localhost:5000/swagger`
 
-### 2. Database Setup
+### 2. Veritabanı Kurulumu
 ```sql
--- Run in SQL Server
+-- SQL Server'da çalıştır
 sqlcmd -S localhost -U SA -P 'StrongPassword123!' -i database/setup-database.sql
 ```
 
-### 3. API Testing
+### 3. API Testi
 ```bash
-# Device list
+# Cihaz listesi
 curl http://localhost:5000/api/device
 
-# Add test device
+# Test cihazı ekle
 curl -X POST http://localhost:5000/api/device \
   -H "Content-Type: application/json" \
   -d '{"name":"Test-PC","macAddress":"00:1B:44:11:3A:B7","ipAddress":"192.168.1.100","deviceType":"PC"}'
 ```
 
-### 4. Agent Installation
+### 4. Agent Kurulumu
 ```bash
 cd Inventory.Agent.Windows
 dotnet build --configuration Release
-# Copy output to C:\InventoryAgent
-# Install as Windows Service
+# Çıktıyı C:\InventoryAgent'a kopyala
+# Windows Service olarak kur
 sc create "InventoryAgent" binPath="C:\InventoryAgent\Inventory.Agent.Windows.exe"
 ```
 
-## File Structure
+## Dosya Yapısı
 
 ```
 InventoryManagementSystem/
 ├── Inventory.Api/              # Web API
 ├── Inventory.Agent.Windows/    # Windows Agent
-├── Inventory.Domain/           # Entity models
-├── Inventory.Data/            # Data access layer
-├── Inventory.Shared/          # Shared libraries
+├── Inventory.Domain/           # Entity modelleri
+├── Inventory.Data/            # Veri erişim katmanı
+├── Inventory.Shared/          # Paylaşılan kütüphaneler
 ├── docs/
-│   ├── installation-guide.md     # Installation guide
-│   ├── server-deployment-testing.md  # Server setup
-│   └── technical-documentation.md    # Technical documentation
+│   ├── TEKNIK-DOKUMANTASYON.md    # Teknik dokümantasyon
+│   ├── WINDOWS-INSTALLATION-GUIDE.md  # Windows kurulum
+│   └── DOCKER-GUIDE.md               # Docker rehberi
 ├── database/
-│   └── setup-database.sql        # Database setup script
-└── build-tools/                      # Utility scripts
-    ├── quick-start.sh            # Quick start script
-    ├── test-docker.sh            # Docker testing
-    └── test-logging.sh           # Logging tests
+│   └── setup-database.sql        # Veritabanı kurulum scripti
+└── build-tools/                      # Yardımcı scriptler
+    ├── quick-start.sh            # Hızlı başlangıç scripti
+    ├── test-docker.sh            # Docker test
+    └── test-logging.sh           # Log testleri
 ```
 
-## Connection String Examples
+## Bağlantı String Örnekleri
 
 ### SQL Server
 ```

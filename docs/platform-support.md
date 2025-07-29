@@ -1,15 +1,15 @@
-# Platform Support and Change Logging
+# Platform Desteği ve Değişiklik Takibi
 
-## New Features
+## Yeni Özellikler
 
-### Separate Change Logging
+### Ayrı Değişiklik Loglaması
 
-The system now creates separate files for device changes when they are detected:
+Sistem artık cihaz değişiklikleri tespit edildiğinde ayrı dosyalar oluşturmaktadır:
 
-- **Main log files**: `LocalLogs/device-log-{date}.json` - Contains full device snapshots
-- **Change files**: `LocalLogs/Changes/device-changes-{date}-{time}.json` - Contains only the detected changes
+- **Ana log dosyaları**: `LocalLogs/device-log-{tarih}.json` - Tam cihaz bilgilerini içerir
+- **Değişiklik dosyaları**: `LocalLogs/Changes/device-changes-{tarih}-{saat}.json` - Sadece tespit edilen değişiklikleri içerir
 
-#### Change File Format
+#### Değişiklik Dosyası Formatı
 
 ```json
 {
@@ -31,23 +31,23 @@ The system now creates separate files for device changes when they are detected:
 }
 ```
 
-### Cross-Platform Support
+### Çoklu Platform Desteği
 
-The agent now supports both Windows and Linux platforms:
+Agent artık hem Windows hem de Linux platformlarını desteklemektedir:
 
-#### Windows Support
-- Uses WMI (Windows Management Instrumentation) for comprehensive system information
-- Supports GPU monitoring with LibreHardwareMonitor
-- Detailed hardware and software enumeration
+#### Windows Desteği
+- Kapsamlı sistem bilgileri için WMI (Windows Management Instrumentation) kullanır
+- LibreHardwareMonitor ile GPU izleme desteği
+- Detaylı donanım ve yazılım enumerasyonu
 
-#### Linux Support
-- Uses /proc filesystem and system commands for comprehensive system information
-- Real network interface detection using `ip addr show` and `/sys/class/net`
-- System information gathering using `dmidecode` and `/sys/class/dmi/id/`
-- Memory information from `/proc/meminfo` and `dmidecode` for detailed RAM modules
-- Package manager support for dpkg, rpm, pacman, yum, snap, and flatpak
-- GPU detection using `lspci` and `nvidia-smi` for NVIDIA cards
-- Real CPU, disk, and hardware information gathering
+#### Linux Desteği
+- Kapsamlı sistem bilgileri için /proc dosya sistemi ve sistem komutları kullanır
+- `ip addr show` ve `/sys/class/net` kullanarak gerçek ağ arayüzü tespiti
+- `dmidecode` ve `/sys/class/dmi/id/` kullanarak sistem bilgisi toplama
+- Detaylı RAM modülleri için `/proc/meminfo` ve `dmidecode`'dan bellek bilgileri
+- dpkg, rpm, pacman, yum, snap ve flatpak paket yöneticisi desteği
+- NVIDIA kartları için `lspci` ve `nvidia-smi` kullanarak GPU tespiti
+- Gerçek CPU, disk ve donanım bilgisi toplama
 - Cross-platform disk and memory information gathering
 
 #### Platform Detection
