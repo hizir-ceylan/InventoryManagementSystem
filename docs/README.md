@@ -1,86 +1,27 @@
-# Inventory Management System - Documentation Index
+# Dokümantasyon Dizini
 
-Bu dizinde Inventory Management System'e ait tüm dokümantasyon bulunmaktadır.
-
-## Dokümantasyon Dizini
-
-Bu dizinde Inventory Management System'e ait tüm dokümantasyon profesyonel bir şekilde organize edilmiştir.
+Bu dizin, Inventory Management System'in tüm teknik dokümantasyonlarını içermektedir.
 
 ## Ana Dokümantasyon
 
-### 📖 Temel Kaynaklar
-- **[COMPLETE-DOCUMENTATION.md](COMPLETE-DOCUMENTATION.md)** - Kapsamlı teknik dokümantasyon (Ana kaynak)
+- **[TEKNIK-DOKUMANTASYON.md](TEKNIK-DOKUMANTASYON.md)** - Kapsamlı teknik rehber (Ana dokümantasyon)
 - **[DOCKER-GUIDE.md](DOCKER-GUIDE.md)** - Docker kurulum ve kullanım rehberi
-- **[WINDOWS-INSTALLATION-GUIDE.md](WINDOWS-INSTALLATION-GUIDE.md)** - Windows tam kurulum rehberi (Build alma, derleme ve servis kurulumu)
-- **[CHANGELOG.md](CHANGELOG.md)** - Güncellemeler ve değişiklik geçmişi
+- **[WINDOWS-INSTALLATION-GUIDE.md](WINDOWS-INSTALLATION-GUIDE.md)** - Windows kurulum rehberi
 
-### 🧪 Test ve Kurulum
-- **[WINDOWS-INSTALLATION-GUIDE.md](WINDOWS-INSTALLATION-GUIDE.md)** - Windows tam kurulum rehberi (Build alma, derleme ve servis kurulumu)
-- **[windows-service-setup.md](windows-service-setup.md)** - Windows servisi detaylı kılavuz
-- **[server-deployment-testing.md](server-deployment-testing.md)** - Detaylı sunucu kurulumu ve test
+## Kurulum Rehberleri
 
-### ⚙️ Özel Konfigürasyonlar
-- **[remote-server-configuration.md](remote-server-configuration.md)** - Uzak sunucu yapılandırması
-- **[platform-support.md](platform-support.md)** - Platform desteği ve değişiklik takibi
+- **[SETUP-GUIDE.md](SETUP-GUIDE.md)** - Genel kurulum rehberi
+- **[windows-service-setup.md](windows-service-setup.md)** - Windows service kurulum rehberi
 
-### 📂 Diğer Kaynaklar
-- **[img/](img/)** - Dokümantasyon görselleri
+## Sorun Giderme
 
-## Arşivlenmiş Dosyalar
+- **[WINDOWS-SERVICE-TROUBLESHOOTING.md](WINDOWS-SERVICE-TROUBLESHOOTING.md)** - Windows service sorunları
 
-Aşağıdaki dosyalar artık kaldırılmış olup, güncel bilgiler ana dokümantasyonda birleştirilmiştir:
+## Diğer
 
-### Kaldırılan Dosyalar
-- ~~`legacy/technical-documentation.md`~~ - Artık COMPLETE-DOCUMENTATION.md'de
-- ~~`legacy/installation-guide.md`~~ - Artık WINDOWS-INSTALLATION-GUIDE.md'de
+- **[CHANGELOG.md](CHANGELOG.md)** - Değişiklik geçmişi
+- **[platform-support.md](platform-support.md)** - Platform desteği bilgileri
 
-### Yeni Docker Özellikleri
+## Yardım
 
-Bu projede yeni eklenen Docker özellikleri:
-
-#### 🎯 Docker Desteği
-- **Multi-stage Docker build** ile optimize edilmiş containerlar
-- **Docker Compose** ile kolay setup
-- **SQLite ve SQL Server** desteği
-- **Network isolation** ile güvenli çalışma
-
-#### 🧪 Test Araçları
-- **Otomatik test scripti** (`test-docker.sh`)
-- **API endpoint testleri**
-- **Performans testleri**
-- **Veri kalıcılığı testleri**
-
-#### 📊 Monitoring
-- **Container health checks**
-- **Log aggregation**
-- **Resource monitoring**
-- **Error tracking**
-
-## Kullanım Önerileri
-
-### Hızlı Başlangıç
-1. [DOCKER-GUIDE.md](DOCKER-GUIDE.md) dosyasını okuyun
-2. `docker-compose.simple.yml` ile test edin
-3. `./build-tools/test-docker.sh test` ile otomatik test çalıştırın
-
-### Detaylı Bilgi
-1. [COMPLETE-DOCUMENTATION.md](COMPLETE-DOCUMENTATION.md) dosyasını inceleyin
-2. API dokümantasyonu için Swagger UI kullanın
-3. Troubleshooting bölümünden yardım alın
-
-### Production Kurulum
-1. Docker Compose production setup kullanın
-2. SQL Server ile database setup yapın
-3. Nginx reverse proxy konfigüre edin
-4. SSL sertifikalarını ayarlayın
-
-## Katkıda Bulunma
-
-Dokümantasyonu geliştirmek için:
-1. COMPLETE-DOCUMENTATION.md dosyasını güncelleyin
-2. Yeni özellikler için Docker rehberini güncelleyin
-3. Test scriptlerini iyileştirin
-
----
-
-**Not**: Eski dokümantasyon dosyaları referans amaçlı tutulmuş olup, güncel bilgiler için birleştirilmiş dokümantasyonu kullanın.
+Ana teknik dokümantasyon için [TEKNIK-DOKUMANTASYON.md](TEKNIK-DOKUMANTASYON.md) dosyasını inceleyiniz.
