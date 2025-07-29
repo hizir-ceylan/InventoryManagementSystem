@@ -71,17 +71,7 @@ namespace Inventory.Agent.Windows
         {
             try
             {
-                // Configure host builder without requiring appsettings.json
-                var settings = new HostApplicationBuilderSettings
-                {
-                    DisableDefaults = true,
-                    Args = Array.Empty<string>()
-                };
-                
-                var builder = Host.CreateApplicationBuilder(settings);
-                
-                // Manually configure logging and other essential services
-                builder.Services.AddLogging();
+                var builder = Host.CreateApplicationBuilder();
                 
                 // Windows Service desteği ekle - improved configuration for reliability
                 builder.Services.AddWindowsService(options =>
