@@ -95,6 +95,15 @@ InventoryManagementSystem/
 - **[Teknik Dokümantasyon](docs/TEKNIK-DOKUMANTASYON.md)** - Kapsamlı teknik rehber
 - **[Docker Rehberi](docs/DOCKER-GUIDE.md)** - Docker kurulum ve kullanım
 - **[Windows Kurulum](docs/WINDOWS-INSTALLATION-GUIDE.md)** - Windows service kurulum
+- **[Veri Kalıcılığı Kılavuzu](docs/DATA-PERSISTENCE-GUIDE.md)** - Veri depolama ve log yönetimi
+
+## Veri Depolama
+
+Agent verilerinizi kalıcı dizinlerde depolar:
+- **Offline Veriler**: `Documents/InventoryManagementSystem/OfflineStorage/`
+- **Yerel Loglar**: `Documents/InventoryManagementSystem/LocalLogs/`
+
+Detaylı bilgi için [Veri Kalıcılığı Kılavuzu](docs/DATA-PERSISTENCE-GUIDE.md)'na bakın.
 
 ## Lisans
 
