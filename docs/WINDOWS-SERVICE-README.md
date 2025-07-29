@@ -2,11 +2,22 @@
 
 > **Detaylı Kurulum Rehberi**: Build alma ve derleme dahil tüm adımlar için [Windows Tam Kurulum Rehberi](docs/WINDOWS-INSTALLATION-GUIDE.md) sayfasına bakın.
 
+> **Service Sorun Giderme**: Servis başlatma sorunları için [Windows Service Troubleshooting](WINDOWS-SERVICE-TROUBLESHOOTING.md) rehberine bakın.
+
 ## Problem Çözümü
 
 **SORUN**: Agent çalıştırıldığında "Hedef makine etkin olarak reddettiğinden bağlantı kurulamadı (localhost:5093)" hatası alınıyor.
 
 **ÇÖZÜM**: API ve Agent'ın Windows servisi olarak otomatik başlatılması.
+
+## Service Geliştirmeleri (v1.1)
+
+✅ **Hızlı Başlatma**: Service 5 saniye içinde başlar (önceden 30+ saniye)  
+✅ **Gelişmiş Hata Yönetimi**: Service başlatma hatalarında otomatik kurtarma  
+✅ **Çoklu Loglama**: Event Log + Dosya tabanlı log sistemi  
+✅ **Otomatik Yeniden Başlatma**: Service çökme durumunda otomatik restart  
+✅ **Arka Plan İşlemleri**: Ağır işlemler service startup'ı engellemez  
+✅ **Service Yönetim Aracı**: Kolay service yönetimi için araç eklendi
 
 ## Hızlı Kurulum (Hazır Build ile)
 

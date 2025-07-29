@@ -65,6 +65,7 @@ Name: "{app}\Data\OfflineStorage"
 [Icons]
 Name: "{group}\{#MyAppName} API (Swagger)"; Filename: "http://localhost:5093/swagger"; IconFilename: "{sys}\shell32.dll"; IconIndex: 14
 Name: "{group}\{#MyAppName} Folder"; Filename: "{app}"; IconFilename: "{sys}\shell32.dll"; IconIndex: 3
+Name: "{group}\Service Management"; Filename: "{app}\ServiceManagement.bat"; IconFilename: "{sys}\shell32.dll"; IconIndex: 15; WorkingDir: "{app}"
 Name: "{group}\Services Manager"; Filename: "services.msc"; IconFilename: "{sys}\shell32.dll"; IconIndex: 15
 Name: "{group}\Event Viewer"; Filename: "eventvwr.msc"; IconFilename: "{sys}\shell32.dll"; IconIndex: 15
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
@@ -72,12 +73,15 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "http://localhost:5093/swagger"; T
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "http://localhost:5093/swagger"; Tasks: quicklaunchicon; IconFilename: "{sys}\shell32.dll"; IconIndex: 14
 
 [Run]
-; Start services after installation
+; Start services after installation with improved timing
 Filename: "{sys}\sc.exe"; Parameters: "start InventoryManagementApi"; Flags: runhidden; StatusMsg: "Starting API service..."
-Filename: "{sys}\timeout.exe"; Parameters: "/t 10 /nobreak"; Flags: runhidden; StatusMsg: "Waiting for API to initialize..."
+Filename: "{sys}\timeout.exe"; Parameters: "/t 15 /nobreak"; Flags: runhidden; StatusMsg: "Waiting for API to initialize..."
 Filename: "{sys}\sc.exe"; Parameters: "start InventoryManagementAgent"; Flags: runhidden; StatusMsg: "Starting Agent service..."
+Filename: "{sys}\timeout.exe"; Parameters: "/t 5 /nobreak"; Flags: runhidden; StatusMsg: "Waiting for Agent to initialize..."
 ; Open swagger in browser
 Filename: "http://localhost:5093/swagger"; Description: "{cm:LaunchProgram,API Documentation (Swagger)}"; Flags: nowait postinstall skipifsilent shellexec
+; Show service management tool
+Filename: "{app}\ServiceManagement.bat"; Description: "Open Service Management Tool"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 ; Stop and remove services before uninstall
@@ -179,39 +183,123 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;
+  ServiceCreated: Boolean;
 begin
   if CurStep = ssPostInstall then
   begin
-    // Create Windows Services
+    // Create Windows Services with improved error handling
     
     // Stop existing services if they exist
     Exec('sc', 'stop InventoryManagementAgent', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('sc', 'stop InventoryManagementApi', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    
+    // Wait a moment for services to fully stop
+    Exec('timeout', '/t 3 /nobreak', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    
     Exec('sc', 'delete InventoryManagementAgent', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('sc', 'delete InventoryManagementApi', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
-    // Create API Service
-    if not Exec('sc', 'create InventoryManagementApi binPath= "' + ExpandConstant('{app}\Api\{#MyAppExeName}') + '" start= auto DisplayName= "Inventory Management API" obj= LocalSystem', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    // Create API Service with better configuration
+    ServiceCreated := Exec('sc', 'create InventoryManagementApi binPath= "' + ExpandConstant('{app}\Api\{#MyAppExeName}') + '" start= auto DisplayName= "Inventory Management API" obj= LocalSystem', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    
+    if ServiceCreated and (ResultCode = 0) then
     begin
-      MsgBox('Failed to create API service. You may need to create it manually.', mbError, MB_OK);
+      // Configure API service for reliability
+      Exec('sc', 'config InventoryManagementApi start= auto', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      Exec('sc', 'failure InventoryManagementApi reset= 86400 actions= restart/5000/restart/5000/restart/5000', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      Exec('sc', 'config InventoryManagementApi depend= ', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    end
+    else
+    begin
+      MsgBox('Failed to create API service. Error code: ' + IntToStr(ResultCode) + '. You may need to create it manually.', mbError, MB_OK);
     end;
     
-    // Create Agent Service (dependent on API)
-    if not Exec('sc', 'create InventoryManagementAgent binPath= "' + ExpandConstant('{app}\Agent\{#MyAgentExeName}') + ' --service" start= auto DisplayName= "Inventory Management Agent" obj= LocalSystem depend= InventoryManagementApi', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    // Create Agent Service with dependency on API and improved settings
+    ServiceCreated := Exec('sc', 'create InventoryManagementAgent binPath= "' + ExpandConstant('{app}\Agent\{#MyAgentExeName}') + ' --service" start= auto DisplayName= "Inventory Management Agent" obj= LocalSystem depend= InventoryManagementApi', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    
+    if ServiceCreated and (ResultCode = 0) then
     begin
-      MsgBox('Failed to create Agent service. You may need to create it manually.', mbError, MB_OK);
+      // Configure Agent service for reliability and delayed start
+      Exec('sc', 'config InventoryManagementAgent start= delayed-auto', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      Exec('sc', 'failure InventoryManagementAgent reset= 86400 actions= restart/10000/restart/10000/restart/10000', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      
+      // Set service description
+      Exec('sc', 'description InventoryManagementAgent "Inventory Management System Agent - Collects and reports system inventory data"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      Exec('sc', 'description InventoryManagementApi "Inventory Management System API - Web API for inventory management"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    end
+    else
+    begin
+      MsgBox('Failed to create Agent service. Error code: ' + IntToStr(ResultCode) + '. You may need to create it manually.', mbError, MB_OK);
     end;
     
-    // Set Agent to delayed start
-    Exec('sc', 'config InventoryManagementAgent start= delayed-auto', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    // Create Event Log sources (ignore errors if they already exist)
+    Exec('reg', 'add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\InventoryManagementAgent" /v "EventMessageFile" /t REG_EXPAND_SZ /d "%SystemRoot%\System32\EventLogMessages.dll" /f', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec('reg', 'add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\InventoryManagementApi" /v "EventMessageFile" /t REG_EXPAND_SZ /d "%SystemRoot%\System32\EventLogMessages.dll" /f', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
     // Configure firewall rule for API
+    Exec('netsh', 'advfirewall firewall delete rule name="Inventory Management API"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('netsh', 'advfirewall firewall add rule name="Inventory Management API" dir=in action=allow protocol=TCP localport=5093', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
     // Set environment variables
     Exec('setx', 'ApiSettings__BaseUrl "http://localhost:5093" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('setx', 'ApiSettings__EnableOfflineStorage "true" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('setx', 'ApiSettings__OfflineStoragePath "' + ExpandConstant('{app}\Data\OfflineStorage') + '" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    
+    // Create a batch file for manual service management
+    SaveStringToFile(ExpandConstant('{app}\ServiceManagement.bat'), 
+      '@echo off' + #13#10 +
+      'echo Inventory Management System - Service Management' + #13#10 +
+      'echo ================================================' + #13#10 +
+      'echo.' + #13#10 +
+      'echo 1. Start Services' + #13#10 +
+      'echo 2. Stop Services' + #13#10 +
+      'echo 3. Restart Services' + #13#10 +
+      'echo 4. Check Service Status' + #13#10 +
+      'echo 5. View Agent Logs' + #13#10 +
+      'echo 6. Exit' + #13#10 +
+      'echo.' + #13#10 +
+      'set /p choice=Choose an option (1-6): ' + #13#10 +
+      'if "%choice%"=="1" goto start' + #13#10 +
+      'if "%choice%"=="2" goto stop' + #13#10 +
+      'if "%choice%"=="3" goto restart' + #13#10 +
+      'if "%choice%"=="4" goto status' + #13#10 +
+      'if "%choice%"=="5" goto logs' + #13#10 +
+      'if "%choice%"=="6" goto exit' + #13#10 +
+      'goto main' + #13#10 +
+      ':start' + #13#10 +
+      'echo Starting services...' + #13#10 +
+      'net start InventoryManagementApi' + #13#10 +
+      'timeout /t 5 /nobreak >nul' + #13#10 +
+      'net start InventoryManagementAgent' + #13#10 +
+      'goto end' + #13#10 +
+      ':stop' + #13#10 +
+      'echo Stopping services...' + #13#10 +
+      'net stop InventoryManagementAgent' + #13#10 +
+      'net stop InventoryManagementApi' + #13#10 +
+      'goto end' + #13#10 +
+      ':restart' + #13#10 +
+      'echo Restarting services...' + #13#10 +
+      'net stop InventoryManagementAgent' + #13#10 +
+      'net stop InventoryManagementApi' + #13#10 +
+      'timeout /t 3 /nobreak >nul' + #13#10 +
+      'net start InventoryManagementApi' + #13#10 +
+      'timeout /t 5 /nobreak >nul' + #13#10 +
+      'net start InventoryManagementAgent' + #13#10 +
+      'goto end' + #13#10 +
+      ':status' + #13#10 +
+      'echo Service Status:' + #13#10 +
+      'sc query InventoryManagementApi' + #13#10 +
+      'echo.' + #13#10 +
+      'sc query InventoryManagementAgent' + #13#10 +
+      'goto end' + #13#10 +
+      ':logs' + #13#10 +
+      'echo Opening log folder...' + #13#10 +
+      'explorer "' + ExpandConstant('{commonappdata}\Inventory Management System\Logs') + '"' + #13#10 +
+      'goto end' + #13#10 +
+      ':end' + #13#10 +
+      'echo.' + #13#10 +
+      'pause' + #13#10 +
+      ':exit' + #13#10, False);
   end;
 end;
 
