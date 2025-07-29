@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using Inventory.Agent.Windows.Configuration;
 using Inventory.Agent.Windows.Services;
 using Inventory.Agent.Windows.Models;
+using System;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,6 +16,9 @@ namespace Inventory.Agent.Windows.Services
         private readonly ApiSettings _apiSettings;
         private ConnectivityMonitorService? _connectivityMonitor;
         private readonly int _inventoryIntervalMinutes = 30; // Her 30 dakikada bir
+        private readonly int _initialDelaySeconds = 60; // Service startup'tan sonra ilk tarama için bekleme süresi
+        private readonly int _apiCheckIntervalSeconds = 10; // API hazır olma kontrolü aralığı
+        private readonly int _maxApiCheckAttempts = 30; // Maksimum API kontrol deneme sayısı (5 dakika)
         private OfflineStorageService? _offlineStorage;
 
         public InventoryAgentService(ILogger<InventoryAgentService> logger)
@@ -29,21 +34,30 @@ namespace Inventory.Agent.Windows.Services
 
             try
             {
-                // Initialize offline storage if enabled
+                // Hızlı service başlatma - ağır işlemleri defer et
+                _logger.LogInformation("Service Windows SCM'e hazır olduğunu bildiriyor...");
+                
+                // Service'in Windows tarafından başlatıldığını bildirmek için kısa bir delay
+                await Task.Delay(1000, stoppingToken);
+                
+                // Initialize offline storage if enabled (hafif işlem)
                 if (_apiSettings.EnableOfflineStorage)
                 {
-                    _offlineStorage = new OfflineStorageService(_apiSettings.OfflineStoragePath, _apiSettings.MaxOfflineRecords);
-                    var offlineCount = await _offlineStorage.GetStoredRecordCountAsync();
-                    _logger.LogInformation($"Offline Storage Enabled. Pending records: {offlineCount}");
-                    
-                    // Start connectivity monitoring
-                    _connectivityMonitor = new ConnectivityMonitorService(_apiSettings, _offlineStorage);
-                    _connectivityMonitor.StartMonitoring();
+                    try
+                    {
+                        _offlineStorage = new OfflineStorageService(_apiSettings.OfflineStoragePath, _apiSettings.MaxOfflineRecords);
+                        _logger.LogInformation("Offline Storage başlatıldı.");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Offline Storage başlatılırken hata oluştu. Devam edilecek.");
+                    }
                 }
 
-                // İlk envanteri hemen al
-                _logger.LogInformation("Initial inventory scan başlatılıyor...");
-                await RunInventoryAsync(_offlineStorage);
+                _logger.LogInformation($"Service başarıyla başlatıldı. İlk envanter taraması {_initialDelaySeconds} saniye sonra başlayacak.");
+
+                // API hazır olma kontrolü ve başlangıç gecikmesi
+                await WaitForApiAndStartOperationsAsync(stoppingToken);
 
                 // Periyodik döngü - Timer yerine Task.Delay kullan
                 _logger.LogInformation($"Periyodik envanter taraması {_inventoryIntervalMinutes} dakikada bir çalışacak.");
@@ -87,6 +101,84 @@ namespace Inventory.Agent.Windows.Services
                 _connectivityMonitor?.Stop();
                 _logger.LogInformation("Inventory Agent Service temizlendi.");
             }
+        }
+
+        private async Task WaitForApiAndStartOperationsAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogInformation($"API hazır olma kontrolü başlatılıyor... ({_initialDelaySeconds} saniye bekleme)");
+            
+            // İlk startup gecikmesi - Windows Service'in hızlı başlaması için
+            await Task.Delay(TimeSpan.FromSeconds(_initialDelaySeconds), stoppingToken);
+            
+            if (stoppingToken.IsCancellationRequested)
+                return;
+
+            // API hazır olma kontrolü
+            bool apiReady = await WaitForApiReadyAsync(stoppingToken);
+            
+            if (!apiReady)
+            {
+                _logger.LogWarning("API hazır değil, ancak offline storage varsa devam edilecek.");
+            }
+
+            // Connectivity monitoring'i başlat (eğer offline storage varsa)
+            if (_apiSettings.EnableOfflineStorage && _offlineStorage != null)
+            {
+                try
+                {
+                    var offlineCount = await _offlineStorage.GetStoredRecordCountAsync();
+                    _logger.LogInformation($"Offline records pending: {offlineCount}");
+                    
+                    _connectivityMonitor = new ConnectivityMonitorService(_apiSettings, _offlineStorage);
+                    _connectivityMonitor.StartMonitoring();
+                    _logger.LogInformation("Connectivity monitoring başlatıldı.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Connectivity monitoring başlatılırken hata oluştu.");
+                }
+            }
+
+            // İlk envanteri al
+            _logger.LogInformation("İlk envanter taraması başlatılıyor...");
+            await RunInventoryAsync(_offlineStorage);
+        }
+
+        private async Task<bool> WaitForApiReadyAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogInformation("API hazır olma durumu kontrol ediliyor...");
+            
+            for (int attempt = 1; attempt <= _maxApiCheckAttempts && !stoppingToken.IsCancellationRequested; attempt++)
+            {
+                try
+                {
+                    // API health check endpoint'ini kontrol et
+                    using var httpClient = new HttpClient();
+                    httpClient.Timeout = TimeSpan.FromSeconds(5);
+                    
+                    var response = await httpClient.GetAsync($"{_apiSettings.BaseUrl}/api/device", stoppingToken);
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _logger.LogInformation($"API hazır! (Deneme {attempt}/{_maxApiCheckAttempts})");
+                        return true;
+                    }
+                    
+                    _logger.LogWarning($"API henüz hazır değil (HTTP {response.StatusCode}). Deneme {attempt}/{_maxApiCheckAttempts}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug($"API kontrolü başarısız (Deneme {attempt}/{_maxApiCheckAttempts}): {ex.Message}");
+                }
+
+                if (attempt < _maxApiCheckAttempts && !stoppingToken.IsCancellationRequested)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(_apiCheckIntervalSeconds), stoppingToken);
+                }
+            }
+
+            _logger.LogWarning($"API {_maxApiCheckAttempts} deneme sonrası hala hazır değil. Offline modda devam edilecek.");
+            return false;
         }
 
         private async Task RunInventoryAsync(OfflineStorageService? offlineStorage)
