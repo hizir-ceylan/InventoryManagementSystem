@@ -94,7 +94,7 @@ if (-not $apiServiceExists) {
 
 # Agent servisini oluştur veya güncelle
 Write-Host "Agent servisi yapılandırılıyor..." -ForegroundColor Yellow
-$agentExePath       = "$InstallPath\Agent\Inventory.Agent.Windows.exe --service"
+$agentExePath       = "$InstallPath\Agent\Inventory.Agent.Windows.exe"
 $agentServiceExists = Get-Service -Name "InventoryManagementAgent" -ErrorAction SilentlyContinue
 if (-not $agentServiceExists) {
     New-Service -Name "InventoryManagementAgent" `

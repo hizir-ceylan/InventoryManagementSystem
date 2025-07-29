@@ -125,7 +125,7 @@ http://localhost:5093/swagger
 Invoke-RestMethod -Uri "http://localhost:5093/api/device" -Method GET
 ```
 
-### 2. Agent Çalışma Kontrolü
+### Agent Çalışma Kontrolü
 
 ```powershell
 # Event Viewer'ı açın
@@ -133,6 +133,25 @@ eventvwr.msc
 
 # Windows Logs → Application bölümünde 
 # "InventoryManagement" source'u arayın
+```
+
+**Agent Modları:**
+- **Servis Modu**: Arka planda sürekli çalışır (30 dakikada bir)
+- **Console Modu**: Tek seferlik çalışır ve çıkar
+- **Continuous Modu**: Console'da sürekli çalışır (30 dakikada bir)
+
+```powershell
+# Farklı modları test edin
+cd "C:\Program Files\InventoryManagementSystem\Agent"
+
+# Tek seferlik çalıştır
+.\Inventory.Agent.Windows.exe
+
+# Sürekli modda çalıştır
+.\Inventory.Agent.Windows.exe --continuous
+
+# Yardım göster
+.\Inventory.Agent.Windows.exe --help
 ```
 
 ### 3. Log Dosyaları
@@ -162,6 +181,27 @@ ApiSettings__OfflineStoragePath=C:\Program Files\InventoryManagementSystem\Data\
 ```
 
 ## Sorun Giderme
+
+### Error 1053 - Servis Başlamıyor
+
+**Problem**: Windows servis yöneticisinden Agent servisini başlatırken "Error 1053: The service did not respond to the start or control request in a timely manner" hatası alınıyor.
+
+**Çözüm**: Bu sürümde düzeltilmiştir. Artık Agent:
+- ✅ Servis modunu otomatik algılar (komut satırı parametresi gerektirmez)
+- ✅ Uygun Background Service pattern kullanır
+- ✅ Proper async/await işlemlerini destekler
+- ✅ Event Log'a hataları yazar
+
+```powershell
+# Servisi yeniden kur ve başlat
+.\build-tools\Install-WindowsServices.ps1
+
+# Servis durumunu kontrol et
+Get-Service -Name "InventoryManagementAgent"
+
+# Event Log'ları kontrol et
+Get-EventLog -LogName Application -Source "InventoryManagementAgent" -Newest 10
+```
 
 ### Servis Başlamıyor
 

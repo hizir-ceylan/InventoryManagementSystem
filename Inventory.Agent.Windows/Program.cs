@@ -20,8 +20,16 @@ namespace Inventory.Agent.Windows
         
         static async Task Main(string[] args)
         {
-            // Service modu kontrolü
-            bool isWindowsService = args.Length > 0 && args[0].ToLower() == "--service";
+            // Check for help argument
+            if (args.Length > 0 && (args[0].ToLower() == "--help" || args[0].ToLower() == "-h"))
+            {
+                ShowUsage();
+                return;
+            }
+
+            // Service modu kontrolü - Windows service olarak çalışıp çalışmadığını kontrol et
+            bool isWindowsService = !Environment.UserInteractive || 
+                                   (args.Length > 0 && args[0].ToLower() == "--service");
             bool isNetworkDiscovery = args.Length > 0 && args[0].ToLower() == "network";
 
             if (isWindowsService)
@@ -32,6 +40,30 @@ namespace Inventory.Agent.Windows
 
             // Normal console mode - mevcut kod
             await RunAsConsoleAsync(args);
+        }
+
+        static void ShowUsage()
+        {
+            Console.WriteLine("Inventory Management System - Agent");
+            Console.WriteLine("===================================");
+            Console.WriteLine();
+            Console.WriteLine("Kullanım (Usage):");
+            Console.WriteLine("  Inventory.Agent.Windows.exe [options]");
+            Console.WriteLine();
+            Console.WriteLine("Seçenekler (Options):");
+            Console.WriteLine("  (hiçbiri)            Tek seferlik envanter taraması yapar ve çıkar");
+            Console.WriteLine("  --continuous         Sürekli mod - her 30 dakikada bir tarama yapar");
+            Console.WriteLine("  --daemon             --continuous ile aynı");
+            Console.WriteLine("  network              Ağ keşfi modunda çalışır");
+            Console.WriteLine("  --service            Servis modunda çalışır (otomatik algılanır)");
+            Console.WriteLine("  --help, -h           Bu yardım mesajını gösterir");
+            Console.WriteLine();
+            Console.WriteLine("Örnekler (Examples):");
+            Console.WriteLine("  Inventory.Agent.Windows.exe                    # Tek seferlik çalıştır");
+            Console.WriteLine("  Inventory.Agent.Windows.exe --continuous       # Sürekli modda çalıştır");
+            Console.WriteLine("  Inventory.Agent.Windows.exe network            # Ağ keşfi yap");
+            Console.WriteLine();
+            Console.WriteLine("Servis kurulumu için: build-tools/Install-WindowsServices.ps1");
         }
 
         static async Task RunAsServiceAsync()
@@ -86,13 +118,20 @@ namespace Inventory.Agent.Windows
                     _connectivityMonitor.StartMonitoring();
                 }
                 
-                // Check for network discovery argument
+                // Check for different operating modes
                 bool networkDiscovery = args.Length > 0 && args[0].ToLower() == "network";
+                bool continuousMode = args.Length > 0 && (args[0].ToLower() == "--continuous" || args[0].ToLower() == "--daemon");
                 
                 if (networkDiscovery)
                 {
                     Console.WriteLine("Starting network discovery...");
                     await RunNetworkDiscoveryAsync(apiSettings);
+                }
+                else if (continuousMode)
+                {
+                    Console.WriteLine("Starting continuous mode (runs every 30 minutes)...");
+                    Console.WriteLine("Press Ctrl+C to stop.");
+                    await RunContinuousInventoryAsync(apiSettings, offlineStorage);
                 }
                 else
                 {
@@ -147,6 +186,61 @@ namespace Inventory.Agent.Windows
             catch
             {
                 return false;
+            }
+        }
+
+        static async Task RunContinuousInventoryAsync(ApiSettings apiSettings, OfflineStorageService? offlineStorage)
+        {
+            const int intervalMinutes = 30;
+            using var cts = new CancellationTokenSource();
+            
+            // Handle Ctrl+C gracefully
+            Console.CancelKeyPress += (sender, e) =>
+            {
+                e.Cancel = true;
+                cts.Cancel();
+                Console.WriteLine("\nDurdurma sinyali alındı. Güvenli bir şekilde kapatılıyor...");
+            };
+
+            try
+            {
+                // İlk taramayı hemen yap
+                Console.WriteLine("İlk envanter taraması başlatılıyor...");
+                await RunLocalInventoryAsync(apiSettings, offlineStorage);
+                
+                int runCount = 1;
+                Console.WriteLine($"İlk tarama tamamlandı. Sonraki tarama {intervalMinutes} dakika sonra.");
+                
+                while (!cts.Token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        var nextRun = DateTime.Now.AddMinutes(intervalMinutes);
+                        Console.WriteLine($"Sonraki tarama: {nextRun:HH:mm:ss}. İptal etmek için Ctrl+C kullanın.");
+                        
+                        await Task.Delay(TimeSpan.FromMinutes(intervalMinutes), cts.Token);
+                        
+                        if (!cts.Token.IsCancellationRequested)
+                        {
+                            runCount++;
+                            Console.WriteLine($"\n--- Tarama #{runCount} ({DateTime.Now:HH:mm:ss}) ---");
+                            await RunLocalInventoryAsync(apiSettings, offlineStorage);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Tarama sırasında hata: {ex.Message}");
+                        Console.WriteLine("Bir sonraki döngüde devam edilecek...");
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("Sürekli mod durduruldu.");
             }
         }
 
