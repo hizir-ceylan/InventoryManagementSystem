@@ -1,36 +1,59 @@
-# Build Tools and Deployment Scripts
+# Build Tools
 
-This directory contains all the build, deployment, and installation tools for the Inventory Management System.
+Bu dizin Inventory Management System için build ve deployment araçlarını içerir.
 
-## Build Scripts
+## Ana Kurulum Scripti
 
-- **Build-Setup.bat** - Windows batch script for building and setting up the system
-- **Build-Setup.ps1** - PowerShell script for building and setting up the system
-- **test-build.sh** - Linux/Unix shell script for testing builds
+### Build-Setup.ps1
+Windows için ana build ve setup oluşturma scripti. Bu script:
+- .NET 8 SDK gereksinimini kontrol eder
+- Projeyi Release modunda build eder
+- API ve Agent için published dosyaları hazırlar
+- Inno Setup ile kurulum dosyası (setup.exe) oluşturur
+- Windows servislerini kurar ve yapılandırır
 
-## Installation Scripts
+**Kullanım:**
+```powershell
+# Yönetici PowerShell'de:
+cd build-tools
+.\Build-Setup.ps1
+```
 
-- **Quick-Install.bat** - Quick installation script for Windows
-- **Install-InventorySystem.ps1** - PowerShell installation script
-- **Install-WindowsServices.ps1** - Install Windows services
-- **install-windows-services.bat** - Batch script to install Windows services
-- **uninstall-windows-services.bat** - Batch script to uninstall Windows services
+**Oluşturulan Dosyalar:**
+- `Setup\InventoryManagementSystem-Setup.exe` - Kurulum dosyası
+- `Published\Api\` - API published dosyaları
+- `Published\Agent\` - Agent published dosyaları
 
-## Deployment Scripts
+## Docker Araçları
 
-- **build-and-deploy.sh** - Build and deployment script for Linux/Unix
-- **quick-start.sh** - Quick start script
-- **manage-services.bat** - Manage Windows services
+### quick-start.sh
+Docker ortamını hızlıca başlatmak için kullanılır.
 
-## Installer Configuration
+### test-docker.sh
+Docker kurulumunu test etmek için kullanılır.
 
-- **InventoryManagementSystem.iss** - Inno Setup installer configuration
+### test-build.sh
+Build işlemlerini test etmek için kullanılır.
 
-## Testing Scripts
+### test-logging.sh
+Logging sistemini test etmek için kullanılır.
 
-- **test-docker.sh** - Docker testing script
-- **test-logging.sh** - Logging system testing script
+## Diğer Dosyalar
 
-## Usage
+### InventoryManagementSystem.iss
+Inno Setup kurulum scripti. Build-Setup.ps1 tarafından kullanılır.
 
-Please refer to the main documentation in the `docs` directory for detailed usage instructions of these scripts.
+## Gereksinimler
+
+- Windows 10/11 veya Windows Server 2016+
+- .NET 8 SDK
+- Inno Setup (setup.exe oluşturmak için)
+- Yönetici yetkileri
+
+## Kurulum Sonrası
+
+Kurulum tamamlandığında:
+- API: http://localhost:5093
+- Swagger UI: http://localhost:5093/swagger
+- Windows Servisleri otomatik başlar
+- Event Log'a kayıtlar yazılır
