@@ -63,7 +63,7 @@ namespace Inventory.Agent.Windows
             Console.WriteLine("  Inventory.Agent.Windows.exe --continuous       # Sürekli modda çalıştır");
             Console.WriteLine("  Inventory.Agent.Windows.exe network            # Ağ keşfi yap");
             Console.WriteLine();
-            Console.WriteLine("Servis kurulumu için: build-tools/Install-WindowsServices.ps1");
+            Console.WriteLine("Servis kurulumu için: build-tools/Build-Setup.ps1");
         }
 
         static async Task RunAsServiceAsync()
