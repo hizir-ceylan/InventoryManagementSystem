@@ -418,6 +418,544 @@ CORS_ORIGINS=*
 
 ---
 
+## Detaylı Konfigürasyon Rehberi
+
+### Agent Servis Konfigürasyonu
+
+#### Veri Toplama Aralığı (30 Dakika)
+
+Agent servis **varsayılan olarak her 30 dakikada bir** sistem envanterini toplar ve API'ye gönderir.
+
+**Kodda Tanımlandığı Yer:**
+```csharp
+// Dosya: Inventory.Agent.Windows/Services/InventoryAgentService.cs
+private readonly int _inventoryIntervalMinutes = 30; // Her 30 dakikada bir
+```
+
+**Nasıl Değiştirilir:**
+
+1. **Kod Değişikliği (Kalıcı):**
+   ```csharp
+   // InventoryAgentService.cs dosyasında 18. satırı düzenleyin
+   private readonly int _inventoryIntervalMinutes = 60; // 60 dakikada bir için
+   ```
+
+2. **Environment Variable ile (Önerilen):**
+   ```bash
+   # Windows
+   set AgentSettings__ScanIntervalMinutes=60
+   
+   # Linux/PowerShell
+   export AgentSettings__ScanIntervalMinutes=60
+   ```
+
+3. **Service Konfigürasyonu ile:**
+   ```json
+   // appsettings.json dosyasına ekleyin
+   {
+     "AgentSettings": {
+       "ScanIntervalMinutes": 60
+     }
+   }
+   ```
+
+#### Yerel Veri Depolama Konumları
+
+**Agent Logları:**
+```bash
+# Windows
+C:\Users\[Kullanıcı]\Documents\InventoryManagementSystem\LocalLogs\
+%USERPROFILE%\Documents\InventoryManagementSystem\LocalLogs\
+
+# Linux
+~/Documents/InventoryManagementSystem/LocalLogs/
+```
+
+**Offline Storage (Bağlantı Kesildiğinde):**
+```bash
+# Windows
+C:\Users\[Kullanıcı]\Documents\InventoryManagementSystem\OfflineStorage\
+%USERPROFILE%\Documents\InventoryManagementSystem\OfflineStorage\
+
+# Linux
+~/Documents/InventoryManagementSystem/OfflineStorage/
+```
+
+**API Logları:**
+```bash
+# Development
+./Data/ApiLogs/api-{Date}.log
+
+# Service Mode (Windows)
+C:\InventoryManagement\Logs\api-{Date}.log
+
+# Docker
+/app/ApiLogs/api-{Date}.log
+```
+
+**Veritabanı (SQLite):**
+```bash
+# Development/Local
+./Data/inventory.db
+
+# Docker
+/app/Data/inventory.db
+```
+
+### Port Konfigürasyonu
+
+#### API Port Değiştirme
+
+**1. Development Ortamı:**
+```bash
+# launchSettings.json dosyasını düzenleyin
+"Inventory.Api": {
+  "applicationUrl": "http://localhost:5094;https://localhost:7094"
+}
+```
+
+**2. Production/Service Modu:**
+```bash
+# appsettings.Production.json
+{
+  "Urls": "http://localhost:5094"
+}
+```
+
+**3. Docker Ortamı:**
+```yaml
+# docker-compose.yml
+services:
+  inventory-api:
+    ports:
+      - "5094:5093"  # Host:Container
+    environment:
+      - ASPNETCORE_URLS=http://+:5093
+```
+
+**4. Environment Variable:**
+```bash
+set ASPNETCORE_URLS=http://localhost:5094
+```
+
+#### Agent API Bağlantı Adresi
+
+**Environment Variable ile:**
+```bash
+set ApiSettings__BaseUrl=http://localhost:5094
+```
+
+**appsettings.json ile:**
+```json
+{
+  "AgentSettings": {
+    "ApiBaseUrl": "http://localhost:5094"
+  }
+}
+```
+
+### Özelleştirilebilir Özellikler
+
+#### Agent Konfigürasyon Seçenekleri
+
+**Dosya:** `Inventory.Agent.Windows/Configuration/ApiSettings.cs`
+
+| Ayar | Varsayılan | Açıklama | Environment Variable |
+|------|------------|----------|----------------------|
+| BaseUrl | http://localhost:5093 | API sunucu adresi | `ApiSettings__BaseUrl` |
+| Timeout | 30 saniye | HTTP timeout süresi | `ApiSettings__Timeout` |
+| RetryCount | 3 | Başarısız istekler için yeniden deneme | `ApiSettings__RetryCount` |
+| EnableOfflineStorage | true | Bağlantı kesildiğinde offline saklama | `ApiSettings__EnableOfflineStorage` |
+| BatchUploadInterval | 300 saniye | Offline verilerin toplu gönderim aralığı | `ApiSettings__BatchUploadInterval` |
+| MaxOfflineRecords | 10000 | Maksimum offline kayıt sayısı | `ApiSettings__MaxOfflineRecords` |
+
+**Örnek Kullanım:**
+```bash
+# Windows CMD
+set ApiSettings__BaseUrl=http://192.168.1.100:5093
+set ApiSettings__Timeout=60
+set ApiSettings__RetryCount=5
+set ApiSettings__BatchUploadInterval=600
+
+# PowerShell
+$env:ApiSettings__BaseUrl="http://192.168.1.100:5093"
+$env:ApiSettings__Timeout="60"
+
+# Linux
+export ApiSettings__BaseUrl=http://192.168.1.100:5093
+export ApiSettings__Timeout=60
+```
+
+#### API Konfigürasyon Seçenekleri
+
+**Dosya:** `Inventory.Api/appsettings.json`
+
+| Ayar | Varsayılan | Açıklama |
+|------|------------|----------|
+| DatabaseProvider | SQLite | Veritabanı türü (SQLite/SqlServer/PostgreSQL) |
+| DefaultPageSize | 50 | API sayfalama varsayılan boyutu |
+| MaxPageSize | 1000 | API sayfalama maksimum boyutu |
+| EnableSwagger | true | Swagger UI aktif/pasif |
+| NetworkScan.DefaultTimeout | 5000ms | Ağ tarama timeout süresi |
+| NetworkScan.MaxConcurrentScans | 50 | Eşzamanlı ağ tarama sayısı |
+
+#### Logging Konfigürasyonu
+
+**API Logging Seviyesi:**
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Error"
+    },
+    "File": {
+      "Enabled": true,
+      "RetentionHours": 48,
+      "LogLevel": {
+        "Default": "Information"
+      }
+    }
+  }
+}
+```
+
+**Agent Logging:**
+```bash
+# Service için Windows Event Log
+# Uygulama: "InventoryManagementAgent"
+# Log: "Application"
+
+# File logging
+# Konum: %ProgramData%\Inventory Management System\Logs\
+```
+
+#### Network Scanning Konfigürasyonu
+
+**Dosya:** `Inventory.Agent.Windows/appsettings.json`
+
+```json
+{
+  "NetworkScan": {
+    "Enabled": true,
+    "Interval": "01:00:00",
+    "NetworkRange": "192.168.1.0/24",
+    "Timeout": 5000,
+    "MaxConcurrentScans": 50
+  }
+}
+```
+
+**Environment Variables:**
+```bash
+set NetworkScan__Enabled=true
+set NetworkScan__Interval=02:00:00
+set NetworkScan__NetworkRange=10.0.0.0/24
+```
+
+#### Windows Service Konfigürasyonu
+
+**Service Özellikleri:**
+- **Service Adı:** InventoryManagementAgent
+- **Başlatma Türü:** Automatic
+- **Bağımlılık:** InventoryManagementApi
+- **Recovery:** 3 yeniden başlatma denemesi
+
+**Service Parametreleri:**
+```bash
+# Service kurulum parametreleri
+sc create "InventoryManagementAgent" binpath="C:\InventoryManagement\Agent\Inventory.Agent.Windows.exe" start=auto depend="InventoryManagementApi"
+sc description "InventoryManagementAgent" "Inventory Management System Windows Agent - 30 dakikada bir sistem envanteri toplar"
+```
+
+#### Docker Konfigürasyon Örnekleri
+
+**Çevre Değişkenleri ile:**
+```yaml
+environment:
+  - ApiSettings__BaseUrl=http://inventory-api:5093
+  - ApiSettings__Timeout=60
+  - ApiSettings__BatchUploadInterval=300
+  - Logging__LogLevel__Default=Debug
+```
+
+**Volume Mount'lar:**
+```yaml
+volumes:
+  - ./agent-data:/app/Data
+  - ./agent-logs:/app/Logs
+  - ./offline-storage:/app/OfflineStorage
+```
+
+### Performans ve Güvenlik Optimizasyonları
+
+#### Memory ve CPU Limitleri (Docker)
+
+```yaml
+deploy:
+  resources:
+    limits:
+      memory: 512M
+      cpus: '0.5'
+    reservations:
+      memory: 256M
+      cpus: '0.25'
+```
+
+#### Güvenlik Ayarları
+
+**HTTPS Konfigürasyonu:**
+```json
+{
+  "Urls": "https://localhost:5093",
+  "Kestrel": {
+    "Endpoints": {
+      "Https": {
+        "Url": "https://localhost:5093",
+        "Certificate": {
+          "Path": "certificates/aspnetapp.pfx",
+          "Password": "YourCertPassword"
+        }
+      }
+    }
+  }
+}
+```
+
+**CORS Konfigürasyonu:**
+```json
+{
+  "ApiSettings": {
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "https://yourdomain.com",
+      "https://inventory.yourcompany.com"
+    ]
+  }
+}
+```
+
+### Build ve Deploy Araçları Konfigürasyonu
+
+#### Otomatik Kurulum Scriptleri
+
+**Windows Otomatik Kurulum:**
+```powershell
+# build-tools/Build-Setup.ps1
+# Bu script şunları yapar:
+# 1. Projeleri build eder
+# 2. Windows Service'leri kurar
+# 3. Konfigürasyon dosyalarını kopyalar
+# 4. Service'leri başlatır
+
+.\build-tools\Build-Setup.ps1
+```
+
+**Linux Quick Start:**
+```bash
+# build-tools/quick-start.sh
+# SQLite ile hızlı başlatma
+./build-tools/quick-start.sh
+
+# build-tools/build-and-deploy.sh  
+# Docker ile production build
+./build-tools/build-and-deploy.sh
+```
+
+#### Geliştirici Test Araçları
+
+**Build Test:**
+```bash
+# Tüm projeleri test build yapar
+./build-tools/test-build.sh
+```
+
+**Docker Test:**
+```bash
+# Docker container'ları test eder
+./build-tools/test-docker.sh
+```
+
+**Logging Test:**
+```bash
+# Log dosyalarını ve konfigürasyonu test eder
+./build-tools/test-logging.sh
+```
+
+#### Development Launch Profiles
+
+**Visual Studio / VS Code için:**
+```json
+// launchSettings.json
+{
+  "profiles": {
+    "http": {
+      "applicationUrl": "http://localhost:5093",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "https": {
+      "applicationUrl": "https://localhost:7296;http://localhost:5093",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+```
+
+#### Advanced Konfigürasyon Örnekleri
+
+**Multi-Environment Setup:**
+```bash
+# Production
+set ASPNETCORE_ENVIRONMENT=Production
+set ApiSettings__BaseUrl=https://api.yourcompany.com:5093
+set ConnectionStrings__DefaultConnection=Server=prod-server;Database=InventoryDB;...
+
+# Staging  
+set ASPNETCORE_ENVIRONMENT=Staging
+set ApiSettings__BaseUrl=https://staging-api.yourcompany.com:5093
+set ConnectionStrings__DefaultConnection=Server=staging-server;Database=InventoryDB;...
+
+# Development
+set ASPNETCORE_ENVIRONMENT=Development
+set ApiSettings__BaseUrl=http://localhost:5093
+set ConnectionStrings__DefaultConnection=Data Source=./Data/inventory-dev.db
+```
+
+**Network Infrastructure Konfigürasyonu:**
+```bash
+# Büyük ağ ortamları için
+set NetworkScan__MaxConcurrentScans=100
+set NetworkScan__DefaultTimeout=10000
+set NetworkScan__NetworkRange=10.0.0.0/8,192.168.0.0/16
+
+# Agent'ların farklı API sunucularına bağlanması
+set ApiSettings__BaseUrl=http://inventory-api-cluster:5093
+set ApiSettings__Timeout=60
+set ApiSettings__RetryCount=5
+```
+
+#### Container Orchestration (Kubernetes/Docker Swarm)
+
+**Kubernetes ConfigMap örneği:**
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inventory-config
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ApiSettings__BaseUrl: "http://inventory-api-service:5093"
+  ApiSettings__Timeout: "60"
+  ConnectionStrings__DefaultConnection: "Server=sqlserver-service;Database=InventoryDB;..."
+```
+
+**Docker Swarm secrets:**
+```bash
+# Database password'ü secret olarak sakla
+echo "YourStrong@Password123" | docker secret create db_password -
+
+# Service'e secret'i bağla
+docker service create \
+  --name inventory-api \
+  --secret db_password \
+  --env DB_PASSWORD_FILE=/run/secrets/db_password \
+  inventory-api:latest
+```
+
+### Sorun Giderme ve Monitoring
+
+#### Log Dosyası Konumları ve İçerikleri
+
+**Agent Service Logları:**
+```bash
+# Windows Event Log
+Get-EventLog -LogName Application -Source "InventoryManagementAgent" -After (Get-Date).AddHours(-1)
+
+# File Log (Service mode)
+type "%ProgramData%\Inventory Management System\Logs\agent-*.log"
+
+# File Log (User mode)  
+type "%USERPROFILE%\Documents\InventoryManagementSystem\LocalLogs\agent-*.log"
+```
+
+**API Service Logları:**
+```bash
+# Development
+tail -f ./Data/ApiLogs/api-$(date +%Y%m%d).log
+
+# Production (Docker)
+docker logs -f inventory-api
+
+# Production (Windows Service)
+type "C:\InventoryManagement\Logs\api-*.log"
+```
+
+#### Performance Monitoring Queries
+
+**Veritabanı Performance:**
+```sql
+-- En son güncellenen cihazlar
+SELECT Name, LastSeen, 
+       DATEDIFF(minute, LastSeen, GETDATE()) as MinutesAgo
+FROM Devices 
+ORDER BY LastSeen DESC;
+
+-- Offline cihazlar (30 dakikadan fazla güncellenmemiş)
+SELECT Name, IpAddress, LastSeen
+FROM Devices 
+WHERE LastSeen < DATEADD(minute, -35, GETDATE())
+ORDER BY LastSeen;
+
+-- Değişiklik istatistikleri
+SELECT COUNT(*) as TotalChanges, 
+       CAST(ChangeDate as DATE) as Date
+FROM ChangeLogs 
+GROUP BY CAST(ChangeDate as DATE)
+ORDER BY Date DESC;
+```
+
+#### Sistem Gereksinimleri ve Optimizasyon
+
+**Minimum Sistem Kaynakları:**
+```bash
+# Agent için (her cihazda)
+RAM: 128MB
+CPU: %5 (tarama sırasında %20)
+Disk: 50MB (loglar için +100MB)
+Network: 1Mbps upload
+
+# API Server için
+RAM: 2GB (1000 cihaz için 4GB)
+CPU: 2 core (1000+ cihaz için 4+ core)  
+Disk: 500MB + 1MB/cihaz (SQLite), 10GB+ (SQL Server)
+Network: 10Mbps (1000 cihaz için 100Mbps)
+```
+
+**Performans Optimizasyonu:**
+```json
+// API appsettings.json
+{
+  "ApiSettings": {
+    "DefaultPageSize": 100,
+    "MaxPageSize": 500,
+    "EnableCaching": true,
+    "CacheExpirationMinutes": 30
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=...;Command Timeout=60;Connection Timeout=30;"
+  }
+}
+```
+
+Bu kapsamlı konfigürasyon rehberi, sistem yöneticilerinin ve geliştiricilerin tüm özelleştirilebilir seçenekleri anlayarak sistemi kendi ihtiyaçlarına göre yapılandırabilmelerini sağlar.
+
+---
+
 ## API Dokümantasyonu
 
 ### Base URL
