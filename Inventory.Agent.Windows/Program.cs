@@ -11,6 +11,7 @@ using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.IO;
 
 namespace Inventory.Agent.Windows
 {
@@ -72,17 +73,20 @@ namespace Inventory.Agent.Windows
             {
                 var builder = Host.CreateApplicationBuilder();
                 
-                // Windows Service desteği ekle
+                // Windows Service desteği ekle - improved configuration for reliability
                 builder.Services.AddWindowsService(options =>
                 {
                     options.ServiceName = "InventoryManagementAgent";
                 });
 
-                // Logging yapılandırması
+                // Logging yapılandırması - enhanced for service environment
                 builder.Services.AddLogging(logging =>
                 {
                     logging.ClearProviders();
+                    
+                    // Service ortamında console logging genellikle çalışmaz, sadece debug için bırakıyoruz
                     logging.AddConsole();
+                    
                     if (OperatingSystem.IsWindows())
                     {
                         try
@@ -91,13 +95,37 @@ namespace Inventory.Agent.Windows
                             {
                                 settings.SourceName = "InventoryManagementAgent";
                                 settings.LogName = "Application";
+                                settings.Filter = (category, level) => level >= Microsoft.Extensions.Logging.LogLevel.Information;
                             });
                         }
                         catch
                         {
-                            // Event log source oluşturulamadıysa konsol ile devam et
+                            // Event log source oluşturulamadıysa devam et
                         }
                     }
+                    
+                    // File logging for service diagnostics
+                    try
+                    {
+                        var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), 
+                                                 "Inventory Management System", "Logs");
+                        Directory.CreateDirectory(logPath);
+                        
+                        // Simple file logging implementation
+                        logging.AddProvider(new FileLoggerProvider(logPath));
+                    }
+                    catch
+                    {
+                        // File logging başarısız olsa bile devam et
+                    }
+                });
+
+                // Configure service for faster startup
+                builder.Services.Configure<HostOptions>(options =>
+                {
+                    options.ServicesStartConcurrently = true;
+                    options.ServicesStopConcurrently = true;
+                    options.ShutdownTimeout = TimeSpan.FromSeconds(15);
                 });
 
                 // Hosted service ekle
@@ -105,32 +133,43 @@ namespace Inventory.Agent.Windows
 
                 var host = builder.Build();
                 
-                // Service'i başlat - timeout'ları önlemek için ConfigureAwait(false) kullan
+                // Service'i başlat - SCM'e hızlı response için optimized
                 await host.RunAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 // Service startup başarısız olursa event log'a yazalım ama service'i crash ettirmeyelim
+                await LogServiceError("Service startup failed", ex);
+                
+                // Service'in başlamaması için exception throw etmeyelim - bunun yerine graceful exit
+                // SCM'e başarısız start sinyali göndermek için throw edelim
+                throw;
+            }
+        }
+        
+        private static async Task LogServiceError(string message, Exception ex)
+        {
+            try
+            {
                 if (OperatingSystem.IsWindows())
                 {
-                    try
-                    {
-                        using var eventLog = new System.Diagnostics.EventLog("Application");
-                        eventLog.Source = "InventoryManagementAgent";
-                        eventLog.WriteEntry($"Service startup failed: {ex.Message}\nStackTrace: {ex.StackTrace}", 
-                                          System.Diagnostics.EventLogEntryType.Error);
-                    }
-                    catch
-                    {
-                        // Event log yazma başarısız olsa bile continue et
-                    }
+                    using var eventLog = new System.Diagnostics.EventLog("Application");
+                    eventLog.Source = "InventoryManagementAgent";
+                    eventLog.WriteEntry($"{message}: {ex.Message}\nStackTrace: {ex.StackTrace}", 
+                                      System.Diagnostics.EventLogEntryType.Error);
                 }
                 
-                // Service'in başlamaması için exception throw etmeyelim
-                Console.WriteLine($"Service startup error: {ex.Message}");
+                // Also try to log to file
+                var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), 
+                                         "Inventory Management System", "Logs", "service-errors.log");
+                Directory.CreateDirectory(Path.GetDirectoryName(logPath));
                 
-                // Kısa bir delay vererek service'in graceful shutdown yapmasına izin verelim
-                await Task.Delay(1000);
+                var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}: {ex.Message}\nStackTrace: {ex.StackTrace}\n\n";
+                await File.AppendAllTextAsync(logPath, logEntry);
+            }
+            catch
+            {
+                // Logging başarısız olsa bile continue et
             }
         }
 

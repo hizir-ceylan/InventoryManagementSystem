@@ -16,10 +16,11 @@ namespace Inventory.Agent.Windows.Services
         private readonly ApiSettings _apiSettings;
         private ConnectivityMonitorService? _connectivityMonitor;
         private readonly int _inventoryIntervalMinutes = 30; // Her 30 dakikada bir
-        private readonly int _initialDelaySeconds = 30; // Service startup'tan sonra ilk tarama için bekleme süresi (kısaltıldı)
-        private readonly int _apiCheckIntervalSeconds = 5; // API hazır olma kontrolü aralığı (kısaltıldı)
-        private readonly int _maxApiCheckAttempts = 6; // Maksimum API kontrol deneme sayısı (30 saniye - kısaltıldı)
+        private readonly int _initialDelaySeconds = 15; // Service startup'tan sonra ilk tarama için bekleme süresi (azaltıldı)
+        private readonly int _apiCheckIntervalSeconds = 3; // API hazır olma kontrolü aralığı (azaltıldı)
+        private readonly int _maxApiCheckAttempts = 5; // Maksimum API kontrol deneme sayısı (15 saniye toplam)
         private OfflineStorageService? _offlineStorage;
+        private readonly CancellationTokenSource _startupCancellation = new();
 
         public InventoryAgentService(ILogger<InventoryAgentService> logger)
         {
@@ -34,20 +35,34 @@ namespace Inventory.Agent.Windows.Services
 
             try
             {
-                // Hızlı service başlatma için minimum işlem yap
-                _logger.LogInformation("Service Windows SCM'e hazır olduğunu bildiriyor...");
+                // SCM'e service'in başladığını hızla bildirmek için minimum işlem
+                _logger.LogInformation("Service Windows SCM'e hazır sinyali gönderiyor...");
                 
-                // Windows Service'in hızla başlaması için ağır işlemleri background task'e ata
-                // Service kontrolü için minimum delay
-                await Task.Delay(100, stoppingToken);
+                // Service'in Windows SCM tarafından "başlatıldı" olarak algılanması için
+                // ExecuteAsync metodunun hızla başlaması gerekiyor
+                
+                // Combine cancellation tokens for proper shutdown
+                using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, _startupCancellation.Token);
+                var cancellationToken = combinedCts.Token;
                 
                 _logger.LogInformation("Service başarıyla başlatıldı. Arka plan işlemleri başlatılıyor...");
 
-                // Ağır işlemleri background task olarak başlat (fire-and-forget)
-                _ = Task.Run(async () => await StartBackgroundOperationsAsync(stoppingToken), stoppingToken);
+                // Initialize offline storage first (lightweight operation)
+                await InitializeOfflineStorageAsync(cancellationToken);
 
-                // Ana service döngüsü - sadece periyodik tarama
-                await RunPeriodicInventoryAsync(stoppingToken);
+                // Start background operations without blocking service startup
+                var backgroundTask = StartBackgroundOperationsAsync(cancellationToken);
+
+                // Start the main service loop immediately
+                var serviceTask = RunServiceLoopAsync(cancellationToken);
+
+                // Wait for either task to complete or cancellation
+                await Task.WhenAny(backgroundTask, serviceTask);
+                
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogInformation("Service shutdown requested.");
+                }
             }
             catch (OperationCanceledException)
             {
@@ -56,38 +71,63 @@ namespace Inventory.Agent.Windows.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Inventory Agent Service'de kritik hata oluştu.");
-                // Service startup'ta hata olursa logla ama throw etme (1053 hatasına neden olur)
+                // Service'de kritik hata olursa, service'i yeniden başlatmaya çalışacak
+                throw;
             }
             finally
             {
                 // Cleanup
-                _connectivityMonitor?.Stop();
+                await CleanupAsync();
                 _logger.LogInformation("Inventory Agent Service temizlendi.");
             }
         }
 
-        private async Task StartBackgroundOperationsAsync(CancellationToken stoppingToken)
+        private async Task InitializeOfflineStorageAsync(CancellationToken cancellationToken)
+        {
+            if (_apiSettings.EnableOfflineStorage)
+            {
+                try
+                {
+                    _offlineStorage = new OfflineStorageService(_apiSettings.OfflineStoragePath, _apiSettings.MaxOfflineRecords);
+                    _logger.LogInformation("Offline Storage başlatıldı.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Offline Storage başlatılırken hata oluştu. Devam edilecek.");
+                }
+            }
+        }
+
+        private async Task StartBackgroundOperationsAsync(CancellationToken cancellationToken)
         {
             try
             {
-                // Initialize offline storage if enabled
-                if (_apiSettings.EnableOfflineStorage)
-                {
-                    try
-                    {
-                        _offlineStorage = new OfflineStorageService(_apiSettings.OfflineStoragePath, _apiSettings.MaxOfflineRecords);
-                        _logger.LogInformation("Offline Storage başlatıldı.");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Offline Storage başlatılırken hata oluştu. Devam edilecek.");
-                    }
-                }
-
                 _logger.LogInformation($"İlk envanter taraması {_initialDelaySeconds} saniye sonra başlayacak.");
 
-                // API hazır olma kontrolü ve başlangıç gecikmesi
-                await WaitForApiAndStartOperationsAsync(stoppingToken);
+                // İlk tarama için kısa bekleme
+                await Task.Delay(TimeSpan.FromSeconds(_initialDelaySeconds), cancellationToken);
+                
+                if (cancellationToken.IsCancellationRequested)
+                    return;
+
+                // API hazır olma kontrolü - daha kısa süre
+                bool apiReady = await WaitForApiReadyAsync(cancellationToken);
+                
+                if (!apiReady)
+                {
+                    _logger.LogWarning("API henüz hazır değil, offline modda devam edilecek.");
+                }
+
+                // Connectivity monitoring'i başlat (eğer offline storage varsa)
+                await StartConnectivityMonitoringAsync();
+
+                // İlk envanteri al
+                _logger.LogInformation("İlk envanter taraması başlatılıyor...");
+                await RunInventoryAsync(_offlineStorage);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("Background operations cancelled.");
             }
             catch (Exception ex)
             {
@@ -95,18 +135,18 @@ namespace Inventory.Agent.Windows.Services
             }
         }
 
-        private async Task RunPeriodicInventoryAsync(CancellationToken stoppingToken)
+        private async Task RunServiceLoopAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation($"Periyodik envanter taraması {_inventoryIntervalMinutes} dakikada bir çalışacak.");
 
-            while (!stoppingToken.IsCancellationRequested)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
                     // Bir sonraki tarama için bekle
-                    await Task.Delay(TimeSpan.FromMinutes(_inventoryIntervalMinutes), stoppingToken);
+                    await Task.Delay(TimeSpan.FromMinutes(_inventoryIntervalMinutes), cancellationToken);
                     
-                    if (!stoppingToken.IsCancellationRequested)
+                    if (!cancellationToken.IsCancellationRequested)
                     {
                         _logger.LogInformation("Periyodik envanter taraması başlatılıyor...");
                         await RunInventoryAsync(_offlineStorage);
@@ -120,29 +160,22 @@ namespace Inventory.Agent.Windows.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Periyodik envanter taraması sırasında hata oluştu. Bir sonraki döngüde devam edilecek.");
+                    
+                    // Hata sonrası kısa bekleme
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
                 }
             }
         }
 
-        private async Task WaitForApiAndStartOperationsAsync(CancellationToken stoppingToken)
+        private async Task StartConnectivityMonitoringAsync()
         {
-            _logger.LogInformation($"API hazır olma kontrolü başlatılıyor... ({_initialDelaySeconds} saniye bekleme)");
-            
-            // İlk startup gecikmesi
-            await Task.Delay(TimeSpan.FromSeconds(_initialDelaySeconds), stoppingToken);
-            
-            if (stoppingToken.IsCancellationRequested)
-                return;
-
-            // API hazır olma kontrolü - daha kısa süre
-            bool apiReady = await WaitForApiReadyAsync(stoppingToken);
-            
-            if (!apiReady)
-            {
-                _logger.LogWarning("API henüz hazır değil, offline modda devam edilecek.");
-            }
-
-            // Connectivity monitoring'i başlat (eğer offline storage varsa)
             if (_apiSettings.EnableOfflineStorage && _offlineStorage != null)
             {
                 try
@@ -159,25 +192,21 @@ namespace Inventory.Agent.Windows.Services
                     _logger.LogError(ex, "Connectivity monitoring başlatılırken hata oluştu.");
                 }
             }
-
-            // İlk envanteri al
-            _logger.LogInformation("İlk envanter taraması başlatılıyor...");
-            await RunInventoryAsync(_offlineStorage);
         }
 
-        private async Task<bool> WaitForApiReadyAsync(CancellationToken stoppingToken)
+        private async Task<bool> WaitForApiReadyAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("API hazır olma durumu kontrol ediliyor...");
             
-            for (int attempt = 1; attempt <= _maxApiCheckAttempts && !stoppingToken.IsCancellationRequested; attempt++)
+            for (int attempt = 1; attempt <= _maxApiCheckAttempts && !cancellationToken.IsCancellationRequested; attempt++)
             {
                 try
                 {
                     // API health check endpoint'ini kontrol et
                     using var httpClient = new HttpClient();
-                    httpClient.Timeout = TimeSpan.FromSeconds(5);
+                    httpClient.Timeout = TimeSpan.FromSeconds(3); // Daha kısa timeout
                     
-                    var response = await httpClient.GetAsync($"{_apiSettings.BaseUrl}/api/device", stoppingToken);
+                    var response = await httpClient.GetAsync($"{_apiSettings.BaseUrl}/api/device", cancellationToken);
                     
                     if (response.IsSuccessStatusCode)
                     {
@@ -187,14 +216,14 @@ namespace Inventory.Agent.Windows.Services
                     
                     _logger.LogWarning($"API henüz hazır değil (HTTP {response.StatusCode}). Deneme {attempt}/{_maxApiCheckAttempts}");
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogDebug($"API kontrolü başarısız (Deneme {attempt}/{_maxApiCheckAttempts}): {ex.Message}");
                 }
 
-                if (attempt < _maxApiCheckAttempts && !stoppingToken.IsCancellationRequested)
+                if (attempt < _maxApiCheckAttempts && !cancellationToken.IsCancellationRequested)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(_apiCheckIntervalSeconds), stoppingToken);
+                    await Task.Delay(TimeSpan.FromSeconds(_apiCheckIntervalSeconds), cancellationToken);
                 }
             }
 
@@ -237,11 +266,28 @@ namespace Inventory.Agent.Windows.Services
             }
         }
 
+        private async Task CleanupAsync()
+        {
+            try
+            {
+                _connectivityMonitor?.Stop();
+                _startupCancellation?.Cancel();
+                _startupCancellation?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Cleanup sırasında hata oluştu.");
+            }
+        }
+
         public override async Task StopAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Inventory Agent Service durduruluyor...");
             
-            _connectivityMonitor?.Stop();
+            // Cancel startup operations
+            _startupCancellation?.Cancel();
+            
+            await CleanupAsync();
             
             await base.StopAsync(cancellationToken);
             _logger.LogInformation("Inventory Agent Service durduruldu.");
