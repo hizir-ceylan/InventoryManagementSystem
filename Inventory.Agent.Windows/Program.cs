@@ -11,6 +11,7 @@ using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using System.IO;
 
 namespace Inventory.Agent.Windows
@@ -71,7 +72,25 @@ namespace Inventory.Agent.Windows
         {
             try
             {
+                // Create application builder with optional configuration file
                 var builder = Host.CreateApplicationBuilder();
+                
+                // Override default configuration to make appsettings.json optional and use correct path
+                var executableDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
+                
+                // Clear existing configuration sources and add our own
+                builder.Configuration.Sources.Clear();
+                
+                // Add JSON file from executable directory (optional)
+                builder.Configuration.AddJsonFile(
+                    provider: null,
+                    path: Path.Combine(executableDir, "appsettings.json"),
+                    optional: true,
+                    reloadOnChange: false
+                );
+                
+                // Add environment variables
+                builder.Configuration.AddEnvironmentVariables();
                 
                 // Windows Service desteği ekle - improved configuration for reliability
                 builder.Services.AddWindowsService(options =>
