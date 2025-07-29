@@ -104,7 +104,7 @@ if %errorLevel% neq 0 (
 REM Agent Servisi oluştur
 echo Agent servisi oluşturuluyor...
 sc create "InventoryManagementAgent" ^
-    binPath= "\"%INSTALL_DIR%\Agent\Inventory.Agent.Windows.exe\" --service" ^
+    binPath= "\"%INSTALL_DIR%\Agent\Inventory.Agent.Windows.exe\"" ^
     DisplayName= "Inventory Management Agent" ^
     Description= "Inventory Management System Agent Service" ^
     start= auto ^
@@ -115,7 +115,7 @@ if %errorLevel% neq 0 (
     echo Uyarı: Agent servisi zaten mevcut olabilir.
     echo Agent servisi güncelleniyor...
     sc config "InventoryManagementAgent" ^
-        binPath= "\"%INSTALL_DIR%\Agent\Inventory.Agent.Windows.exe\" --service" ^
+        binPath= "\"%INSTALL_DIR%\Agent\Inventory.Agent.Windows.exe\"" ^
         start= auto ^
         depend= "InventoryManagementApi"
 )

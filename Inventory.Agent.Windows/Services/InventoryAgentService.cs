@@ -13,8 +13,8 @@ namespace Inventory.Agent.Windows.Services
         private readonly ILogger<InventoryAgentService> _logger;
         private readonly ApiSettings _apiSettings;
         private ConnectivityMonitorService? _connectivityMonitor;
-        private Timer? _inventoryTimer;
         private readonly int _inventoryIntervalMinutes = 30; // Her 30 dakikada bir
+        private OfflineStorageService? _offlineStorage;
 
         public InventoryAgentService(ILogger<InventoryAgentService> logger)
         {
@@ -27,38 +27,49 @@ namespace Inventory.Agent.Windows.Services
             _logger.LogInformation("Inventory Agent Service başlatılıyor...");
             _logger.LogInformation($"API Base URL: {_apiSettings.BaseUrl}");
 
-            OfflineStorageService? offlineStorage = null;
-
             try
             {
                 // Initialize offline storage if enabled
                 if (_apiSettings.EnableOfflineStorage)
                 {
-                    offlineStorage = new OfflineStorageService(_apiSettings.OfflineStoragePath, _apiSettings.MaxOfflineRecords);
-                    var offlineCount = await offlineStorage.GetStoredRecordCountAsync();
+                    _offlineStorage = new OfflineStorageService(_apiSettings.OfflineStoragePath, _apiSettings.MaxOfflineRecords);
+                    var offlineCount = await _offlineStorage.GetStoredRecordCountAsync();
                     _logger.LogInformation($"Offline Storage Enabled. Pending records: {offlineCount}");
                     
                     // Start connectivity monitoring
-                    _connectivityMonitor = new ConnectivityMonitorService(_apiSettings, offlineStorage);
+                    _connectivityMonitor = new ConnectivityMonitorService(_apiSettings, _offlineStorage);
                     _connectivityMonitor.StartMonitoring();
                 }
 
                 // İlk envanteri hemen al
                 _logger.LogInformation("Initial inventory scan başlatılıyor...");
-                await RunInventoryAsync(offlineStorage);
+                await RunInventoryAsync(_offlineStorage);
 
-                // Periyodik envanter almayı başlat
-                _inventoryTimer = new Timer(async _ => await RunInventoryAsync(offlineStorage), 
-                    null, 
-                    TimeSpan.FromMinutes(_inventoryIntervalMinutes), 
-                    TimeSpan.FromMinutes(_inventoryIntervalMinutes));
-
+                // Periyodik döngü - Timer yerine Task.Delay kullan
                 _logger.LogInformation($"Periyodik envanter taraması {_inventoryIntervalMinutes} dakikada bir çalışacak.");
 
-                // Service sonlanana kadar bekle
                 while (!stoppingToken.IsCancellationRequested)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                    try
+                    {
+                        // Bir sonraki tarama için bekle
+                        await Task.Delay(TimeSpan.FromMinutes(_inventoryIntervalMinutes), stoppingToken);
+                        
+                        if (!stoppingToken.IsCancellationRequested)
+                        {
+                            _logger.LogInformation("Periyodik envanter taraması başlatılıyor...");
+                            await RunInventoryAsync(_offlineStorage);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Normal shutdown, break the loop
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Periyodik envanter taraması sırasında hata oluştu. Bir sonraki döngüde devam edilecek.");
+                    }
                 }
             }
             catch (OperationCanceledException)
@@ -67,13 +78,12 @@ namespace Inventory.Agent.Windows.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Inventory Agent Service'de hata oluştu.");
+                _logger.LogError(ex, "Inventory Agent Service'de kritik hata oluştu.");
                 throw;
             }
             finally
             {
                 // Cleanup
-                _inventoryTimer?.Dispose();
                 _connectivityMonitor?.Stop();
                 _logger.LogInformation("Inventory Agent Service temizlendi.");
             }
@@ -118,7 +128,6 @@ namespace Inventory.Agent.Windows.Services
         {
             _logger.LogInformation("Inventory Agent Service durduruluyor...");
             
-            _inventoryTimer?.Dispose();
             _connectivityMonitor?.Stop();
             
             await base.StopAsync(cancellationToken);
