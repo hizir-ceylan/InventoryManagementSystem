@@ -68,30 +68,60 @@ namespace Inventory.Agent.Windows
 
         static async Task RunAsServiceAsync()
         {
-            var builder = Host.CreateApplicationBuilder();
-            
-            // Windows Service desteği ekle
-            builder.Services.AddWindowsService(options =>
+            try
             {
-                options.ServiceName = "InventoryManagementAgent";
-            });
+                var builder = Host.CreateApplicationBuilder();
+                
+                // Windows Service desteği ekle
+                builder.Services.AddWindowsService(options =>
+                {
+                    options.ServiceName = "InventoryManagementAgent";
+                });
 
-            // Logging yapılandırması
-            builder.Services.AddLogging(logging =>
+                // Logging yapılandırması
+                builder.Services.AddLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.AddConsole();
+                    if (OperatingSystem.IsWindows())
+                    {
+                        logging.AddEventLog(settings =>
+                        {
+                            settings.SourceName = "InventoryManagementAgent";
+                            settings.LogName = "Application";
+                        });
+                    }
+                });
+
+                // Hosted service ekle
+                builder.Services.AddHostedService<InventoryAgentService>();
+
+                var host = builder.Build();
+                
+                // Service'i başlat
+                await host.RunAsync();
+            }
+            catch (Exception ex)
             {
-                logging.ClearProviders();
-                logging.AddConsole();
+                // Service startup başarısız olursa event log'a yazalım
                 if (OperatingSystem.IsWindows())
                 {
-                    logging.AddEventLog(); // Windows Event Log desteği
+                    try
+                    {
+                        using var eventLog = new System.Diagnostics.EventLog("Application");
+                        eventLog.Source = "InventoryManagementAgent";
+                        eventLog.WriteEntry($"Service startup failed: {ex.Message}", 
+                                          System.Diagnostics.EventLogEntryType.Error);
+                    }
+                    catch
+                    {
+                        // Event log yazma başarısız olsa bile continue et
+                    }
                 }
-            });
-
-            // Hosted service ekle
-            builder.Services.AddHostedService<InventoryAgentService>();
-
-            var host = builder.Build();
-            await host.RunAsync();
+                
+                // Exception'ı re-throw etme, service start timeout'una neden olabilir
+                Console.WriteLine($"Service startup error: {ex.Message}");
+            }
         }
 
         static async Task RunAsConsoleAsync(string[] args)

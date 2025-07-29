@@ -94,7 +94,7 @@ if (-not $apiServiceExists) {
 
 # Agent servisini oluştur veya güncelle
 Write-Host "Agent servisi yapılandırılıyor..." -ForegroundColor Yellow
-$agentExePath       = "$InstallPath\Agent\Inventory.Agent.Windows.exe"
+$agentExePath       = "$InstallPath\Agent\Inventory.Agent.Windows.exe --service"
 $agentServiceExists = Get-Service -Name "InventoryManagementAgent" -ErrorAction SilentlyContinue
 if (-not $agentServiceExists) {
     New-Service -Name "InventoryManagementAgent" `
@@ -109,9 +109,11 @@ if (-not $agentServiceExists) {
     Write-Host "Mevcut Agent servisi guncellendi." -ForegroundColor Gray
 }
 
-# Agent başlangıç gecikmesi
-Write-Host "Agent baslangic gecikmesi ayarlaniyor..." -ForegroundColor Gray
+# Agent başlangıç gecikmesi ve failure recovery ayarları
+Write-Host "Agent baslangic gecikmesi ve error recovery ayarlaniyor..." -ForegroundColor Gray
 sc.exe config "InventoryManagementAgent" start= delayed-auto | Out-Null
+# Service failure recovery settings - 1 dakika sonra restart
+sc.exe failure "InventoryManagementAgent" reset= 60 actions= restart/60000/restart/60000/restart/60000 | Out-Null
 
 # Çevre değişkenleri
 Write-Host "`nCevre degiskenleri ayarlaniyor..." -ForegroundColor Yellow
