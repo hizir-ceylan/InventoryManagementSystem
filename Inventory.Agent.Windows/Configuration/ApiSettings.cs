@@ -15,74 +15,164 @@ namespace Inventory.Agent.Windows.Configuration
         
         private static string GetDefaultOfflineStoragePath()
         {
-            try
+            // Try multiple persistent storage locations in order of preference
+            var persistentPaths = new[]
             {
-                // Kullanıcının Belgeler klasörünü al
-                string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                // 1. User's Documents folder (most preferred)
+                () => {
+                    var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                    if (!string.IsNullOrEmpty(documentsPath) && Directory.Exists(documentsPath))
+                        return Path.Combine(documentsPath, "InventoryManagementSystem", "OfflineStorage");
+                    return null;
+                },
                 
-                // Eğer Belgeler klasörü mevcut değilse veya boşsa, kullanıcının ana dizinini kullan
-                if (string.IsNullOrEmpty(documentsPath) || !Directory.Exists(documentsPath))
-                {
-                    string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                // 2. User Profile with Documents subfolder
+                () => {
+                    var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                     if (!string.IsNullOrEmpty(userProfile))
                     {
-                        documentsPath = Path.Combine(userProfile, "Documents");
-                        // Belgeler klasörünü oluştur
-                        Directory.CreateDirectory(documentsPath);
+                        var documentsPath = Path.Combine(userProfile, "Documents");
+                        return Path.Combine(documentsPath, "InventoryManagementSystem", "OfflineStorage");
                     }
-                    else
+                    return null;
+                },
+                
+                // 3. Application Data folder (Windows)
+                () => {
+                    var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    if (!string.IsNullOrEmpty(appData))
+                        return Path.Combine(appData, "InventoryManagementSystem", "OfflineStorage");
+                    return null;
+                },
+                
+                // 4. Common Application Data folder (Windows, system-wide)
+                () => {
+                    var commonAppData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+                    if (!string.IsNullOrEmpty(commonAppData))
+                        return Path.Combine(commonAppData, "InventoryManagementSystem", "OfflineStorage");
+                    return null;
+                },
+                
+                // 5. Home directory (Linux/Unix)
+                () => {
+                    var home = Environment.GetEnvironmentVariable("HOME");
+                    if (!string.IsNullOrEmpty(home))
+                        return Path.Combine(home, ".local", "share", "InventoryManagementSystem", "OfflineStorage");
+                    return null;
+                },
+                
+                // 6. /var/lib system directory (Linux, requires permissions)
+                () => {
+                    if (Directory.Exists("/var/lib"))
+                        return Path.Combine("/var", "lib", "InventoryManagementSystem", "OfflineStorage");
+                    return null;
+                }
+            };
+
+            foreach (var pathProvider in persistentPaths)
+            {
+                try
+                {
+                    var path = pathProvider();
+                    if (path != null && ValidateAndCreatePersistentPath(path))
                     {
-                        // Son çare olarak ev dizinini kullan
-                        documentsPath = Environment.GetEnvironmentVariable("HOME") ?? Path.GetTempPath();
+                        LogStorageLocation("OfflineStorage", path);
+                        return path;
                     }
                 }
-                
-                // Uygulama için özel klasör oluştur
-                string appDataPath = Path.Combine(documentsPath, "InventoryManagementSystem", "OfflineStorage");
-                
-                return appDataPath;
+                catch (Exception ex)
+                {
+                    // Log the error but continue trying other paths
+                    Console.WriteLine($"Failed to create storage path: {ex.Message}");
+                }
             }
-            catch
-            {
-                // Eğer hiçbir yol çalışmazsa, geçici dizini kullan
-                return Path.Combine(Path.GetTempPath(), "InventoryManagementSystem", "OfflineStorage");
-            }
+
+            // If all persistent paths fail, use a temp path as last resort but warn user
+            var tempPath = Path.Combine(Path.GetTempPath(), "InventoryManagementSystem", "OfflineStorage");
+            Console.WriteLine("WARNING: Could not create persistent storage directory. Using temporary directory - data will be lost on restart!");
+            Console.WriteLine($"Temporary storage location: {tempPath}");
+            return tempPath;
         }
 
         public static string GetDefaultLogPath()
         {
-            try
+            // Try multiple persistent storage locations in order of preference
+            var persistentPaths = new[]
             {
-                // Kullanıcının Belgeler klasörünü al
-                string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                // 1. User's Documents folder (most preferred)
+                () => {
+                    var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                    if (!string.IsNullOrEmpty(documentsPath) && Directory.Exists(documentsPath))
+                        return Path.Combine(documentsPath, "InventoryManagementSystem", "LocalLogs");
+                    return null;
+                },
                 
-                // Eğer Belgeler klasörü mevcut değilse veya boşsa, kullanıcının ana dizinini kullan
-                if (string.IsNullOrEmpty(documentsPath) || !Directory.Exists(documentsPath))
-                {
-                    string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                // 2. User Profile with Documents subfolder
+                () => {
+                    var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                     if (!string.IsNullOrEmpty(userProfile))
                     {
-                        documentsPath = Path.Combine(userProfile, "Documents");
-                        // Belgeler klasörünü oluştur
-                        Directory.CreateDirectory(documentsPath);
+                        var documentsPath = Path.Combine(userProfile, "Documents");
+                        return Path.Combine(documentsPath, "InventoryManagementSystem", "LocalLogs");
                     }
-                    else
+                    return null;
+                },
+                
+                // 3. Application Data folder (Windows)
+                () => {
+                    var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    if (!string.IsNullOrEmpty(appData))
+                        return Path.Combine(appData, "InventoryManagementSystem", "LocalLogs");
+                    return null;
+                },
+                
+                // 4. Common Application Data folder (Windows, system-wide)
+                () => {
+                    var commonAppData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+                    if (!string.IsNullOrEmpty(commonAppData))
+                        return Path.Combine(commonAppData, "InventoryManagementSystem", "LocalLogs");
+                    return null;
+                },
+                
+                // 5. Home directory (Linux/Unix)
+                () => {
+                    var home = Environment.GetEnvironmentVariable("HOME");
+                    if (!string.IsNullOrEmpty(home))
+                        return Path.Combine(home, ".local", "share", "InventoryManagementSystem", "LocalLogs");
+                    return null;
+                },
+                
+                // 6. /var/log system directory (Linux, requires permissions)
+                () => {
+                    if (Directory.Exists("/var/log"))
+                        return Path.Combine("/var", "log", "InventoryManagementSystem");
+                    return null;
+                }
+            };
+
+            foreach (var pathProvider in persistentPaths)
+            {
+                try
+                {
+                    var path = pathProvider();
+                    if (path != null && ValidateAndCreatePersistentPath(path))
                     {
-                        // Son çare olarak ev dizinini kullan
-                        documentsPath = Environment.GetEnvironmentVariable("HOME") ?? Path.GetTempPath();
+                        LogStorageLocation("LocalLogs", path);
+                        return path;
                     }
                 }
-                
-                // Uygulama için özel klasör oluştur
-                string logPath = Path.Combine(documentsPath, "InventoryManagementSystem", "LocalLogs");
-                
-                return logPath;
+                catch (Exception ex)
+                {
+                    // Log the error but continue trying other paths
+                    Console.WriteLine($"Failed to create log path: {ex.Message}");
+                }
             }
-            catch
-            {
-                // Eğer hiçbir yol çalışmazsa, geçici dizini kullan
-                return Path.Combine(Path.GetTempPath(), "InventoryManagementSystem", "LocalLogs");
-            }
+
+            // If all persistent paths fail, use a temp path as last resort but warn user
+            var tempPath = Path.Combine(Path.GetTempPath(), "InventoryManagementSystem", "LocalLogs");
+            Console.WriteLine("WARNING: Could not create persistent log directory. Using temporary directory - logs will be lost on restart!");
+            Console.WriteLine($"Temporary log location: {tempPath}");
+            return tempPath;
         }
         
         public static ApiSettings LoadFromEnvironment()
@@ -148,6 +238,52 @@ namespace Inventory.Agent.Windows.Configuration
         public string GetBatchUploadEndpoint()
         {
             return $"{BaseUrl.TrimEnd('/')}/api/device/batch";
+        }
+        
+        /// <summary>
+        /// Validates that a path is persistent (not in temp directory) and creates it if possible
+        /// </summary>
+        private static bool ValidateAndCreatePersistentPath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return false;
+
+            try
+            {
+                // Check if path is in temp directory - this indicates non-persistent storage
+                var tempPath = Path.GetTempPath();
+                var fullPath = Path.GetFullPath(path);
+                var fullTempPath = Path.GetFullPath(tempPath);
+                
+                if (fullPath.StartsWith(fullTempPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine($"Skipping temp directory path: {path}");
+                    return false;
+                }
+
+                // Try to create the directory
+                Directory.CreateDirectory(path);
+                
+                // Test if we can write to the directory
+                var testFile = Path.Combine(path, "test_write_access.tmp");
+                File.WriteAllText(testFile, "test");
+                File.Delete(testFile);
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Path validation failed for {path}: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Logs the storage location being used to console for user awareness
+        /// </summary>
+        private static void LogStorageLocation(string storageType, string path)
+        {
+            Console.WriteLine($"✓ {storageType} location: {path}");
         }
     }
 }

@@ -32,6 +32,8 @@ namespace Inventory.Agent.Windows.Services
         {
             _logger.LogInformation("Inventory Agent Service başlatılıyor...");
             _logger.LogInformation($"API Base URL: {_apiSettings.BaseUrl}");
+            _logger.LogInformation($"Offline Storage Path: {_apiSettings.OfflineStoragePath}");
+            _logger.LogInformation($"Log Path: {ApiSettings.GetDefaultLogPath()}");
 
             try
             {

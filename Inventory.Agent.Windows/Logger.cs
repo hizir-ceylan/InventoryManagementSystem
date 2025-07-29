@@ -10,9 +10,18 @@ public static class DeviceLogger
 {
     private static string LogFolder =>
         ApiSettings.GetDefaultLogPath();
+    
+    private static bool _logFolderValidated = false;
 
     public static void LogDevice(object deviceSnapshot)
     {
+        // Validate log folder on first use
+        if (!_logFolderValidated)
+        {
+            ValidateLogFolder();
+            _logFolderValidated = true;
+        }
+        
         Directory.CreateDirectory(LogFolder);
 
         // 1. Hourly log file names with proper 48-hour retention
@@ -501,6 +510,34 @@ public static class DeviceLogger
         {
             // Hata durumunda devam et, ana log işlemini engelleme
             Console.WriteLine($"Değişiklik dosyası kaydedilemedi: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Validates the log folder and warns user if it's in a temporary location
+    /// </summary>
+    private static void ValidateLogFolder()
+    {
+        try
+        {
+            var tempPath = Path.GetTempPath();
+            var fullLogPath = Path.GetFullPath(LogFolder);
+            var fullTempPath = Path.GetFullPath(tempPath);
+            
+            if (fullLogPath.StartsWith(fullTempPath, StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine($"WARNING: Device logs are being written to temporary directory and will be lost on restart!");
+                Console.WriteLine($"Log location: {LogFolder}");
+                Console.WriteLine($"Consider setting a custom log path using environment variable 'ApiSettings__OfflineStoragePath'");
+            }
+            else
+            {
+                Console.WriteLine($"Device logs will be stored at: {LogFolder}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Could not validate log folder: {ex.Message}");
         }
     }
 }

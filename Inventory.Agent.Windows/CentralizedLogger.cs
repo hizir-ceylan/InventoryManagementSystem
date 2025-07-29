@@ -9,12 +9,46 @@ namespace Inventory.Agent.Windows
         private readonly string _apiUrl;
         private readonly string _source;
         private readonly HttpClient _httpClient;
+        private readonly string _logFolder;
+        private static bool _logLocationReported = false;
 
         public CentralizedLogger(string apiUrl, string source)
         {
             _apiUrl = apiUrl;
             _source = source;
             _httpClient = new HttpClient();
+            _logFolder = ApiSettings.GetDefaultLogPath();
+            
+            // Report log location once per application run
+            if (!_logLocationReported)
+            {
+                ReportLogLocation();
+                _logLocationReported = true;
+            }
+        }
+
+        private void ReportLogLocation()
+        {
+            try
+            {
+                var tempPath = Path.GetTempPath();
+                var fullLogPath = Path.GetFullPath(_logFolder);
+                var fullTempPath = Path.GetFullPath(tempPath);
+                
+                if (fullLogPath.StartsWith(fullTempPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine($"WARNING: Centralized logs are being written to temporary directory and will be lost on restart!");
+                    Console.WriteLine($"Centralized log location: {_logFolder}");
+                }
+                else
+                {
+                    Console.WriteLine($"Centralized logs location: {_logFolder}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Could not validate centralized log location: {ex.Message}");
+            }
         }
 
         public async Task LogAsync(string level, string message, object? data = null)
@@ -67,7 +101,7 @@ namespace Inventory.Agent.Windows
         {
             try
             {
-                var logFolder = ApiSettings.GetDefaultLogPath();
+                var logFolder = _logFolder;
                 Directory.CreateDirectory(logFolder);
 
                 // Ana loglama sistemiyle eşleşmesi için saatlik log dosyaları kullan
