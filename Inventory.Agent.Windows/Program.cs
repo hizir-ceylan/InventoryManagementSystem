@@ -211,6 +211,13 @@ namespace Inventory.Agent.Windows
                 Console.WriteLine($"API Base URL: {apiSettings.BaseUrl}");
                 Console.WriteLine($"Offline Storage: {(apiSettings.EnableOfflineStorage ? "Enabled" : "Disabled")}");
                 
+                // Display storage locations for user awareness
+                Console.WriteLine();
+                Console.WriteLine("Storage Locations:");
+                Console.WriteLine($"Offline Storage: {apiSettings.OfflineStoragePath}");
+                Console.WriteLine($"Local Logs: {ApiSettings.GetDefaultLogPath()}");
+                Console.WriteLine();
+                
                 // Initialize offline storage if enabled
                 if (apiSettings.EnableOfflineStorage)
                 {

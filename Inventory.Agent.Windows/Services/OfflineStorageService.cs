@@ -19,8 +19,49 @@ namespace Inventory.Agent.Windows.Services
             _maxRecords = maxRecords;
             _deviceDataFile = Path.Combine(storageDirectory, "offline_devices.json");
             
-            // Depolama dizininin var olduğundan emin ol
+            // Depolama dizininin var olduğundan emin ol ve kalıcı olduğunu doğrula
+            if (!ValidateStorageDirectory(storageDirectory))
+            {
+                throw new InvalidOperationException($"Storage directory is not persistent or accessible: {storageDirectory}");
+            }
+            
             Directory.CreateDirectory(storageDirectory);
+            
+            // Kullanıcıyı depolama konumu hakkında bilgilendir
+            Console.WriteLine($"Offline storage initialized: {storageDirectory}");
+        }
+
+        /// <summary>
+        /// Validates that the storage directory is persistent and writable
+        /// </summary>
+        private bool ValidateStorageDirectory(string directory)
+        {
+            try
+            {
+                // Check if directory is in temp path (non-persistent)
+                var tempPath = Path.GetTempPath();
+                var fullDirectory = Path.GetFullPath(directory);
+                var fullTempPath = Path.GetFullPath(tempPath);
+                
+                if (fullDirectory.StartsWith(fullTempPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine($"WARNING: Offline storage is in temporary directory and will be lost on restart: {directory}");
+                    return false; // Still allow but warn user
+                }
+
+                // Test write access
+                Directory.CreateDirectory(directory);
+                var testFile = Path.Combine(directory, "test_write.tmp");
+                File.WriteAllText(testFile, "test");
+                File.Delete(testFile);
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Storage directory validation failed: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task StoreDeviceDataAsync(DeviceDto device)
