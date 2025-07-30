@@ -45,7 +45,7 @@ namespace Inventory.Api.Services
         {
             if (_isScanning)
             {
-                throw new InvalidOperationException("A scan is already in progress.");
+                throw new InvalidOperationException("Tarama zaten devam ediyor.");
             }
 
             await TriggerScanAsync("Manual", null);
@@ -55,7 +55,7 @@ namespace Inventory.Api.Services
         {
             if (_isScanning)
             {
-                throw new InvalidOperationException("A scan is already in progress.");
+                throw new InvalidOperationException("Tarama zaten devam ediyor.");
             }
 
             await TriggerScanAsync("Manual", networkRange);
@@ -65,7 +65,7 @@ namespace Inventory.Api.Services
         {
             if (_isScanning)
             {
-                throw new InvalidOperationException("A scan is already in progress.");
+                throw new InvalidOperationException("Tarama zaten devam ediyor.");
             }
 
             await TriggerScanAsync("Manual-AllNetworks", null, true);
@@ -120,10 +120,10 @@ namespace Inventory.Api.Services
                 {
                     ScanTime = _lastScanTime.Value,
                     ScanType = scanType,
-                    Status = error == null ? "Completed" : "Failed",
+                    Status = error == null ? "Tamamlandı" : "Başarısız",
                     DevicesFound = devicesFound,
                     Error = error,
-                    NetworkRange = networkRange ?? (scanAllNetworks ? "All Networks" : NetworkRangeDetector.GetPrimaryNetworkRange())
+                    NetworkRange = networkRange ?? (scanAllNetworks ? "Tüm Ağlar" : NetworkRangeDetector.GetPrimaryNetworkRange())
                 });
                 
                 _isScanning = false;
