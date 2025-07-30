@@ -329,19 +329,64 @@ namespace Inventory.Agent.Windows.Services
                 });
             }
 
-            // Compare installed applications count (simplified comparison)
-            var currentAppCount = current.InstalledApps?.Count ?? 0;
-            var previousAppCount = previous.InstalledApps?.Count ?? 0;
+            // Compare installed applications (detailed comparison)
+            CompareApplicationLists(current.InstalledApps, previous.InstalledApps, changes, "Application");
             
-            if (currentAppCount != previousAppCount)
+            // Compare software updates
+            CompareApplicationLists(current.Updates, previous.Updates, changes, "Software Update");
+            
+            // Compare user lists
+            CompareApplicationLists(current.Users, previous.Users, changes, "User");
+        }
+
+        private void CompareApplicationLists(List<string>? currentList, List<string>? previousList, List<ChangeLogDto> changes, string changeTypePrefix)
+        {
+            if (currentList == null) currentList = new List<string>();
+            if (previousList == null) previousList = new List<string>();
+
+            // Find newly installed/added items
+            var newItems = currentList.Except(previousList).ToList();
+            foreach (var newItem in newItems)
             {
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
                     ChangeDate = DateTime.UtcNow,
-                    ChangeType = "Installed Applications Count",
-                    OldValue = previousAppCount.ToString(),
-                    NewValue = currentAppCount.ToString(),
+                    ChangeType = $"{changeTypePrefix} Installed",
+                    OldValue = "",
+                    NewValue = newItem,
+                    ChangedBy = "Agent"
+                });
+            }
+
+            // Find removed/uninstalled items
+            var removedItems = previousList.Except(currentList).ToList();
+            foreach (var removedItem in removedItems)
+            {
+                changes.Add(new ChangeLogDto
+                {
+                    Id = Guid.NewGuid(),
+                    ChangeDate = DateTime.UtcNow,
+                    ChangeType = $"{changeTypePrefix} Uninstalled",
+                    OldValue = removedItem,
+                    NewValue = "",
+                    ChangedBy = "Agent"
+                });
+            }
+
+            // Also track count changes for summary
+            var currentCount = currentList.Count;
+            var previousCount = previousList.Count;
+            
+            if (currentCount != previousCount)
+            {
+                changes.Add(new ChangeLogDto
+                {
+                    Id = Guid.NewGuid(),
+                    ChangeDate = DateTime.UtcNow,
+                    ChangeType = $"{changeTypePrefix} Count",
+                    OldValue = previousCount.ToString(),
+                    NewValue = currentCount.ToString(),
                     ChangedBy = "Agent"
                 });
             }
