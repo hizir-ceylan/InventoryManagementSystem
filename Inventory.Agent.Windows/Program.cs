@@ -29,6 +29,13 @@ namespace Inventory.Agent.Windows
                 return;
             }
 
+            // Test modu kontrolü
+            if (args.Length > 0 && args[0].ToLower() == "--test-software")
+            {
+                await RunSoftwareChangeTestAsync();
+                return;
+            }
+
             // Service modu kontrolü - Windows service olarak çalışıp çalışmadığını kontrol et
             bool isWindowsService = !Environment.UserInteractive || 
                                    (args.Length > 0 && args[0].ToLower() == "--service");
@@ -58,6 +65,7 @@ namespace Inventory.Agent.Windows
             Console.WriteLine("  --daemon             --continuous ile aynı");
             Console.WriteLine("  network              Ağ keşfi modunda çalışır");
             Console.WriteLine("  --service            Servis modunda çalışır (otomatik algılanır)");
+            Console.WriteLine("  --test-software      Yazılım değişiklik tespiti testini çalıştırır");
             Console.WriteLine("  --help, -h           Bu yardım mesajını gösterir");
             Console.WriteLine();
             Console.WriteLine("Örnekler (Examples):");
@@ -197,6 +205,22 @@ namespace Inventory.Agent.Windows
             {
                 // Loglama başarısız olsa bile devam et
             }
+        }
+
+        static async Task RunSoftwareChangeTestAsync()
+        {
+            try
+            {
+                await Testing.SoftwareChangeDetectionTest.RunTestAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Test failed: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            }
+            
+            Console.WriteLine("\nPress any key to exit...");
+            Console.ReadKey();
         }
 
         static async Task RunAsConsoleAsync(string[] args)
