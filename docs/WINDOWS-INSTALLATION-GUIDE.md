@@ -435,6 +435,9 @@ Remove-NetFirewallRule -DisplayName "Inventory Management API"
 [Environment]::SetEnvironmentVariable("ApiSettings__BaseUrl", $null, [EnvironmentVariableTarget]::Machine)
 [Environment]::SetEnvironmentVariable("ApiSettings__EnableOfflineStorage", $null, [EnvironmentVariableTarget]::Machine)
 [Environment]::SetEnvironmentVariable("ApiSettings__OfflineStoragePath", $null, [EnvironmentVariableTarget]::Machine)
+[Environment]::SetEnvironmentVariable("ConnectionStrings__DefaultConnection", $null, [EnvironmentVariableTarget]::Machine)
+[Environment]::SetEnvironmentVariable("INVENTORY_DATA_PATH", $null, [EnvironmentVariableTarget]::Machine)
+[Environment]::SetEnvironmentVariable("INVENTORY_LOG_PATH", $null, [EnvironmentVariableTarget]::Machine)
 ```
 
 ## Destek ve Gelişmiş Ayarlar

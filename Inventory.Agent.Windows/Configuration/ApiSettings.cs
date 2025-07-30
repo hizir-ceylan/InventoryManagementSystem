@@ -15,7 +15,58 @@ namespace Inventory.Agent.Windows.Configuration
         
         private static string GetDefaultOfflineStoragePath()
         {
-            // Try multiple persistent storage locations in order of preference
+            // First check if we have a configured path from environment variables (Windows Service)
+            var envPath = Environment.GetEnvironmentVariable("ApiSettings__OfflineStoragePath", EnvironmentVariableTarget.Machine);
+            if (!string.IsNullOrEmpty(envPath) && ValidateAndCreatePersistentPath(envPath))
+            {
+                LogStorageLocation("OfflineStorage", envPath);
+                return envPath;
+            }
+            
+            // Check if running as Windows Service (no user interaction and specific service context)
+            bool isWindowsService = !Environment.UserInteractive;
+            
+            if (isWindowsService)
+            {
+                // For Windows Service, prefer system-wide locations
+                var servicePaths = new[]
+                {
+                    // 1. Common Application Data folder (Windows, system-wide)
+                    () => {
+                        var commonAppData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+                        if (!string.IsNullOrEmpty(commonAppData))
+                            return Path.Combine(commonAppData, "Inventory Management System", "OfflineStorage");
+                        return null;
+                    },
+                    
+                    // 2. ProgramData alternative path
+                    () => {
+                        var programData = Environment.GetEnvironmentVariable("ProgramData");
+                        if (!string.IsNullOrEmpty(programData))
+                            return Path.Combine(programData, "Inventory Management System", "OfflineStorage");
+                        return null;
+                    }
+                };
+                
+                foreach (var pathProvider in servicePaths)
+                {
+                    try
+                    {
+                        var path = pathProvider();
+                        if (path != null && ValidateAndCreatePersistentPath(path))
+                        {
+                            LogStorageLocation("OfflineStorage", path);
+                            return path;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to create service storage path: {ex.Message}");
+                    }
+                }
+            }
+            
+            // Try user-specific persistent storage locations in order of preference
             var persistentPaths = new[]
             {
                 // 1. User's Documents folder (most preferred)
@@ -96,7 +147,58 @@ namespace Inventory.Agent.Windows.Configuration
 
         public static string GetDefaultLogPath()
         {
-            // Try multiple persistent storage locations in order of preference
+            // First check if we have a configured path from environment variables (Windows Service)
+            var envPath = Environment.GetEnvironmentVariable("INVENTORY_LOG_PATH", EnvironmentVariableTarget.Machine);
+            if (!string.IsNullOrEmpty(envPath) && ValidateAndCreatePersistentPath(envPath))
+            {
+                LogStorageLocation("LocalLogs", envPath);
+                return envPath;
+            }
+            
+            // Check if running as Windows Service (no user interaction and specific service context)
+            bool isWindowsService = !Environment.UserInteractive;
+            
+            if (isWindowsService)
+            {
+                // For Windows Service, prefer system-wide locations
+                var servicePaths = new[]
+                {
+                    // 1. Common Application Data folder (Windows, system-wide)
+                    () => {
+                        var commonAppData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+                        if (!string.IsNullOrEmpty(commonAppData))
+                            return Path.Combine(commonAppData, "Inventory Management System", "Logs");
+                        return null;
+                    },
+                    
+                    // 2. ProgramData alternative path
+                    () => {
+                        var programData = Environment.GetEnvironmentVariable("ProgramData");
+                        if (!string.IsNullOrEmpty(programData))
+                            return Path.Combine(programData, "Inventory Management System", "Logs");
+                        return null;
+                    }
+                };
+                
+                foreach (var pathProvider in servicePaths)
+                {
+                    try
+                    {
+                        var path = pathProvider();
+                        if (path != null && ValidateAndCreatePersistentPath(path))
+                        {
+                            LogStorageLocation("LocalLogs", path);
+                            return path;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to create service log path: {ex.Message}");
+                    }
+                }
+            }
+            
+            // Try user-specific persistent storage locations in order of preference
             var persistentPaths = new[]
             {
                 // 1. User's Documents folder (most preferred)

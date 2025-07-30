@@ -97,9 +97,14 @@ InventoryManagementSystem/
 - **[Windows Kurulum](docs/WINDOWS-INSTALLATION-GUIDE.md)** - Windows service kurulum
 - **[Veri Kalıcılığı Kılavuzu](docs/DATA-PERSISTENCE-GUIDE.md)** - Veri depolama ve log yönetimi
 
-## Veri Depolama
+## Agent verilerinizi kalıcı dizinlerde depolar:
 
-Agent verilerinizi kalıcı dizinlerde depolar:
+**Windows Service Modunda (Önerilen - Yönetici Kurulumu):**
+- **Veritabanı**: `C:\ProgramData\Inventory Management System\Data\inventory.db`
+- **Offline Veriler**: `C:\ProgramData\Inventory Management System\OfflineStorage\`
+- **Yerel Loglar**: `C:\ProgramData\Inventory Management System\Logs\`
+
+**Manuel Kullanıcı Modunda:**
 - **Offline Veriler**: `Documents/InventoryManagementSystem/OfflineStorage/`
 - **Yerel Loglar**: `Documents/InventoryManagementSystem/LocalLogs/`
 
