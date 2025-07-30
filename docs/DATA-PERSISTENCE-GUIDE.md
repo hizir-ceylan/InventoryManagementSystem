@@ -95,10 +95,27 @@ Bu uyarıyı görüyorsanız:
 WARNING: Offline storage is in temporary directory and will be lost on restart
 ```
 
+**Muhtemel Nedenler**:
+1. Windows Service modunda çalışmıyor (manuel kullanıcı modunda çalışıyor)
+2. Sistem geneli depolama klasörlerine erişim yok
+3. Environment variable'ları doğru ayarlanmamış
+
 **Çözüm**: 
-1. Belgeler klasörünün erişilebilir olduğundan emin olun
-2. Özel bir kalıcı yol belirleyin (yukarıdaki örneklere bakın)
-3. Agent'ı yönetici hakları ile çalıştırın
+1. **Yönetici olarak kurulum yaptığınızdan emin olun** - Bu otomatik olarak kalıcı depolama ayarlar
+2. Servislerin LocalSystem hesabı altında çalıştığını kontrol edin:
+   ```cmd
+   sc qc "InventoryManagementApi"
+   sc qc "InventoryManagementAgent"
+   ```
+3. Environment variable'ları kontrol edin:
+   ```cmd
+   echo %INVENTORY_DATA_PATH%
+   echo %ApiSettings__OfflineStoragePath%
+   ```
+4. Manual olarak kalıcı klasörlerin varlığını kontrol edin:
+   ```cmd
+   dir "C:\ProgramData\Inventory Management System"
+   ```
 
 #### "Log Dosyaları Bulunamıyor"
 Log dosyalarının konumunu kontrol etmek için:
@@ -205,10 +222,27 @@ If you see this warning:
 WARNING: Offline storage is in temporary directory and will be lost on restart
 ```
 
+**Possible Causes**:
+1. Not running in Windows Service mode (running in manual user mode)
+2. No access to system-wide storage folders
+3. Environment variables not properly configured
+
 **Solution**: 
-1. Ensure Documents folder is accessible
-2. Set a custom persistent path (see examples above)
-3. Run agent with administrator rights
+1. **Ensure administrator installation** - This automatically sets up persistent storage
+2. Verify services are running under LocalSystem account:
+   ```cmd
+   sc qc "InventoryManagementApi"
+   sc qc "InventoryManagementAgent"
+   ```
+3. Check environment variables:
+   ```cmd
+   echo %INVENTORY_DATA_PATH%
+   echo %ApiSettings__OfflineStoragePath%
+   ```
+4. Manually verify persistent folders exist:
+   ```cmd
+   dir "C:\ProgramData\Inventory Management System"
+   ```
 
 #### "Log Files Not Found"
 To check log file location:
