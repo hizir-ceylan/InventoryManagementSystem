@@ -3,6 +3,7 @@ using Inventory.Api.Helpers;
 using Inventory.Domain.Entities;
 using Inventory.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace Inventory.Api.Services
 {
@@ -313,25 +314,58 @@ namespace Inventory.Api.Services
             
             device.LastSeen = DateTime.UtcNow;
             
-            // Owned entity'lerin ID'lerini sıfırla (SQLite auto-increment için)
-            EnsureOwnedEntityIdsAreReset(device);
-            
-            _context.Devices.Add(device);
-            await _context.SaveChangesAsync();
-            
-            _logger.LogInformation("Device created: {DeviceName} ({DeviceId})", device.Name, device.Id);
-            return device;
+            try
+            {
+                // Owned entity'lerin ID'lerini sıfırla (SQLite auto-increment için)
+                EnsureOwnedEntityIdsAreReset(device);
+                
+                // Entity'yi context'e ekle
+                _context.Devices.Add(device);
+                
+                // Değişiklikleri kaydet
+                await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("Device created: {DeviceName} ({DeviceId})", device.Name, device.Id);
+                return device;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating device: {DeviceName}. Error: {Error}", device.Name, ex.Message);
+                
+                // Eğer constraint hatası ise, owned entity'ler için detach ve yeniden ekleme yaklaşımını dene
+                if (ex.Message.Contains("NOT NULL constraint failed") && ex.Message.Contains("Id"))
+                {
+                    _logger.LogWarning("Attempting to recreate device with fresh entity state");
+                    
+                    // Context'i temizle
+                    _context.ChangeTracker.Clear();
+                    
+                    // Owned entity'lerin ID'lerini tekrar sıfırla
+                    EnsureOwnedEntityIdsAreProperlyReset(device);
+                    
+                    // Yeniden ekle ve kaydet
+                    _context.Devices.Add(device);
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation("Device created after retry: {DeviceName} ({DeviceId})", device.Name, device.Id);
+                    return device;
+                }
+                
+                throw;
+            }
         }
 
         private void EnsureOwnedEntityIdsAreReset(Device device)
         {
             if (device.HardwareInfo != null)
             {
+                // For owned entities in SQLite, ensure IDs are properly reset for auto-increment
+                // Using default(int) ensures the value is truly 0 and EF Core treats it as new
                 if (device.HardwareInfo.Disks != null)
                 {
                     foreach (var disk in device.HardwareInfo.Disks)
                     {
-                        disk.Id = 0; // Reset to 0 to trigger auto-increment
+                        disk.Id = default(int); // Explicitly use default value for auto-increment
                     }
                 }
 
@@ -339,7 +373,7 @@ namespace Inventory.Api.Services
                 {
                     foreach (var ram in device.HardwareInfo.RamModules)
                     {
-                        ram.Id = 0; // Reset to 0 to trigger auto-increment
+                        ram.Id = default(int); // Explicitly use default value for auto-increment
                     }
                 }
 
@@ -347,7 +381,7 @@ namespace Inventory.Api.Services
                 {
                     foreach (var gpu in device.HardwareInfo.Gpus)
                     {
-                        gpu.Id = 0; // Reset to 0 to trigger auto-increment
+                        gpu.Id = default(int); // Explicitly use default value for auto-increment
                     }
                 }
 
@@ -355,8 +389,65 @@ namespace Inventory.Api.Services
                 {
                     foreach (var adapter in device.HardwareInfo.NetworkAdapters)
                     {
-                        adapter.Id = 0; // Reset to 0 to trigger auto-increment
+                        adapter.Id = default(int); // Explicitly use default value for auto-increment
                     }
+                }
+            }
+        }
+
+        private void EnsureOwnedEntityIdsAreProperlyReset(Device device)
+        {
+            if (device.HardwareInfo != null)
+            {
+                // More aggressive approach: recreate collections to ensure clean state
+                if (device.HardwareInfo.Disks != null)
+                {
+                    var diskData = device.HardwareInfo.Disks.Select(d => new DiskInfo
+                    {
+                        Id = 0, // Explicitly set to 0 for new entities
+                        DeviceId = d.DeviceId,
+                        TotalGB = d.TotalGB,
+                        FreeGB = d.FreeGB
+                    }).ToList();
+                    device.HardwareInfo.Disks = diskData;
+                }
+
+                if (device.HardwareInfo.RamModules != null)
+                {
+                    var ramData = device.HardwareInfo.RamModules.Select(r => new RamModule
+                    {
+                        Id = 0,
+                        Slot = r.Slot,
+                        CapacityGB = r.CapacityGB,
+                        SpeedMHz = r.SpeedMHz,
+                        Manufacturer = r.Manufacturer,
+                        PartNumber = r.PartNumber,
+                        SerialNumber = r.SerialNumber
+                    }).ToList();
+                    device.HardwareInfo.RamModules = ramData;
+                }
+
+                if (device.HardwareInfo.Gpus != null)
+                {
+                    var gpuData = device.HardwareInfo.Gpus.Select(g => new GpuInfo
+                    {
+                        Id = 0,
+                        Name = g.Name,
+                        MemoryGB = g.MemoryGB
+                    }).ToList();
+                    device.HardwareInfo.Gpus = gpuData;
+                }
+
+                if (device.HardwareInfo.NetworkAdapters != null)
+                {
+                    var adapterData = device.HardwareInfo.NetworkAdapters.Select(a => new NetworkAdapter
+                    {
+                        Id = 0,
+                        Description = a.Description,
+                        MacAddress = a.MacAddress,
+                        IpAddress = a.IpAddress
+                    }).ToList();
+                    device.HardwareInfo.NetworkAdapters = adapterData;
                 }
             }
         }
