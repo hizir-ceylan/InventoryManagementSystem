@@ -358,27 +358,102 @@ namespace Inventory.Agent.Windows
 
         static async Task RunLocalInventoryAsync(ApiSettings apiSettings, OfflineStorageService? offlineStorage)
         {
-            // Çapraz platform sistem bilgilerini topla
-            var device = CrossPlatformSystemInfo.GatherSystemInformation();
-
-            // --- Cihazı logla ---
-            DeviceLogger.LogDevice(device);
-
-            // --- API'ye gönder ---
-            string apiUrl = apiSettings.GetDeviceEndpoint();
-            bool success = await ApiClient.PostDeviceAsync(device, apiUrl, offlineStorage);
+            DeviceStateService? deviceStateService = null;
+            ChangeLogApiClient? changeLogClient = null;
             
-            if (success)
+            try
             {
-                Console.WriteLine("Cihaz başarıyla API'ye gönderildi!");
+                // Initialize device state service if offline storage is available
+                if (offlineStorage != null)
+                {
+                    deviceStateService = new DeviceStateService(apiSettings.OfflineStoragePath);
+                    
+                    // Clean up old change files
+                    await deviceStateService.CleanupOldChangesAsync();
+                }
+
+                // Gather current system information
+                var currentDevice = CrossPlatformSystemInfo.GatherSystemInformation();
+
+                // Get last known state for change detection
+                DeviceDto? previousDevice = null;
+                if (deviceStateService != null)
+                {
+                    previousDevice = await deviceStateService.GetLastKnownStateAsync();
+                }
+
+                // Detect changes between current and previous state
+                List<ChangeLogDto> changes = new();
+                if (deviceStateService != null)
+                {
+                    changes = await deviceStateService.DetectChangesAsync(currentDevice, previousDevice);
+                }
+
+                // --- Log device ---
+                DeviceLogger.LogDevice(currentDevice);
+
+                // --- Send device to API ---
+                string apiUrl = apiSettings.GetDeviceEndpoint();
+                bool deviceSent = await ApiClient.PostDeviceAsync(currentDevice, apiUrl, offlineStorage);
+                
+                if (deviceSent)
+                {
+                    Console.WriteLine("Device successfully sent to API!");
+                    
+                    // If device was sent successfully and we have changes, send change logs
+                    if (changes.Count > 0)
+                    {
+                        Console.WriteLine($"Sending {changes.Count} change logs to API...");
+                        
+                        changeLogClient = new ChangeLogApiClient(
+                            apiSettings.BaseUrl,
+                            currentDevice.IpAddress ?? "",
+                            currentDevice.MacAddress ?? ""
+                        );
+                        
+                        bool changeLogsSent = await changeLogClient.SendChangeLogsAsync(changes);
+                        if (changeLogsSent)
+                        {
+                            Console.WriteLine("Change logs successfully sent to API!");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Failed to send change logs to API, but they are saved locally");
+                        }
+                    }
+                    
+                    // Save current state for next comparison (only if device was sent successfully)
+                    if (deviceStateService != null)
+                    {
+                        await deviceStateService.SaveCurrentStateAsync(currentDevice);
+                    }
+                }
+                else if (offlineStorage != null)
+                {
+                    Console.WriteLine("Device sending failed, stored offline. Change detection will retry on next successful sync.");
+                }
+                else
+                {
+                    Console.WriteLine("Device sending failed and no offline storage available.");
+                }
             }
-            else if (offlineStorage != null)
+            catch (Exception ex)
             {
-                Console.WriteLine("Gönderim başarısız, veri offline olarak saklandı.");
-            }
-            else
-            {
-                Console.WriteLine("Gönderim başarısız.");
+                Console.WriteLine($"Error during inventory process: {ex.Message}");
+                
+                // Save current state even if there was an error, to avoid false change detection next time
+                if (deviceStateService != null)
+                {
+                    try
+                    {
+                        var currentDevice = CrossPlatformSystemInfo.GatherSystemInformation();
+                        await deviceStateService.SaveCurrentStateAsync(currentDevice);
+                    }
+                    catch (Exception saveEx)
+                    {
+                        Console.WriteLine($"Error saving device state after failure: {saveEx.Message}");
+                    }
+                }
             }
         }
 

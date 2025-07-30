@@ -41,6 +41,7 @@ namespace Inventory.Data
                     // Configure nested collections as owned
                     hardware.OwnsMany(h => h.RamModules, ram =>
                     {
+                        ram.HasKey(r => r.Id);
                         ram.Property(r => r.Slot).HasMaxLength(50);
                         ram.Property(r => r.SpeedMHz).HasMaxLength(50);
                         ram.Property(r => r.Manufacturer).HasMaxLength(100);
@@ -50,16 +51,19 @@ namespace Inventory.Data
                     
                     hardware.OwnsMany(h => h.Disks, disk =>
                     {
+                        disk.HasKey(d => d.Id);
                         disk.Property(d => d.DeviceId).HasMaxLength(200);
                     });
                     
                     hardware.OwnsMany(h => h.Gpus, gpu =>
                     {
+                        gpu.HasKey(g => g.Id);
                         gpu.Property(g => g.Name).HasMaxLength(200);
                     });
                     
                     hardware.OwnsMany(h => h.NetworkAdapters, adapter =>
                     {
+                        adapter.HasKey(a => a.Id);
                         adapter.Property(a => a.Description).HasMaxLength(200);
                         adapter.Property(a => a.MacAddress).HasMaxLength(17);
                         adapter.Property(a => a.IpAddress).HasMaxLength(15);
@@ -84,7 +88,16 @@ namespace Inventory.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(c => c.ChangeType).HasMaxLength(100);
                 entity.Property(c => c.ChangedBy).HasMaxLength(200);
+                entity.Property(c => c.OldValue).HasMaxLength(500);
+                entity.Property(c => c.NewValue).HasMaxLength(500);
                 entity.HasIndex(c => c.ChangeDate);
+                entity.HasIndex(c => c.DeviceId);
+                
+                // Configure foreign key relationship to Device
+                entity.HasOne<Device>()
+                    .WithMany(d => d.ChangeLogs)
+                    .HasForeignKey(c => c.DeviceId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }
