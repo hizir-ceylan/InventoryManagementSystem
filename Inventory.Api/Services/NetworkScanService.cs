@@ -97,7 +97,7 @@ namespace Inventory.Api.Services
 
                 devicesFound = devices.Count;
 
-                // Register discovered devices
+                // Keşfedilen cihazları kaydet
                 if (devices.Any())
                 {
                     await _deviceService.RegisterNetworkDevicesAsync(devices);
@@ -153,7 +153,7 @@ namespace Inventory.Api.Services
             _logger.LogInformation("Network scan schedule updated: Enabled={Enabled}, Interval={Interval}, NetworkRange={NetworkRange}",
                 schedule.Enabled, schedule.Interval, schedule.NetworkRange);
             
-            // If no network range specified, use auto-detected range
+            // Ağ aralığı belirtilmemişse, otomatik algılanan aralığı kullan
             if (string.IsNullOrEmpty(_schedule.NetworkRange))
             {
                 _schedule.NetworkRange = NetworkRangeDetector.GetPrimaryNetworkRange();
@@ -302,10 +302,10 @@ namespace Inventory.Api.Services
 
         public async Task<Device> CreateDeviceAsync(Device device)
         {
-            // Initialize collections if null
+            // Koleksiyonları null ise başlat
             device.ChangeLogs ??= new List<ChangeLog>();
             
-            // Ensure required default values
+            // Gerekli varsayılan değerleri sağla
             if (device.ManagementType == ManagementType.Unknown)
                 device.ManagementType = ManagementType.Manual;
             if (device.DiscoveryMethod == DiscoveryMethod.Unknown)

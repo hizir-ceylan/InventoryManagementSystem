@@ -38,9 +38,11 @@ namespace Inventory.Data
                     hardware.Property(h => h.BiosVersion).HasMaxLength(100);
                     hardware.Property(h => h.BiosSerial).HasMaxLength(100);
                     
-                    // Configure nested collections as owned
+                    // Nested koleksiyonları owned entity olarak yapılandır
                     hardware.OwnsMany(h => h.RamModules, ram =>
                     {
+                        ram.WithOwner().HasForeignKey("DeviceHardwareInfoId");
+                        ram.HasKey(r => r.Id);
                         ram.Property(r => r.Slot).HasMaxLength(50);
                         ram.Property(r => r.SpeedMHz).HasMaxLength(50);
                         ram.Property(r => r.Manufacturer).HasMaxLength(100);
@@ -50,16 +52,22 @@ namespace Inventory.Data
                     
                     hardware.OwnsMany(h => h.Disks, disk =>
                     {
+                        disk.WithOwner().HasForeignKey("DeviceHardwareInfoId");
+                        disk.HasKey(d => d.Id);
                         disk.Property(d => d.DeviceId).HasMaxLength(200);
                     });
                     
                     hardware.OwnsMany(h => h.Gpus, gpu =>
                     {
+                        gpu.WithOwner().HasForeignKey("DeviceHardwareInfoId");
+                        gpu.HasKey(g => g.Id);
                         gpu.Property(g => g.Name).HasMaxLength(200);
                     });
                     
                     hardware.OwnsMany(h => h.NetworkAdapters, adapter =>
                     {
+                        adapter.WithOwner().HasForeignKey("DeviceHardwareInfoId");
+                        adapter.HasKey(a => a.Id);
                         adapter.Property(a => a.Description).HasMaxLength(200);
                         adapter.Property(a => a.MacAddress).HasMaxLength(17);
                         adapter.Property(a => a.IpAddress).HasMaxLength(15);

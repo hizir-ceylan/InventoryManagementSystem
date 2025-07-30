@@ -179,12 +179,12 @@ namespace Inventory.Api.Controllers
         [SwaggerResponse(400, "Invalid device data")]
         public async Task<ActionResult<Device>> RegisterOrUpdateByIpMac(NetworkDeviceRegistrationDto deviceDto)
         {
-            // Find existing device by IP or MAC
+            // Mevcut cihazı IP veya MAC ile bul
             var existingDevice = await _deviceService.FindDeviceByIpOrMacAsync(deviceDto.IpAddress, deviceDto.MacAddress);
             
             if (existingDevice != null)
             {
-                // Update existing device
+                // Mevcut cihazı güncelle
                 existingDevice.Name = deviceDto.Name ?? existingDevice.Name;
                 existingDevice.DeviceType = deviceDto.DeviceType != DeviceType.Unknown ? deviceDto.DeviceType : existingDevice.DeviceType;
                 existingDevice.Model = deviceDto.Model ?? existingDevice.Model;
@@ -205,7 +205,7 @@ namespace Inventory.Api.Controllers
             }
             else
             {
-                // Create new device
+                // Yeni cihaz oluştur
                 return await CreateNetworkDiscoveredDevice(deviceDto);
             }
         }
@@ -250,7 +250,7 @@ namespace Inventory.Api.Controllers
             if (device == null)
                 return NotFound();
 
-            // Only allow type assignment for network-discovered devices
+            // Sadece ağ keşfi ile bulunan cihazlarda tip atamasına izin ver
             if (device.AgentInstalled)
                 return BadRequest(new { error = "Device type cannot be changed for agent-installed devices." });
 
@@ -271,11 +271,11 @@ namespace Inventory.Api.Controllers
             if (device == null)
                 return NotFound();
 
-            // Only allow updates for network-discovered devices
+            // Sadece ağ keşfi ile bulunan cihazlarda güncellemeye izin ver
             if (device.AgentInstalled)
                 return BadRequest(new { error = "Agent-installed devices cannot be updated through this endpoint." });
 
-            // Update only provided fields
+            // Sadece sağlanan alanları güncelle
             if (!string.IsNullOrEmpty(updateDto.Name))
                 device.Name = updateDto.Name;
             if (!string.IsNullOrEmpty(updateDto.IpAddress))
@@ -291,7 +291,7 @@ namespace Inventory.Api.Controllers
             if (updateDto.ManagementType != ManagementType.Unknown)
                 device.ManagementType = updateDto.ManagementType;
 
-            // Validate updated device
+            // Güncellenen cihazı doğrula
             var validationErrors = DeviceValidator.ValidateDevice(device);
             if (validationErrors.Any())
             {
@@ -320,7 +320,7 @@ namespace Inventory.Api.Controllers
             {
                 try
                 {
-                    // Convert DTO to Device entity
+                    // DTO'yu Device varlığına dönüştür
                     var device = new Device
                     {
                         Id = Guid.NewGuid(),
@@ -333,11 +333,11 @@ namespace Inventory.Api.Controllers
                         LastSeen = DateTime.UtcNow,
                         ManagementType = ManagementType.Agent,
                         DiscoveryMethod = DiscoveryMethod.Agent,
-                        Status = 1, // Active
+                        Status = 1, // Aktif
                         ChangeLogs = new List<ChangeLog>()
                     };
 
-                    // Set default values for required fields if they're null
+                    // Gerekli alanlar için varsayılan değerler ayarla (null ise)
                     if (deviceDto.HardwareInfo == null)
                     {
                         device.HardwareInfo = new DeviceHardwareInfo
@@ -379,7 +379,7 @@ namespace Inventory.Api.Controllers
                         device.SoftwareInfo = deviceDto.SoftwareInfo;
                     }
                     
-                    // Validate device
+                    // Cihazı doğrula
                     var validationErrors = DeviceValidator.ValidateDevice(device);
                     if (validationErrors.Any())
                     {
@@ -388,7 +388,7 @@ namespace Inventory.Api.Controllers
                         continue;
                     }
 
-                    // Create or update device using service
+                    // Servis kullanarak cihaz oluştur veya güncelle
                     await _deviceService.CreateOrUpdateDeviceAsync(device);
                     result.SuccessfulUploads++;
                 }
@@ -418,10 +418,10 @@ namespace Inventory.Api.Controllers
             return NoContent();
         }
 
-        // Helper methods
+        // Yardımcı metotlar
         private async Task<ActionResult<Device>> UpdateExistingNetworkDevice(Device existingDevice, Device newDevice)
         {
-            // Update existing device with new information
+            // Mevcut cihazı yeni bilgilerle güncelle
             existingDevice.Name = newDevice.Name ?? existingDevice.Name;
             existingDevice.DeviceType = newDevice.DeviceType != DeviceType.Unknown ? newDevice.DeviceType : existingDevice.DeviceType;
             existingDevice.Model = newDevice.Model ?? existingDevice.Model;
@@ -429,7 +429,7 @@ namespace Inventory.Api.Controllers
             existingDevice.ManagementType = newDevice.ManagementType != ManagementType.Unknown ? newDevice.ManagementType : existingDevice.ManagementType;
             existingDevice.AgentInstalled = newDevice.AgentInstalled;
 
-            // Validate updated device
+            // Güncellenen cihazı doğrula
             var validationErrors = DeviceValidator.ValidateDevice(existingDevice);
             if (validationErrors.Any())
             {
