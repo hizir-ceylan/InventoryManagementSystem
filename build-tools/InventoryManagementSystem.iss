@@ -30,7 +30,6 @@ Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
-PrivilegesRequiredOverridesAllowed=no
 
 ; System requirements
 MinVersion=6.1sp1
