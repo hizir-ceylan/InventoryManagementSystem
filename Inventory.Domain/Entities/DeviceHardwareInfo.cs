@@ -23,7 +23,6 @@ namespace Inventory.Domain.Entities
 
     public class RamModule
     {
-        public int Id { get; set; }
         public string Slot { get; set; }
         public double CapacityGB { get; set; }
         public string SpeedMHz { get; set; }
@@ -34,7 +33,6 @@ namespace Inventory.Domain.Entities
 
     public class DiskInfo
     {
-        public int Id { get; set; }
         public string DeviceId { get; set; }
         public double TotalGB { get; set; }
         public double FreeGB { get; set; }
@@ -42,14 +40,12 @@ namespace Inventory.Domain.Entities
 
     public class GpuInfo
     {
-        public int Id { get; set; }
         public string Name { get; set; }
         public float? MemoryGB { get; set; }
     }
 
     public class NetworkAdapter
     {
-        public int Id { get; set; }
         public string Description { get; set; }
         public string MacAddress { get; set; }
         public string IpAddress { get; set; }
