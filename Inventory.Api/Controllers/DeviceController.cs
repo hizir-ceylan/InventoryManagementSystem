@@ -22,8 +22,8 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpGet]
-        [SwaggerOperation(Summary = "Get all devices", Description = "Returns all devices in the inventory")]
-        [SwaggerResponse(200, "Returns the list of devices", typeof(IEnumerable<Device>))]
+        [SwaggerOperation(Summary = "Tüm cihazları getir", Description = "Envanterdeki tüm cihazları döndürür")]
+        [SwaggerResponse(200, "Cihaz listesini döndürür", typeof(IEnumerable<Device>))]
         public async Task<ActionResult<IEnumerable<Device>>> GetAll()
         {
             var devices = await _deviceService.GetAllDevicesAsync();
@@ -31,8 +31,8 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpGet("agent-installed")]
-        [SwaggerOperation(Summary = "Get agent-installed devices", Description = "Returns only devices that have the agent installed")]
-        [SwaggerResponse(200, "Returns the list of agent-installed devices", typeof(IEnumerable<Device>))]
+        [SwaggerOperation(Summary = "Agent kurulu cihazları getir", Description = "Sadece agent kurulu cihazları döndürür")]
+        [SwaggerResponse(200, "Agent kurulu cihaz listesini döndürür", typeof(IEnumerable<Device>))]
         public async Task<ActionResult<IEnumerable<Device>>> GetAgentInstalledDevices()
         {
             var devices = await _deviceService.GetAgentInstalledDevicesAsync();
@@ -40,8 +40,8 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpGet("network-discovered")]
-        [SwaggerOperation(Summary = "Get network-discovered devices", Description = "Returns only devices discovered through network scanning")]
-        [SwaggerResponse(200, "Returns the list of network-discovered devices", typeof(IEnumerable<Device>))]
+        [SwaggerOperation(Summary = "Ağ keşfi ile bulunan cihazları getir", Description = "Sadece ağ taraması ile keşfedilen cihazları döndürür")]
+        [SwaggerResponse(200, "Ağ keşfi ile bulunan cihaz listesini döndürür", typeof(IEnumerable<Device>))]
         public async Task<ActionResult<IEnumerable<Device>>> GetNetworkDiscoveredDevices()
         {
             var devices = await _deviceService.GetNetworkDiscoveredDevicesAsync();
@@ -49,9 +49,9 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpGet("{id}/available-fields")]
-        [SwaggerOperation(Summary = "Get available fields for a device", Description = "Returns information about which fields are available for a specific device")]
-        [SwaggerResponse(200, "Returns the available fields information")]
-        [SwaggerResponse(404, "Device not found")]
+        [SwaggerOperation(Summary = "Cihaz için mevcut alanları getir", Description = "Belirli bir cihaz için hangi alanların mevcut olduğu bilgisini döndürür")]
+        [SwaggerResponse(200, "Mevcut alan bilgilerini döndürür")]
+        [SwaggerResponse(404, "Cihaz bulunamadı")]
         public async Task<ActionResult<object>> GetAvailableFields(Guid id)
         {
             var device = await _deviceService.GetDeviceByIdAsync(id);
@@ -86,7 +86,7 @@ namespace Inventory.Api.Controllers
                     HasInstalledApps = device.SoftwareInfo?.InstalledApps?.Any() == true,
                     HasUsers = device.SoftwareInfo?.Users?.Any() == true
                 },
-                CanEdit = !device.AgentInstalled, // Network discovered devices can be edited
+                CanEdit = !device.AgentInstalled, // Ağ keşfi ile bulunan cihazlar düzenlenebilir
                 CanAssignType = device.DeviceType == DeviceType.Unknown
             };
 
@@ -94,9 +94,9 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        [SwaggerOperation(Summary = "Get device by ID", Description = "Returns a specific device by its ID")]
-        [SwaggerResponse(200, "Returns the device", typeof(Device))]
-        [SwaggerResponse(404, "Device not found")]
+        [SwaggerOperation(Summary = "ID ile cihaz getir", Description = "ID'si ile belirli bir cihazı döndürür")]
+        [SwaggerResponse(200, "Cihazı döndürür", typeof(Device))]
+        [SwaggerResponse(404, "Cihaz bulunamadı")]
         public async Task<ActionResult<Device>> GetById(Guid id)
         {
             var device = await _deviceService.GetDeviceByIdAsync(id);
@@ -106,12 +106,12 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPost]
-        [SwaggerOperation(Summary = "Create a new device", Description = "Creates a new device in the inventory")]
-        [SwaggerResponse(201, "Device created successfully", typeof(Device))]
-        [SwaggerResponse(400, "Invalid device data")]
+        [SwaggerOperation(Summary = "Yeni cihaz oluştur", Description = "Envanterde yeni bir cihaz oluşturur")]
+        [SwaggerResponse(201, "Cihaz başarıyla oluşturuldu", typeof(Device))]
+        [SwaggerResponse(400, "Geçersiz cihaz verisi")]
         public async Task<ActionResult<Device>> Create(Device device)
         {
-            // Validate device
+            // Cihazı doğrula
             var validationErrors = DeviceValidator.ValidateDevice(device);
             if (validationErrors.Any())
             {
@@ -130,7 +130,7 @@ namespace Inventory.Api.Controllers
         [SwaggerResponse(400, "Invalid device data")]
         public async Task<ActionResult<Device>> CreateNetworkDiscoveredDevice(NetworkDeviceRegistrationDto deviceDto)
         {
-            // Create device from DTO
+            // DTO'dan cihaz oluştur
             var device = new Device
             {
                 Id = Guid.NewGuid(),
@@ -148,22 +148,22 @@ namespace Inventory.Api.Controllers
                 ChangeLogs = new List<ChangeLog>()
             };
 
-            // Validate device
+            // Cihazı doğrula
             var validationErrors = DeviceValidator.ValidateDevice(device);
             if (validationErrors.Any())
             {
                 return BadRequest(new { errors = validationErrors });
             }
 
-            // Check if device already exists (by IP or MAC)
+            // Cihazın zaten var olup olmadığını kontrol et (IP veya MAC ile)
             var existingDevice = await _deviceService.FindDeviceByIpOrMacAsync(device.IpAddress, device.MacAddress);
             if (existingDevice != null)
             {
-                // Update existing device
+                // Var olan cihazı güncelle
                 return await UpdateExistingNetworkDevice(existingDevice, device);
             }
 
-            // Add new device
+            // Yeni cihaz ekle
             var createdDevice = await _deviceService.CreateDeviceAsync(device);
             
             _logger.LogInformation("Network-discovered device registered: {DeviceName} ({IpAddress}) - Management: {ManagementType}", 

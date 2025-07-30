@@ -93,7 +93,7 @@ namespace Inventory.Api
                 {
                     Title = "Inventory Management System API",
                     Version = "v1",
-                    Description = "API for managing inventory devices with support for both agent-installed and network-discovered devices"
+                    Description = "Agent kurulu ve ağ keşfi ile bulunan cihazları destekleyen envanter cihaz yönetimi API'si"
                 });
                 c.EnableAnnotations();
             });
