@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Inventory.Domain.Entities;
 using Inventory.Api.Helpers;
 using Inventory.Api.DTOs;
+using Inventory.Api.Services;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Inventory.Api.Controllers
@@ -11,43 +12,49 @@ namespace Inventory.Api.Controllers
     [SwaggerTag("Device management operations - supports both agent-installed and network-discovered devices")]
     public class DeviceController : ControllerBase
     {
-        // Geçici olarak bellekte cihaz listesi tutuyoruz
-        private static readonly List<Device> Devices = new();
+        private readonly IDeviceService _deviceService;
+        private readonly ILogger<DeviceController> _logger;
+
+        public DeviceController(IDeviceService deviceService, ILogger<DeviceController> logger)
+        {
+            _deviceService = deviceService;
+            _logger = logger;
+        }
 
         [HttpGet]
         [SwaggerOperation(Summary = "Get all devices", Description = "Returns all devices in the inventory")]
         [SwaggerResponse(200, "Returns the list of devices", typeof(IEnumerable<Device>))]
-        public ActionResult<IEnumerable<Device>> GetAll()
+        public async Task<ActionResult<IEnumerable<Device>>> GetAll()
         {
-            return Ok(Devices);
+            var devices = await _deviceService.GetAllDevicesAsync();
+            return Ok(devices);
         }
 
         [HttpGet("agent-installed")]
         [SwaggerOperation(Summary = "Get agent-installed devices", Description = "Returns only devices that have the agent installed")]
         [SwaggerResponse(200, "Returns the list of agent-installed devices", typeof(IEnumerable<Device>))]
-        public ActionResult<IEnumerable<Device>> GetAgentInstalledDevices()
+        public async Task<ActionResult<IEnumerable<Device>>> GetAgentInstalledDevices()
         {
-            var agentDevices = Devices.Where(d => d.AgentInstalled || d.ManagementType == ManagementType.Agent).ToList();
-            return Ok(agentDevices);
+            var devices = await _deviceService.GetAgentInstalledDevicesAsync();
+            return Ok(devices);
         }
 
         [HttpGet("network-discovered")]
         [SwaggerOperation(Summary = "Get network-discovered devices", Description = "Returns only devices discovered through network scanning")]
         [SwaggerResponse(200, "Returns the list of network-discovered devices", typeof(IEnumerable<Device>))]
-        public ActionResult<IEnumerable<Device>> GetNetworkDiscoveredDevices()
+        public async Task<ActionResult<IEnumerable<Device>>> GetNetworkDiscoveredDevices()
         {
-            var networkDevices = Devices.Where(d => !d.AgentInstalled && 
-                (d.ManagementType == ManagementType.NetworkDiscovery || d.DiscoveryMethod == DiscoveryMethod.NetworkDiscovery)).ToList();
-            return Ok(networkDevices);
+            var devices = await _deviceService.GetNetworkDiscoveredDevicesAsync();
+            return Ok(devices);
         }
 
         [HttpGet("{id}/available-fields")]
         [SwaggerOperation(Summary = "Get available fields for a device", Description = "Returns information about which fields are available for a specific device")]
         [SwaggerResponse(200, "Returns the available fields information")]
         [SwaggerResponse(404, "Device not found")]
-        public ActionResult<object> GetAvailableFields(Guid id)
+        public async Task<ActionResult<object>> GetAvailableFields(Guid id)
         {
-            var device = Devices.FirstOrDefault(d => d.Id == id);
+            var device = await _deviceService.GetDeviceByIdAsync(id);
             if (device == null)
                 return NotFound();
 
@@ -90,9 +97,9 @@ namespace Inventory.Api.Controllers
         [SwaggerOperation(Summary = "Get device by ID", Description = "Returns a specific device by its ID")]
         [SwaggerResponse(200, "Returns the device", typeof(Device))]
         [SwaggerResponse(404, "Device not found")]
-        public ActionResult<Device> GetById(Guid id)
+        public async Task<ActionResult<Device>> GetById(Guid id)
         {
-            var device = Devices.FirstOrDefault(d => d.Id == id);
+            var device = await _deviceService.GetDeviceByIdAsync(id);
             if (device == null)
                 return NotFound();
             return Ok(device);
@@ -102,7 +109,7 @@ namespace Inventory.Api.Controllers
         [SwaggerOperation(Summary = "Create a new device", Description = "Creates a new device in the inventory")]
         [SwaggerResponse(201, "Device created successfully", typeof(Device))]
         [SwaggerResponse(400, "Invalid device data")]
-        public ActionResult<Device> Create(Device device)
+        public async Task<ActionResult<Device>> Create(Device device)
         {
             // Validate device
             var validationErrors = DeviceValidator.ValidateDevice(device);
@@ -112,23 +119,16 @@ namespace Inventory.Api.Controllers
             }
 
             device.Id = Guid.NewGuid();
-            device.LastSeen = DateTime.UtcNow;
             
-            // Set default values if not provided
-            if (device.ManagementType == ManagementType.Unknown)
-                device.ManagementType = ManagementType.Manual;
-            if (device.DiscoveryMethod == DiscoveryMethod.Unknown)
-                device.DiscoveryMethod = DiscoveryMethod.Manual;
-            
-            Devices.Add(device);
-            return CreatedAtAction(nameof(GetById), new { id = device.Id }, device);
+            var createdDevice = await _deviceService.CreateDeviceAsync(device);
+            return CreatedAtAction(nameof(GetById), new { id = createdDevice.Id }, createdDevice);
         }
 
         [HttpPost("network-discovered")]
         [SwaggerOperation(Summary = "Create a network-discovered device", Description = "Creates a new device discovered through network scanning")]
         [SwaggerResponse(201, "Device created successfully", typeof(Device))]
         [SwaggerResponse(400, "Invalid device data")]
-        public ActionResult<Device> CreateNetworkDiscoveredDevice(NetworkDeviceRegistrationDto deviceDto)
+        public async Task<ActionResult<Device>> CreateNetworkDiscoveredDevice(NetworkDeviceRegistrationDto deviceDto)
         {
             // Create device from DTO
             var device = new Device
@@ -156,19 +156,20 @@ namespace Inventory.Api.Controllers
             }
 
             // Check if device already exists (by IP or MAC)
-            var existingDevice = FindDeviceByIpOrMac(device.IpAddress, device.MacAddress);
+            var existingDevice = await _deviceService.FindDeviceByIpOrMacAsync(device.IpAddress, device.MacAddress);
             if (existingDevice != null)
             {
                 // Update existing device
-                return UpdateExistingNetworkDevice(existingDevice, device);
+                return await UpdateExistingNetworkDevice(existingDevice, device);
             }
 
             // Add new device
-            Devices.Add(device);
+            var createdDevice = await _deviceService.CreateDeviceAsync(device);
             
-            Console.WriteLine($"Network-discovered device registered: {device.Name} ({device.IpAddress}) - Management: {device.ManagementType}");
+            _logger.LogInformation("Network-discovered device registered: {DeviceName} ({IpAddress}) - Management: {ManagementType}", 
+                device.Name, device.IpAddress, device.ManagementType);
             
-            return CreatedAtAction(nameof(GetById), new { id = device.Id }, device);
+            return CreatedAtAction(nameof(GetById), new { id = createdDevice.Id }, createdDevice);
         }
 
         [HttpPost("register-by-ip-mac")]
@@ -176,10 +177,10 @@ namespace Inventory.Api.Controllers
         [SwaggerResponse(200, "Device updated successfully", typeof(Device))]
         [SwaggerResponse(201, "Device created successfully", typeof(Device))]
         [SwaggerResponse(400, "Invalid device data")]
-        public ActionResult<Device> RegisterOrUpdateByIpMac(NetworkDeviceRegistrationDto deviceDto)
+        public async Task<ActionResult<Device>> RegisterOrUpdateByIpMac(NetworkDeviceRegistrationDto deviceDto)
         {
             // Find existing device by IP or MAC
-            var existingDevice = FindDeviceByIpOrMac(deviceDto.IpAddress, deviceDto.MacAddress);
+            var existingDevice = await _deviceService.FindDeviceByIpOrMacAsync(deviceDto.IpAddress, deviceDto.MacAddress);
             
             if (existingDevice != null)
             {
@@ -199,12 +200,13 @@ namespace Inventory.Api.Controllers
                     return BadRequest(new { errors = validationErrors });
                 }
 
-                return Ok(existingDevice);
+                var updatedDevice = await _deviceService.UpdateDeviceAsync(existingDevice);
+                return Ok(updatedDevice);
             }
             else
             {
                 // Create new device
-                return CreateNetworkDiscoveredDevice(deviceDto);
+                return await CreateNetworkDiscoveredDevice(deviceDto);
             }
         }
 
@@ -213,13 +215,13 @@ namespace Inventory.Api.Controllers
         [SwaggerResponse(204, "Device updated successfully")]
         [SwaggerResponse(404, "Device not found")]
         [SwaggerResponse(400, "Invalid device data")]
-        public IActionResult Update(Guid id, Device updatedDevice)
+        public async Task<IActionResult> Update(Guid id, Device updatedDevice)
         {
-            var device = Devices.FirstOrDefault(d => d.Id == id);
+            var device = await _deviceService.GetDeviceByIdAsync(id);
             if (device == null)
                 return NotFound();
 
-        // Basit güncelleme
+            // Update device properties
             device.Name = updatedDevice.Name;
             device.MacAddress = updatedDevice.MacAddress;
             device.IpAddress = updatedDevice.IpAddress;
@@ -232,8 +234,8 @@ namespace Inventory.Api.Controllers
             device.AgentInstalled = updatedDevice.AgentInstalled;
             device.ManagementType = updatedDevice.ManagementType;
             device.DiscoveryMethod = updatedDevice.DiscoveryMethod;
-            device.LastSeen = DateTime.UtcNow;
 
+            await _deviceService.UpdateDeviceAsync(device);
             return NoContent();
         }
 
@@ -242,9 +244,9 @@ namespace Inventory.Api.Controllers
         [SwaggerResponse(204, "Device type assigned successfully")]
         [SwaggerResponse(404, "Device not found")]
         [SwaggerResponse(400, "Invalid request")]
-        public IActionResult AssignDeviceType(Guid id, [FromBody] DeviceType deviceType)
+        public async Task<IActionResult> AssignDeviceType(Guid id, [FromBody] DeviceType deviceType)
         {
-            var device = Devices.FirstOrDefault(d => d.Id == id);
+            var device = await _deviceService.GetDeviceByIdAsync(id);
             if (device == null)
                 return NotFound();
 
@@ -253,7 +255,7 @@ namespace Inventory.Api.Controllers
                 return BadRequest(new { error = "Device type cannot be changed for agent-installed devices." });
 
             device.DeviceType = deviceType;
-            device.LastSeen = DateTime.UtcNow;
+            await _deviceService.UpdateDeviceAsync(device);
 
             return NoContent();
         }
@@ -263,9 +265,9 @@ namespace Inventory.Api.Controllers
         [SwaggerResponse(204, "Device updated successfully")]
         [SwaggerResponse(404, "Device not found")]
         [SwaggerResponse(400, "Invalid request")]
-        public IActionResult UpdateNetworkDiscoveredDevice(Guid id, [FromBody] NetworkDeviceRegistrationDto updateDto)
+        public async Task<IActionResult> UpdateNetworkDiscoveredDevice(Guid id, [FromBody] NetworkDeviceRegistrationDto updateDto)
         {
-            var device = Devices.FirstOrDefault(d => d.Id == id);
+            var device = await _deviceService.GetDeviceByIdAsync(id);
             if (device == null)
                 return NotFound();
 
@@ -289,8 +291,6 @@ namespace Inventory.Api.Controllers
             if (updateDto.ManagementType != ManagementType.Unknown)
                 device.ManagementType = updateDto.ManagementType;
 
-            device.LastSeen = DateTime.UtcNow;
-
             // Validate updated device
             var validationErrors = DeviceValidator.ValidateDevice(device);
             if (validationErrors.Any())
@@ -298,6 +298,7 @@ namespace Inventory.Api.Controllers
                 return BadRequest(new { errors = validationErrors });
             }
 
+            await _deviceService.UpdateDeviceAsync(device);
             return NoContent();
         }
 
@@ -305,7 +306,7 @@ namespace Inventory.Api.Controllers
         [SwaggerOperation(Summary = "Batch upload devices", Description = "Uploads multiple devices in a single request")]
         [SwaggerResponse(200, "Batch upload completed", typeof(BatchUploadResultDto))]
         [SwaggerResponse(400, "Invalid batch data")]
-        public ActionResult<BatchUploadResultDto> BatchUpload([FromBody] DeviceBatchDto[] deviceDtos)
+        public async Task<ActionResult<BatchUploadResultDto>> BatchUpload([FromBody] DeviceBatchDto[] deviceDtos)
         {
             var result = new BatchUploadResultDto
             {
@@ -387,25 +388,8 @@ namespace Inventory.Api.Controllers
                         continue;
                     }
 
-                    // Check if device already exists
-                    var existingDevice = FindDeviceByIpOrMac(device.IpAddress, device.MacAddress);
-                    if (existingDevice != null)
-                    {
-                        // Update existing device
-                        existingDevice.Name = device.Name ?? existingDevice.Name;
-                        existingDevice.DeviceType = device.DeviceType != DeviceType.Unknown ? device.DeviceType : existingDevice.DeviceType;
-                        existingDevice.Model = device.Model ?? existingDevice.Model;
-                        existingDevice.Location = device.Location ?? existingDevice.Location;
-                        existingDevice.LastSeen = DateTime.UtcNow;
-                        existingDevice.HardwareInfo = device.HardwareInfo ?? existingDevice.HardwareInfo;
-                        existingDevice.SoftwareInfo = device.SoftwareInfo ?? existingDevice.SoftwareInfo;
-                    }
-                    else
-                    {
-                        // Add new device
-                        Devices.Add(device);
-                    }
-
+                    // Create or update device using service
+                    await _deviceService.CreateOrUpdateDeviceAsync(device);
                     result.SuccessfulUploads++;
                 }
                 catch (Exception ex)
@@ -415,7 +399,8 @@ namespace Inventory.Api.Controllers
                 }
             }
 
-            Console.WriteLine($"Batch upload completed: {result.SuccessfulUploads} successful, {result.FailedUploads} failed");
+            _logger.LogInformation("Batch upload completed: {SuccessfulUploads} successful, {FailedUploads} failed", 
+                result.SuccessfulUploads, result.FailedUploads);
             
             return Ok(result);
         }
@@ -424,25 +409,17 @@ namespace Inventory.Api.Controllers
         [SwaggerOperation(Summary = "Delete a device", Description = "Deletes a device from the inventory")]
         [SwaggerResponse(204, "Device deleted successfully")]
         [SwaggerResponse(404, "Device not found")]
-        public IActionResult Delete(Guid id)
+        public async Task<IActionResult> Delete(Guid id)
         {
-            var device = Devices.FirstOrDefault(d => d.Id == id);
-            if (device == null)
+            var success = await _deviceService.DeleteDeviceAsync(id);
+            if (!success)
                 return NotFound();
 
-            Devices.Remove(device);
             return NoContent();
         }
 
         // Helper methods
-        private Device? FindDeviceByIpOrMac(string? ipAddress, string? macAddress)
-        {
-            return Devices.FirstOrDefault(d => 
-                (!string.IsNullOrWhiteSpace(ipAddress) && d.IpAddress == ipAddress) ||
-                (!string.IsNullOrWhiteSpace(macAddress) && d.MacAddress == macAddress));
-        }
-
-        private ActionResult<Device> UpdateExistingNetworkDevice(Device existingDevice, Device newDevice)
+        private async Task<ActionResult<Device>> UpdateExistingNetworkDevice(Device existingDevice, Device newDevice)
         {
             // Update existing device with new information
             existingDevice.Name = newDevice.Name ?? existingDevice.Name;
@@ -451,7 +428,6 @@ namespace Inventory.Api.Controllers
             existingDevice.Location = newDevice.Location ?? existingDevice.Location;
             existingDevice.ManagementType = newDevice.ManagementType != ManagementType.Unknown ? newDevice.ManagementType : existingDevice.ManagementType;
             existingDevice.AgentInstalled = newDevice.AgentInstalled;
-            existingDevice.LastSeen = DateTime.UtcNow;
 
             // Validate updated device
             var validationErrors = DeviceValidator.ValidateDevice(existingDevice);
@@ -460,9 +436,12 @@ namespace Inventory.Api.Controllers
                 return BadRequest(new { errors = validationErrors });
             }
 
-            Console.WriteLine($"Network-discovered device updated: {existingDevice.Name} ({existingDevice.IpAddress}) - Management: {existingDevice.ManagementType}");
+            var updatedDevice = await _deviceService.UpdateDeviceAsync(existingDevice);
             
-            return Ok(existingDevice);
+            _logger.LogInformation("Network-discovered device updated: {DeviceName} ({IpAddress}) - Management: {ManagementType}", 
+                existingDevice.Name, existingDevice.IpAddress, existingDevice.ManagementType);
+            
+            return Ok(updatedDevice);
         }
     }
 }

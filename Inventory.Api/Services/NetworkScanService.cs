@@ -1,5 +1,8 @@
 using Inventory.Api.Controllers;
 using Inventory.Api.Helpers;
+using Inventory.Domain.Entities;
+using Inventory.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Inventory.Api.Services
 {
@@ -193,17 +196,31 @@ namespace Inventory.Api.Services
     {
         Task RegisterNetworkDevicesAsync(IEnumerable<NetworkDeviceResult> devices);
         Task RegisterNetworkDevicesAsync(IEnumerable<object> devices); // Backward compatibility
+        
+        // Database operations
+        Task<IEnumerable<Device>> GetAllDevicesAsync();
+        Task<IEnumerable<Device>> GetAgentInstalledDevicesAsync();
+        Task<IEnumerable<Device>> GetNetworkDiscoveredDevicesAsync();
+        Task<Device?> GetDeviceByIdAsync(Guid id);
+        Task<Device?> FindDeviceByIpOrMacAsync(string? ipAddress, string? macAddress);
+        Task<Device> CreateDeviceAsync(Device device);
+        Task<Device> UpdateDeviceAsync(Device device);
+        Task<bool> DeleteDeviceAsync(Guid id);
+        Task<Device?> CreateOrUpdateDeviceAsync(Device device);
+        Task<List<Device>> BatchCreateOrUpdateDevicesAsync(List<Device> devices);
     }
 
     public class DeviceService : IDeviceService
     {
         private readonly ILogger<DeviceService> _logger;
         private readonly ICentralizedLoggingService _loggingService;
+        private readonly InventoryDbContext _context;
 
-        public DeviceService(ILogger<DeviceService> logger, ICentralizedLoggingService loggingService)
+        public DeviceService(ILogger<DeviceService> logger, ICentralizedLoggingService loggingService, InventoryDbContext context)
         {
             _logger = logger;
             _loggingService = loggingService;
+            _context = context;
         }
 
         public async Task RegisterNetworkDevicesAsync(IEnumerable<NetworkDeviceResult> devices)
@@ -240,6 +257,141 @@ namespace Inventory.Api.Services
             // Backward compatibility method
             await Task.CompletedTask;
             _logger.LogInformation("Registered {DeviceCount} network devices (legacy method)", devices.Count());
+        }
+
+        // Database operations
+        public async Task<IEnumerable<Device>> GetAllDevicesAsync()
+        {
+            return await _context.Devices
+                .Include(d => d.ChangeLogs)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Device>> GetAgentInstalledDevicesAsync()
+        {
+            return await _context.Devices
+                .Where(d => d.AgentInstalled || d.ManagementType == ManagementType.Agent)
+                .Include(d => d.ChangeLogs)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Device>> GetNetworkDiscoveredDevicesAsync()
+        {
+            return await _context.Devices
+                .Where(d => !d.AgentInstalled && 
+                    (d.ManagementType == ManagementType.NetworkDiscovery || d.DiscoveryMethod == DiscoveryMethod.NetworkDiscovery))
+                .Include(d => d.ChangeLogs)
+                .ToListAsync();
+        }
+
+        public async Task<Device?> GetDeviceByIdAsync(Guid id)
+        {
+            return await _context.Devices
+                .Include(d => d.ChangeLogs)
+                .FirstOrDefaultAsync(d => d.Id == id);
+        }
+
+        public async Task<Device?> FindDeviceByIpOrMacAsync(string? ipAddress, string? macAddress)
+        {
+            return await _context.Devices
+                .Include(d => d.ChangeLogs)
+                .FirstOrDefaultAsync(d => 
+                    (!string.IsNullOrWhiteSpace(ipAddress) && d.IpAddress == ipAddress) ||
+                    (!string.IsNullOrWhiteSpace(macAddress) && d.MacAddress == macAddress));
+        }
+
+        public async Task<Device> CreateDeviceAsync(Device device)
+        {
+            // Initialize collections if null
+            device.ChangeLogs ??= new List<ChangeLog>();
+            
+            // Ensure required default values
+            if (device.ManagementType == ManagementType.Unknown)
+                device.ManagementType = ManagementType.Manual;
+            if (device.DiscoveryMethod == DiscoveryMethod.Unknown)
+                device.DiscoveryMethod = DiscoveryMethod.Manual;
+            
+            device.LastSeen = DateTime.UtcNow;
+            
+            _context.Devices.Add(device);
+            await _context.SaveChangesAsync();
+            
+            _logger.LogInformation("Device created: {DeviceName} ({DeviceId})", device.Name, device.Id);
+            return device;
+        }
+
+        public async Task<Device> UpdateDeviceAsync(Device device)
+        {
+            device.LastSeen = DateTime.UtcNow;
+            _context.Devices.Update(device);
+            await _context.SaveChangesAsync();
+            
+            _logger.LogInformation("Device updated: {DeviceName} ({DeviceId})", device.Name, device.Id);
+            return device;
+        }
+
+        public async Task<bool> DeleteDeviceAsync(Guid id)
+        {
+            var device = await _context.Devices.FindAsync(id);
+            if (device == null)
+                return false;
+
+            _context.Devices.Remove(device);
+            await _context.SaveChangesAsync();
+            
+            _logger.LogInformation("Device deleted: {DeviceName} ({DeviceId})", device.Name, device.Id);
+            return true;
+        }
+
+        public async Task<Device?> CreateOrUpdateDeviceAsync(Device device)
+        {
+            var existingDevice = await FindDeviceByIpOrMacAsync(device.IpAddress, device.MacAddress);
+            
+            if (existingDevice != null)
+            {
+                // Update existing device with new information
+                existingDevice.Name = device.Name ?? existingDevice.Name;
+                existingDevice.DeviceType = device.DeviceType != DeviceType.Unknown ? device.DeviceType : existingDevice.DeviceType;
+                existingDevice.Model = device.Model ?? existingDevice.Model;
+                existingDevice.Location = device.Location ?? existingDevice.Location;
+                existingDevice.ManagementType = device.ManagementType != ManagementType.Unknown ? device.ManagementType : existingDevice.ManagementType;
+                existingDevice.AgentInstalled = device.AgentInstalled;
+                existingDevice.Status = device.Status;
+                existingDevice.HardwareInfo = device.HardwareInfo ?? existingDevice.HardwareInfo;
+                existingDevice.SoftwareInfo = device.SoftwareInfo ?? existingDevice.SoftwareInfo;
+                existingDevice.LastSeen = DateTime.UtcNow;
+
+                return await UpdateDeviceAsync(existingDevice);
+            }
+            else
+            {
+                // Create new device
+                device.Id = Guid.NewGuid();
+                return await CreateDeviceAsync(device);
+            }
+        }
+
+        public async Task<List<Device>> BatchCreateOrUpdateDevicesAsync(List<Device> devices)
+        {
+            var results = new List<Device>();
+            
+            foreach (var device in devices)
+            {
+                try
+                {
+                    var result = await CreateOrUpdateDeviceAsync(device);
+                    if (result != null)
+                    {
+                        results.Add(result);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to create/update device: {DeviceName}", device.Name);
+                }
+            }
+            
+            return results;
         }
     }
 }
