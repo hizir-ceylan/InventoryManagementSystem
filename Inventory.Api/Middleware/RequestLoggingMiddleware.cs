@@ -20,20 +20,20 @@ namespace Inventory.Api.Middleware
 
             try
             {
-                // Log request details
+                // İstek detaylarını logla
                 await LogRequestAsync(context, loggingService);
 
-                // Create a new memory stream for the response body
+                // Yanıt gövdesi için yeni bir bellek akışı oluştur
                 using var responseBodyStream = new MemoryStream();
                 context.Response.Body = responseBodyStream;
 
-                // Execute the next middleware
+                // Sonraki middleware'ı çalıştır
                 await _next(context);
 
-                // Log response details
+                // Yanıt detaylarını logla
                 await LogResponseAsync(context, responseBodyStream, loggingService);
 
-                // Copy response back to original stream
+                // Yanıtı orijinal akışa geri kopyala
                 responseBodyStream.Seek(0, SeekOrigin.Begin);
                 await responseBodyStream.CopyToAsync(originalResponseBodyStream);
             }
@@ -56,13 +56,13 @@ namespace Inventory.Api.Middleware
                 var request = context.Request;
                 var requestBody = string.Empty;
 
-                // Read request body for POST/PUT requests
+                // POST/PUT istekleri için istek gövdesini oku
                 if (request.Method == HttpMethod.Post.Method || request.Method == HttpMethod.Put.Method)
                 {
                     request.EnableBuffering();
                     using var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true);
                     requestBody = await reader.ReadToEndAsync();
-                    request.Body.Position = 0; // Reset stream position
+                    request.Body.Position = 0; // Akış pozisyonunu sıfırla
                 }
 
                 var logMessage = $"API Request: {request.Method} {request.Path}{request.QueryString} " +
@@ -100,7 +100,7 @@ namespace Inventory.Api.Middleware
                 var logMessage = $"API Response: {response.StatusCode} for {context.Request.Method} {context.Request.Path} " +
                                $"ContentLength: {responseBodyStream.Length}";
 
-                // Only log response body for error responses or if it's small
+                // Sadece hata yanıtları için yanıt gövdesini logla veya küçükse
                 if (response.StatusCode >= 400 || responseBodyStream.Length < 1000)
                 {
                     logMessage += $" Body: {responseBody}";

@@ -359,7 +359,7 @@ namespace Inventory.Agent.Windows
                 ActiveUser = Environment.UserName
             };
 
-            // Create device object
+            // Device object oluştur - Agent kurulan cihaz olarak işaretle
             var device = new DeviceDto
             {
                 Name = Environment.MachineName,
@@ -369,6 +369,7 @@ namespace Inventory.Agent.Windows
                 Model = motherboardModel,
                 Location = "Ev",
                 Status = 1,
+                AgentInstalled = true, // Bu cihazda agent yüklü
                 ChangeLogs = changeLogs,
                 HardwareInfo = hardwareInfo,
                 SoftwareInfo = softwareInfoDto
@@ -471,6 +472,7 @@ namespace Inventory.Agent.Windows
                 Model = "Unknown Linux System",
                 Location = "Unknown",
                 Status = 1,
+                AgentInstalled = true, // Bu cihazda agent yüklü
                 ChangeLogs = new List<ChangeLogDto>
                 {
                     new ChangeLogDto
@@ -3108,7 +3110,7 @@ namespace Inventory.Agent.Windows
                 ActiveUser = Environment.UserName
             };
 
-            // --- DeviceDto nesnesini hazırla ---
+            // DeviceDto nesnesini hazırla - Agent kurulan cihaz olarak işaretle
             var device = new DeviceDto
             {
                 Name = Environment.MachineName,
@@ -3118,6 +3120,7 @@ namespace Inventory.Agent.Windows
                 Model = motherboardModel,
                 Location = "Ev",
                 Status = 1,
+                AgentInstalled = true, // Bu cihazda agent yüklü
                 ChangeLogs = changeLogs,
                 HardwareInfo = hardwareInfo,
                 SoftwareInfo = softwareInfoDto

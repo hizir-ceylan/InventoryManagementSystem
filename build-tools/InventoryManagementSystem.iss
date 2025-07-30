@@ -67,7 +67,7 @@ Name: "{commonappdata}\Inventory Management System\OfflineStorage"
 [Icons]
 Name: "{group}\{#MyAppName} API (Swagger)"; Filename: "http://localhost:5093/swagger"; IconFilename: "{sys}\shell32.dll"; IconIndex: 14
 Name: "{group}\{#MyAppName} Folder"; Filename: "{app}"; IconFilename: "{sys}\shell32.dll"; IconIndex: 3
-Name: "{group}\Service Management"; Filename: "{app}\ServiceManagement.bat"; IconFilename: "{sys}\shell32.dll"; IconIndex: 15; WorkingDir: "{app}"
+Name: "{group}\Servis Yönetimi"; Filename: "{app}\ServiceManagement.bat"; IconFilename: "{sys}\shell32.dll"; IconIndex: 15; WorkingDir: "{app}"; Comment: "Servisleri yönetici yetkisi ile yönet"
 Name: "{group}\Services Manager"; Filename: "services.msc"; IconFilename: "{sys}\shell32.dll"; IconIndex: 15
 Name: "{group}\Event Viewer"; Filename: "eventvwr.msc"; IconFilename: "{sys}\shell32.dll"; IconIndex: 15
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
@@ -82,8 +82,8 @@ Filename: "{sys}\sc.exe"; Parameters: "start InventoryManagementAgent"; Flags: r
 Filename: "{sys}\timeout.exe"; Parameters: "/t 5 /nobreak"; Flags: runhidden; StatusMsg: "Waiting for Agent to initialize..."
 ; Open swagger in browser
 Filename: "http://localhost:5093/swagger"; Description: "{cm:LaunchProgram,API Documentation (Swagger)}"; Flags: nowait postinstall skipifsilent shellexec
-; Show service management tool
-Filename: "{app}\ServiceManagement.bat"; Description: "Open Service Management Tool"; Flags: nowait postinstall skipifsilent
+; Service management aracını yönetici olarak çalıştır
+Filename: "{app}\ServiceManagement.bat"; Description: "Servis Yönetim Aracını Aç (Yönetici Yetkisi ile)"; Flags: nowait postinstall skipifsilent runascurrentuser; Verb: "runas"
 
 [UninstallRun]
 ; Stop and remove services before uninstall
@@ -250,40 +250,57 @@ begin
     Exec('setx', 'INVENTORY_DATA_PATH "' + ExpandConstant('{commonappdata}\Inventory Management System\Data') + '" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('setx', 'INVENTORY_LOG_PATH "' + ExpandConstant('{commonappdata}\Inventory Management System\Logs') + '" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
-    // Create a batch file for manual service management
+    // Servis yönetimi için batch dosyası oluştur (yönetici yetkisi kontrolü ile)
     SaveStringToFile(ExpandConstant('{app}\ServiceManagement.bat'), 
       '@echo off' + #13#10 +
-      'echo Inventory Management System - Service Management' + #13#10 +
+      'REM Yönetici yetkisi kontrolü' + #13#10 +
+      'net session >nul 2>&1' + #13#10 +
+      'if %errorLevel% == 0 (' + #13#10 +
+      '    goto :admin' + #13#10 +
+      ') else (' + #13#10 +
+      '    echo Bu program yönetici yetkisi gerektirir.' + #13#10 +
+      '    echo Yönetici olarak yeniden başlatılıyor...' + #13#10 +
+      '    powershell -Command "Start-Process ''%~f0'' -Verb RunAs"' + #13#10 +
+      '    exit /b' + #13#10 +
+      ')' + #13#10 +
+      ':admin' + #13#10 +
+      'title Envanter Yönetim Sistemi - Servis Yönetimi' + #13#10 +
+      ':main' + #13#10 +
+      'cls' + #13#10 +
+      'echo ================================================' + #13#10 +
+      'echo   Envanter Yönetim Sistemi - Servis Yönetimi' + #13#10 +
       'echo ================================================' + #13#10 +
       'echo.' + #13#10 +
-      'echo 1. Start Services' + #13#10 +
-      'echo 2. Stop Services' + #13#10 +
-      'echo 3. Restart Services' + #13#10 +
-      'echo 4. Check Service Status' + #13#10 +
-      'echo 5. View Agent Logs' + #13#10 +
-      'echo 6. Exit' + #13#10 +
+      'echo 1. Servisleri Başlat' + #13#10 +
+      'echo 2. Servisleri Durdur' + #13#10 +
+      'echo 3. Servisleri Yeniden Başlat' + #13#10 +
+      'echo 4. Servis Durumunu Kontrol Et' + #13#10 +
+      'echo 5. Agent Loglarını Görüntüle' + #13#10 +
+      'echo 6. Çıkış' + #13#10 +
       'echo.' + #13#10 +
-      'set /p choice=Choose an option (1-6): ' + #13#10 +
+      'set /p choice=Bir seçenek seçin (1-6): ' + #13#10 +
       'if "%choice%"=="1" goto start' + #13#10 +
       'if "%choice%"=="2" goto stop' + #13#10 +
       'if "%choice%"=="3" goto restart' + #13#10 +
       'if "%choice%"=="4" goto status' + #13#10 +
       'if "%choice%"=="5" goto logs' + #13#10 +
       'if "%choice%"=="6" goto exit' + #13#10 +
+      'echo Geçersiz seçim. Lütfen 1-6 arasında bir rakam girin.' + #13#10 +
+      'pause' + #13#10 +
       'goto main' + #13#10 +
       ':start' + #13#10 +
-      'echo Starting services...' + #13#10 +
+      'echo Servisler başlatılıyor...' + #13#10 +
       'net start InventoryManagementApi' + #13#10 +
       'timeout /t 5 /nobreak >nul' + #13#10 +
       'net start InventoryManagementAgent' + #13#10 +
       'goto end' + #13#10 +
       ':stop' + #13#10 +
-      'echo Stopping services...' + #13#10 +
+      'echo Servisler durduruluyor...' + #13#10 +
       'net stop InventoryManagementAgent' + #13#10 +
       'net stop InventoryManagementApi' + #13#10 +
       'goto end' + #13#10 +
       ':restart' + #13#10 +
-      'echo Restarting services...' + #13#10 +
+      'echo Servisler yeniden başlatılıyor...' + #13#10 +
       'net stop InventoryManagementAgent' + #13#10 +
       'net stop InventoryManagementApi' + #13#10 +
       'timeout /t 3 /nobreak >nul' + #13#10 +
@@ -292,18 +309,20 @@ begin
       'net start InventoryManagementAgent' + #13#10 +
       'goto end' + #13#10 +
       ':status' + #13#10 +
-      'echo Service Status:' + #13#10 +
+      'echo Servis Durumu:' + #13#10 +
+      'echo ===============' + #13#10 +
       'sc query InventoryManagementApi' + #13#10 +
       'echo.' + #13#10 +
       'sc query InventoryManagementAgent' + #13#10 +
       'goto end' + #13#10 +
       ':logs' + #13#10 +
-      'echo Opening log folder...' + #13#10 +
+      'echo Log klasörü açılıyor...' + #13#10 +
       'explorer "' + ExpandConstant('{commonappdata}\Inventory Management System\Logs') + '"' + #13#10 +
       'goto end' + #13#10 +
       ':end' + #13#10 +
       'echo.' + #13#10 +
       'pause' + #13#10 +
+      'goto main' + #13#10 +
       ':exit' + #13#10, False);
   end;
 end;

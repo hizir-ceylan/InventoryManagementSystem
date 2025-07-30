@@ -22,7 +22,7 @@ namespace Inventory.Agent.Windows
         
         static async Task Main(string[] args)
         {
-            // Check for help argument
+            // Yardım argümanını kontrol et
             if (args.Length > 0 && (args[0].ToLower() == "--help" || args[0].ToLower() == "-h"))
             {
                 ShowUsage();
@@ -40,7 +40,7 @@ namespace Inventory.Agent.Windows
                 return;
             }
 
-            // Normal console mode - mevcut kod
+            // Normal konsol modu - mevcut kod
             await RunAsConsoleAsync(args);
         }
 
@@ -72,21 +72,21 @@ namespace Inventory.Agent.Windows
         {
             try
             {
-                // Use CreateApplicationBuilder for better control over configuration
-                // This avoids the automatic configuration loading issues of CreateDefaultBuilder
+                // Konfigürasyon üzerinde daha iyi kontrol için CreateApplicationBuilder kullan
+                // Bu, CreateDefaultBuilder'ın otomatik konfigürasyon yükleme sorunlarını önler
                 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
                 {
-                    DisableDefaults = true, // Disable automatic configuration loading
+                    DisableDefaults = true, // Otomatik konfigürasyon yüklemeyi devre dışı bırak
                     ContentRootPath = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory
                 });
                 
-                // Configure logging first - this is essential for service diagnostics
+                // Önce loglama'yı yapılandır - bu servis tanılaması için gereklidir
                 builder.Logging.ClearProviders();
                 
-                // Add console logging for debugging (will be ignored in service mode)
+                // Hata ayıklama için konsol loglama ekle (servis modunda görmezden gelinir)
                 builder.Logging.AddConsole();
                 
-                // Add Windows Event Log if available
+                // Eğer varsa Windows Event Log ekle
                 if (OperatingSystem.IsWindows())
                 {
                     try
@@ -100,11 +100,11 @@ namespace Inventory.Agent.Windows
                     }
                     catch
                     {
-                        // Event log source creation failed, continue without it
+                        // Event log kaynağı oluşturulamadı, onsuz devam et
                     }
                 }
                 
-                // Add file logging for service diagnostics
+                // Servis tanılaması için dosya loglama ekle
                 try
                 {
                     var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), 
@@ -114,20 +114,20 @@ namespace Inventory.Agent.Windows
                 }
                 catch
                 {
-                    // File logging failed, continue without it
+                    // Dosya loglama başarısız, onsuz devam et
                 }
                 
-                // Configure minimal configuration - prefer environment variables over files
+                // Minimal konfigürasyon yapılandır - dosyalardan ziyade ortam değişkenlerini tercih et
                 builder.Configuration.Sources.Clear();
                 
-                // Add environment variables as primary configuration source
+                // Birincil konfigürasyon kaynağı olarak ortam değişkenlerini ekle
                 builder.Configuration.AddEnvironmentVariables();
                 
-                // Add optional JSON configuration file (won't fail if missing)
+                // Opsiyonel JSON konfigürasyon dosyası ekle (eksik olsa bile başarısızlığa sebep olmaz)
                 var executableDir = builder.Environment.ContentRootPath;
                 var configFile = Path.Combine(executableDir, "appsettings.json");
                 
-                // Only add JSON file if it exists - don't fail service startup if missing
+                // Sadece varsa JSON dosyasını ekle - eksikse servis başlatımını başarısız yapma
                 if (File.Exists(configFile))
                 {
                     try
@@ -136,8 +136,8 @@ namespace Inventory.Agent.Windows
                     }
                     catch
                     {
-                        // JSON file loading failed, continue without it
-                        // Service will use environment variables and defaults
+                        // JSON dosyası yüklenemedi, onsuz devam et
+                        // Servis ortam değişkenlerini ve varsayılanları kullanacak
                     }
                 }
                 
@@ -147,7 +147,7 @@ namespace Inventory.Agent.Windows
                     options.ServiceName = "InventoryManagementAgent";
                 });
                 
-                // Configure service for faster startup and better reliability
+                // Daha hızlı başlatma ve daha iyi güvenilirlik için servisi yapılandır
                 builder.Services.Configure<HostOptions>(options =>
                 {
                     options.ServicesStartConcurrently = true;
@@ -155,20 +155,20 @@ namespace Inventory.Agent.Windows
                     options.ShutdownTimeout = TimeSpan.FromSeconds(15);
                 });
 
-                // Add the main hosted service
+                // Ana hosted service'i ekle
                 builder.Services.AddHostedService<InventoryAgentService>();
-                // Build and run the host
+                // Host'u oluştur ve çalıştır
                 var host = builder.Build();
                 
-                // Service'i başlat - optimized for Windows Service Manager
+                // Service'i başlat - Windows Service Manager için optimize edildi
                 await host.RunAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                // Enhanced error logging for service startup failures
+                // Servis başlatma başarısızlıkları için gelişmiş hata loglama
                 await LogServiceError("Service startup failed", ex);
                 
-                // Re-throw to signal service startup failure to Windows Service Manager
+                // Windows Service Manager'a servis başlatma başarısızlığını bildirmek için yeniden fırlat
                 throw;
             }
         }
@@ -185,7 +185,7 @@ namespace Inventory.Agent.Windows
                                       System.Diagnostics.EventLogEntryType.Error);
                 }
                 
-                // Also try to log to file
+                // Ayrıca dosyaya loglama yapmayı dene
                 var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), 
                                          "Inventory Management System", "Logs", "service-errors.log");
                 Directory.CreateDirectory(Path.GetDirectoryName(logPath));
@@ -195,7 +195,7 @@ namespace Inventory.Agent.Windows
             }
             catch
             {
-                // Logging başarısız olsa bile continue et
+                // Loglama başarısız olsa bile devam et
             }
         }
 
@@ -211,26 +211,26 @@ namespace Inventory.Agent.Windows
                 Console.WriteLine($"API Base URL: {apiSettings.BaseUrl}");
                 Console.WriteLine($"Offline Storage: {(apiSettings.EnableOfflineStorage ? "Enabled" : "Disabled")}");
                 
-                // Display storage locations for user awareness
+                // Kullanıcı bilinci için depolama konumlarını göster
                 Console.WriteLine();
                 Console.WriteLine("Storage Locations:");
                 Console.WriteLine($"Offline Storage: {apiSettings.OfflineStoragePath}");
                 Console.WriteLine($"Local Logs: {ApiSettings.GetDefaultLogPath()}");
                 Console.WriteLine();
                 
-                // Initialize offline storage if enabled
+                // Etkinleştirilmişse offline depolamayı başlat
                 if (apiSettings.EnableOfflineStorage)
                 {
                     offlineStorage = new OfflineStorageService(apiSettings.OfflineStoragePath, apiSettings.MaxOfflineRecords);
                     var offlineCount = await offlineStorage.GetStoredRecordCountAsync();
                     Console.WriteLine($"Offline records pending: {offlineCount}");
                     
-                    // Start connectivity monitoring
+                    // Bağlantı izlemeyi başlat
                     _connectivityMonitor = new ConnectivityMonitorService(apiSettings, offlineStorage);
                     _connectivityMonitor.StartMonitoring();
                 }
                 
-                // Check for different operating modes
+                // Farklı çalışma modlarını kontrol et
                 bool networkDiscovery = args.Length > 0 && args[0].ToLower() == "network";
                 bool continuousMode = args.Length > 0 && (args[0].ToLower() == "--continuous" || args[0].ToLower() == "--daemon");
                 
@@ -263,7 +263,7 @@ namespace Inventory.Agent.Windows
 
             Console.WriteLine("\nİşlem tamamlandı.");
             
-            // Only wait for key press if running interactively (not in Docker)
+            // Sadece etkileşimli çalışıyorsa (Docker'da değil) tuş beklet
             if (IsRunningInteractively())
             {
                 Console.WriteLine("Çıkmak için bir tuşa basın.");
@@ -273,7 +273,7 @@ namespace Inventory.Agent.Windows
             {
                 Console.WriteLine("Agent execution completed.");
                 
-                // If connectivity monitor is running, wait for a while to allow batch uploads
+                // Bağlantı izleyici çalışıyorsa, toplu yüklemelere izin vermek için biraz bekle
                 if (_connectivityMonitor != null)
                 {
                     Console.WriteLine("Waiting for potential batch uploads...");
@@ -281,18 +281,18 @@ namespace Inventory.Agent.Windows
                 }
             }
             
-            // Stop connectivity monitoring
+            // Bağlantı izlemeyi durdur
             _connectivityMonitor?.Stop();
         }
         
         /// <summary>
-        /// Checks if the application is running in an interactive environment
+        /// Uygulamanın etkileşimli bir ortamda çalışıp çalışmadığını kontrol eder
         /// </summary>
         private static bool IsRunningInteractively()
         {
             try
             {
-                // Check if console input is available and not redirected
+                // Konsol girdisinin mevcut olup olmadığını ve yönlendirilmediğini kontrol et
                 return Environment.UserInteractive && !Console.IsInputRedirected;
             }
             catch
