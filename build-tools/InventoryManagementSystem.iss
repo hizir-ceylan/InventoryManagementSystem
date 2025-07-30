@@ -83,7 +83,7 @@ Filename: "{sys}\timeout.exe"; Parameters: "/t 5 /nobreak"; Flags: runhidden; St
 ; Open swagger in browser
 Filename: "http://localhost:5093/swagger"; Description: "{cm:LaunchProgram,API Documentation (Swagger)}"; Flags: nowait postinstall skipifsilent shellexec
 ; Service management aracını yönetici olarak çalıştır
-Filename: "{app}\ServiceManagement.bat"; Description: "Servis Yönetim Aracını Aç (Yönetici Yetkisi ile)"; Flags: nowait postinstall skipifsilent runascurrentuser; Verb: "runas"
+Filename: "{app}\ServiceManagement.bat"; Description: "Servis Yönetim Aracını Aç (Yönetici Yetkisi ile)"; Flags: nowait postinstall skipifsilent runascurrentuser shellexec; Verb: "runas"
 
 [UninstallRun]
 ; Stop and remove services before uninstall
