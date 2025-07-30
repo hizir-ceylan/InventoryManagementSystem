@@ -84,7 +84,16 @@ namespace Inventory.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(c => c.ChangeType).HasMaxLength(100);
                 entity.Property(c => c.ChangedBy).HasMaxLength(200);
+                entity.Property(c => c.OldValue).HasMaxLength(500);
+                entity.Property(c => c.NewValue).HasMaxLength(500);
                 entity.HasIndex(c => c.ChangeDate);
+                entity.HasIndex(c => c.DeviceId);
+                
+                // Configure foreign key relationship to Device
+                entity.HasOne<Device>()
+                    .WithMany(d => d.ChangeLogs)
+                    .HasForeignKey(c => c.DeviceId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }
