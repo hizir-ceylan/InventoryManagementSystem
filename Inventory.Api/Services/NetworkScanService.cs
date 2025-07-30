@@ -454,7 +454,14 @@ namespace Inventory.Api.Services
         public async Task<Device> UpdateDeviceAsync(Device device)
         {
             device.LastSeen = DateTime.UtcNow;
-            _context.Devices.Update(device);
+            
+            // Clear any existing tracking to avoid conflicts
+            _context.ChangeTracker.Clear();
+            
+            // Attach the device and mark it as modified
+            var entry = _context.Entry(device);
+            entry.State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+            
             await _context.SaveChangesAsync();
             
             _logger.LogInformation("Device updated: {DeviceName} ({DeviceId})", device.Name, device.Id);
@@ -480,24 +487,270 @@ namespace Inventory.Api.Services
             
             if (existingDevice != null)
             {
-                // Update existing device with new information
-                existingDevice.Name = device.Name ?? existingDevice.Name;
-                existingDevice.DeviceType = device.DeviceType != DeviceType.Unknown ? device.DeviceType : existingDevice.DeviceType;
-                existingDevice.Model = device.Model ?? existingDevice.Model;
-                existingDevice.Location = device.Location ?? existingDevice.Location;
-                existingDevice.ManagementType = device.ManagementType != ManagementType.Unknown ? device.ManagementType : existingDevice.ManagementType;
+                var changes = new List<ChangeLog>();
+                
+                // Track changes and create change logs
+                if (!string.IsNullOrEmpty(device.Name) && existingDevice.Name != device.Name)
+                {
+                    changes.Add(new ChangeLog
+                    {
+                        Id = Guid.NewGuid(),
+                        DeviceId = existingDevice.Id,
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "Name",
+                        OldValue = existingDevice.Name ?? "",
+                        NewValue = device.Name,
+                        ChangedBy = "Agent"
+                    });
+                    existingDevice.Name = device.Name;
+                }
+
+                if (!string.IsNullOrEmpty(device.IpAddress) && existingDevice.IpAddress != device.IpAddress)
+                {
+                    changes.Add(new ChangeLog
+                    {
+                        Id = Guid.NewGuid(),
+                        DeviceId = existingDevice.Id,
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "IpAddress",
+                        OldValue = existingDevice.IpAddress ?? "",
+                        NewValue = device.IpAddress,
+                        ChangedBy = "Agent"
+                    });
+                    existingDevice.IpAddress = device.IpAddress;
+                }
+
+                if (!string.IsNullOrEmpty(device.Model) && existingDevice.Model != device.Model)
+                {
+                    changes.Add(new ChangeLog
+                    {
+                        Id = Guid.NewGuid(),
+                        DeviceId = existingDevice.Id,
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "Model",
+                        OldValue = existingDevice.Model ?? "",
+                        NewValue = device.Model,
+                        ChangedBy = "Agent"
+                    });
+                    existingDevice.Model = device.Model;
+                }
+
+                if (!string.IsNullOrEmpty(device.Location) && existingDevice.Location != device.Location)
+                {
+                    changes.Add(new ChangeLog
+                    {
+                        Id = Guid.NewGuid(),
+                        DeviceId = existingDevice.Id,
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "Location",
+                        OldValue = existingDevice.Location ?? "",
+                        NewValue = device.Location,
+                        ChangedBy = "Agent"
+                    });
+                    existingDevice.Location = device.Location;
+                }
+
+                if (device.DeviceType != DeviceType.Unknown && existingDevice.DeviceType != device.DeviceType)
+                {
+                    changes.Add(new ChangeLog
+                    {
+                        Id = Guid.NewGuid(),
+                        DeviceId = existingDevice.Id,
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "DeviceType",
+                        OldValue = existingDevice.DeviceType.ToString(),
+                        NewValue = device.DeviceType.ToString(),
+                        ChangedBy = "Agent"
+                    });
+                    existingDevice.DeviceType = device.DeviceType;
+                }
+
+                if (device.ManagementType != ManagementType.Unknown && existingDevice.ManagementType != device.ManagementType)
+                {
+                    changes.Add(new ChangeLog
+                    {
+                        Id = Guid.NewGuid(),
+                        DeviceId = existingDevice.Id,
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "ManagementType",
+                        OldValue = existingDevice.ManagementType.ToString(),
+                        NewValue = device.ManagementType.ToString(),
+                        ChangedBy = "Agent"
+                    });
+                    existingDevice.ManagementType = device.ManagementType;
+                }
+
+                if (existingDevice.Status != device.Status)
+                {
+                    changes.Add(new ChangeLog
+                    {
+                        Id = Guid.NewGuid(),
+                        DeviceId = existingDevice.Id,
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "Status",
+                        OldValue = existingDevice.Status.ToString(),
+                        NewValue = device.Status.ToString(),
+                        ChangedBy = "Agent"
+                    });
+                    existingDevice.Status = device.Status;
+                }
+
+                // Update hardware info if available
+                if (device.HardwareInfo != null)
+                {
+                    if (existingDevice.HardwareInfo == null)
+                    {
+                        changes.Add(new ChangeLog
+                        {
+                            Id = Guid.NewGuid(),
+                            DeviceId = existingDevice.Id,
+                            ChangeDate = DateTime.UtcNow,
+                            ChangeType = "HardwareInfo",
+                            OldValue = "None",
+                            NewValue = "Hardware information added",
+                            ChangedBy = "Agent"
+                        });
+                        existingDevice.HardwareInfo = device.HardwareInfo;
+                    }
+                    else
+                    {
+                        // Track significant hardware changes
+                        if (!string.IsNullOrEmpty(device.HardwareInfo.Cpu) && 
+                            existingDevice.HardwareInfo.Cpu != device.HardwareInfo.Cpu)
+                        {
+                            changes.Add(new ChangeLog
+                            {
+                                Id = Guid.NewGuid(),
+                                DeviceId = existingDevice.Id,
+                                ChangeDate = DateTime.UtcNow,
+                                ChangeType = "CPU",
+                                OldValue = existingDevice.HardwareInfo.Cpu ?? "",
+                                NewValue = device.HardwareInfo.Cpu,
+                                ChangedBy = "Agent"
+                            });
+                        }
+
+                        if (device.HardwareInfo.RamGB != existingDevice.HardwareInfo.RamGB)
+                        {
+                            changes.Add(new ChangeLog
+                            {
+                                Id = Guid.NewGuid(),
+                                DeviceId = existingDevice.Id,
+                                ChangeDate = DateTime.UtcNow,
+                                ChangeType = "RAM",
+                                OldValue = $"{existingDevice.HardwareInfo.RamGB} GB",
+                                NewValue = $"{device.HardwareInfo.RamGB} GB",
+                                ChangedBy = "Agent"
+                            });
+                        }
+
+                        // Update hardware info fields
+                        existingDevice.HardwareInfo.Cpu = device.HardwareInfo.Cpu ?? existingDevice.HardwareInfo.Cpu;
+                        existingDevice.HardwareInfo.CpuCores = device.HardwareInfo.CpuCores > 0 ? device.HardwareInfo.CpuCores : existingDevice.HardwareInfo.CpuCores;
+                        existingDevice.HardwareInfo.CpuLogical = device.HardwareInfo.CpuLogical > 0 ? device.HardwareInfo.CpuLogical : existingDevice.HardwareInfo.CpuLogical;
+                        existingDevice.HardwareInfo.CpuClockMHz = device.HardwareInfo.CpuClockMHz > 0 ? device.HardwareInfo.CpuClockMHz : existingDevice.HardwareInfo.CpuClockMHz;
+                        existingDevice.HardwareInfo.Motherboard = device.HardwareInfo.Motherboard ?? existingDevice.HardwareInfo.Motherboard;
+                        existingDevice.HardwareInfo.MotherboardSerial = device.HardwareInfo.MotherboardSerial ?? existingDevice.HardwareInfo.MotherboardSerial;
+                        existingDevice.HardwareInfo.BiosManufacturer = device.HardwareInfo.BiosManufacturer ?? existingDevice.HardwareInfo.BiosManufacturer;
+                        existingDevice.HardwareInfo.BiosVersion = device.HardwareInfo.BiosVersion ?? existingDevice.HardwareInfo.BiosVersion;
+                        existingDevice.HardwareInfo.BiosSerial = device.HardwareInfo.BiosSerial ?? existingDevice.HardwareInfo.BiosSerial;
+                        existingDevice.HardwareInfo.RamGB = device.HardwareInfo.RamGB > 0 ? device.HardwareInfo.RamGB : existingDevice.HardwareInfo.RamGB;
+                        existingDevice.HardwareInfo.DiskGB = device.HardwareInfo.DiskGB > 0 ? device.HardwareInfo.DiskGB : existingDevice.HardwareInfo.DiskGB;
+                    }
+                }
+
+                // Update software info if available
+                if (device.SoftwareInfo != null)
+                {
+                    if (existingDevice.SoftwareInfo == null)
+                    {
+                        changes.Add(new ChangeLog
+                        {
+                            Id = Guid.NewGuid(),
+                            DeviceId = existingDevice.Id,
+                            ChangeDate = DateTime.UtcNow,
+                            ChangeType = "SoftwareInfo",
+                            OldValue = "None",
+                            NewValue = "Software information added",
+                            ChangedBy = "Agent"
+                        });
+                        existingDevice.SoftwareInfo = device.SoftwareInfo;
+                    }
+                    else
+                    {
+                        // Track significant software changes
+                        if (!string.IsNullOrEmpty(device.SoftwareInfo.OperatingSystem) && 
+                            existingDevice.SoftwareInfo.OperatingSystem != device.SoftwareInfo.OperatingSystem)
+                        {
+                            changes.Add(new ChangeLog
+                            {
+                                Id = Guid.NewGuid(),
+                                DeviceId = existingDevice.Id,
+                                ChangeDate = DateTime.UtcNow,
+                                ChangeType = "OperatingSystem",
+                                OldValue = existingDevice.SoftwareInfo.OperatingSystem ?? "",
+                                NewValue = device.SoftwareInfo.OperatingSystem,
+                                ChangedBy = "Agent"
+                            });
+                        }
+
+                        if (!string.IsNullOrEmpty(device.SoftwareInfo.OsVersion) && 
+                            existingDevice.SoftwareInfo.OsVersion != device.SoftwareInfo.OsVersion)
+                        {
+                            changes.Add(new ChangeLog
+                            {
+                                Id = Guid.NewGuid(),
+                                DeviceId = existingDevice.Id,
+                                ChangeDate = DateTime.UtcNow,
+                                ChangeType = "OSVersion",
+                                OldValue = existingDevice.SoftwareInfo.OsVersion ?? "",
+                                NewValue = device.SoftwareInfo.OsVersion,
+                                ChangedBy = "Agent"
+                            });
+                        }
+
+                        // Update software info fields
+                        existingDevice.SoftwareInfo.OperatingSystem = device.SoftwareInfo.OperatingSystem ?? existingDevice.SoftwareInfo.OperatingSystem;
+                        existingDevice.SoftwareInfo.OsVersion = device.SoftwareInfo.OsVersion ?? existingDevice.SoftwareInfo.OsVersion;
+                        existingDevice.SoftwareInfo.OsArchitecture = device.SoftwareInfo.OsArchitecture ?? existingDevice.SoftwareInfo.OsArchitecture;
+                        existingDevice.SoftwareInfo.RegisteredUser = device.SoftwareInfo.RegisteredUser ?? existingDevice.SoftwareInfo.RegisteredUser;
+                        existingDevice.SoftwareInfo.SerialNumber = device.SoftwareInfo.SerialNumber ?? existingDevice.SoftwareInfo.SerialNumber;
+                        existingDevice.SoftwareInfo.ActiveUser = device.SoftwareInfo.ActiveUser ?? existingDevice.SoftwareInfo.ActiveUser;
+                    }
+                }
+
+                // Update other fields
                 existingDevice.AgentInstalled = device.AgentInstalled;
-                existingDevice.Status = device.Status;
-                existingDevice.HardwareInfo = device.HardwareInfo ?? existingDevice.HardwareInfo;
-                existingDevice.SoftwareInfo = device.SoftwareInfo ?? existingDevice.SoftwareInfo;
+                if (device.DiscoveryMethod != DiscoveryMethod.Unknown)
+                    existingDevice.DiscoveryMethod = device.DiscoveryMethod;
                 existingDevice.LastSeen = DateTime.UtcNow;
 
-                return await UpdateDeviceAsync(existingDevice);
+                // Add change logs to the device
+                foreach (var changeLog in changes)
+                {
+                    existingDevice.ChangeLogs.Add(changeLog);
+                }
+
+                var result = await UpdateDeviceAsync(existingDevice);
+                
+                if (changes.Any())
+                {
+                    _logger.LogInformation("Device updated with {ChangeCount} changes: {DeviceName} ({MacAddress})", 
+                        changes.Count, existingDevice.Name, existingDevice.MacAddress);
+                }
+                else
+                {
+                    _logger.LogInformation("Device seen but no changes detected: {DeviceName} ({MacAddress})", 
+                        existingDevice.Name, existingDevice.MacAddress);
+                }
+                
+                return result;
             }
             else
             {
                 // Create new device
                 device.Id = Guid.NewGuid();
+                _logger.LogInformation("Creating new device: {DeviceName} ({MacAddress})", device.Name, device.MacAddress);
                 return await CreateDeviceAsync(device);
             }
         }
