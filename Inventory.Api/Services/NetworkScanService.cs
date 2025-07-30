@@ -316,8 +316,8 @@ namespace Inventory.Api.Services
             
             try
             {
-                // Owned entity'lerin ID'lerini sıfırla (SQLite auto-increment için)
-                EnsureOwnedEntityIdsAreReset(device);
+                // Owned entity'lerin ID'lerini SQLite için hazırla
+                PrepareOwnedEntitiesForSqlite(device);
                 
                 // Entity'yi context'e ekle
                 _context.Devices.Add(device);
@@ -340,8 +340,8 @@ namespace Inventory.Api.Services
                     // Context'i temizle
                     _context.ChangeTracker.Clear();
                     
-                    // Owned entity'lerin ID'lerini tekrar sıfırla
-                    EnsureOwnedEntityIdsAreProperlyReset(device);
+                    // Owned entity'leri yeniden oluştur
+                    RecreateOwnedEntitiesForSqlite(device);
                     
                     // Yeniden ekle ve kaydet
                     _context.Devices.Add(device);
@@ -355,17 +355,16 @@ namespace Inventory.Api.Services
             }
         }
 
-        private void EnsureOwnedEntityIdsAreReset(Device device)
+        private void PrepareOwnedEntitiesForSqlite(Device device)
         {
             if (device.HardwareInfo != null)
             {
-                // For owned entities in SQLite, ensure IDs are properly reset for auto-increment
-                // Using default(int) ensures the value is truly 0 and EF Core treats it as new
+                // For SQLite auto-increment, ensure all owned entity IDs are 0
                 if (device.HardwareInfo.Disks != null)
                 {
                     foreach (var disk in device.HardwareInfo.Disks)
                     {
-                        disk.Id = default(int); // Explicitly use default value for auto-increment
+                        disk.Id = 0;
                     }
                 }
 
@@ -373,7 +372,7 @@ namespace Inventory.Api.Services
                 {
                     foreach (var ram in device.HardwareInfo.RamModules)
                     {
-                        ram.Id = default(int); // Explicitly use default value for auto-increment
+                        ram.Id = 0;
                     }
                 }
 
@@ -381,7 +380,7 @@ namespace Inventory.Api.Services
                 {
                     foreach (var gpu in device.HardwareInfo.Gpus)
                     {
-                        gpu.Id = default(int); // Explicitly use default value for auto-increment
+                        gpu.Id = 0;
                     }
                 }
 
@@ -389,13 +388,13 @@ namespace Inventory.Api.Services
                 {
                     foreach (var adapter in device.HardwareInfo.NetworkAdapters)
                     {
-                        adapter.Id = default(int); // Explicitly use default value for auto-increment
+                        adapter.Id = 0;
                     }
                 }
             }
         }
 
-        private void EnsureOwnedEntityIdsAreProperlyReset(Device device)
+        private void RecreateOwnedEntitiesForSqlite(Device device)
         {
             if (device.HardwareInfo != null)
             {
