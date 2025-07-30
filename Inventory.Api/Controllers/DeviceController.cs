@@ -119,25 +119,25 @@ namespace Inventory.Api.Controllers
                 return BadRequest(new { errors = validationErrors });
             }
 
-            // MAC adresine göre mevcut cihazı kontrol et
-            Device? existingDevice = null;
-            if (!string.IsNullOrWhiteSpace(device.MacAddress))
+            // Use the existing CreateOrUpdateDeviceAsync method which handles duplicates and change tracking
+            var result = await _deviceService.CreateOrUpdateDeviceAsync(device);
+            if (result == null)
             {
-                existingDevice = await _deviceService.FindDeviceByIpOrMacAsync(device.IpAddress, device.MacAddress);
+                return BadRequest(new { error = "Failed to create or update device" });
             }
 
-            if (existingDevice != null)
+            // Check if it's a new device or an update by checking if device already had an ID
+            var isNewDevice = device.Id == Guid.Empty;
+            
+            if (isNewDevice)
             {
-                // Mevcut cihazı güncelle ve changelog oluştur
-                var updatedDevice = await UpdateExistingDeviceWithChangeLog(existingDevice, device);
-                return Ok(updatedDevice);
+                _logger.LogInformation("New device created: {DeviceName} ({MacAddress})", result.Name, result.MacAddress);
+                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
             }
             else
             {
-                // Yeni cihaz oluştur
-                device.Id = Guid.NewGuid();
-                var createdDevice = await _deviceService.CreateDeviceAsync(device);
-                return CreatedAtAction(nameof(GetById), new { id = createdDevice.Id }, createdDevice);
+                _logger.LogInformation("Existing device updated: {DeviceName} ({MacAddress})", result.Name, result.MacAddress);
+                return Ok(result);
             }
         }
 
