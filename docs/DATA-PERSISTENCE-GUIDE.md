@@ -8,12 +8,21 @@ Inventory Management System Agent, verilerinizi kalıcı dizinlerde depolar ve s
 
 #### Varsayılan Depolama Konumları
 
-1. **Offline Veri Depolama**: `Documents/InventoryManagementSystem/OfflineStorage/`
-2. **Yerel Loglar**: `Documents/InventoryManagementSystem/LocalLogs/`
+1. **Windows Service Modunda (Önerilen)**: `C:\ProgramData\Inventory Management System\`
+   - **Offline Veri Depolama**: `C:\ProgramData\Inventory Management System\OfflineStorage\`
+   - **Yerel Loglar**: `C:\ProgramData\Inventory Management System\Logs\`
+   - **Veritabanı**: `C:\ProgramData\Inventory Management System\Data\inventory.db`
+
+2. **Kullanıcı Modunda**: `Documents/InventoryManagementSystem/`
+   - **Offline Veri Depolama**: `Documents/InventoryManagementSystem/OfflineStorage/`
+   - **Yerel Loglar**: `Documents/InventoryManagementSystem/LocalLogs/`
 
 #### Platform Bazında Depolama Yerleri
 
-**Windows:**
+**Windows (Service Mode - Recommended):**
+- `C:\ProgramData\Inventory Management System\` (system-wide, persistent)
+
+**Windows (User Mode):**
 - `C:\Users\[Kullanıcı]\Documents\InventoryManagementSystem\`
 - `%APPDATA%\InventoryManagementSystem\` (Documents erişimi yoksa)
 - `%PROGRAMDATA%\InventoryManagementSystem\` (genel sistem klasörü)
@@ -109,12 +118,21 @@ The Inventory Management System Agent stores your data in persistent directories
 
 #### Default Storage Locations
 
-1. **Offline Data Storage**: `Documents/InventoryManagementSystem/OfflineStorage/`
-2. **Local Logs**: `Documents/InventoryManagementSystem/LocalLogs/`
+1. **Windows Service Mode (Recommended)**: `C:\ProgramData\Inventory Management System\`
+   - **Offline Data Storage**: `C:\ProgramData\Inventory Management System\OfflineStorage\`
+   - **Local Logs**: `C:\ProgramData\Inventory Management System\Logs\`
+   - **Database**: `C:\ProgramData\Inventory Management System\Data\inventory.db`
+
+2. **User Mode**: `Documents/InventoryManagementSystem/`
+   - **Offline Data Storage**: `Documents/InventoryManagementSystem/OfflineStorage/`
+   - **Local Logs**: `Documents/InventoryManagementSystem/LocalLogs/`
 
 #### Platform-Specific Storage Paths
 
-**Windows:**
+**Windows (Service Mode - Recommended):**
+- `C:\ProgramData\Inventory Management System\` (system-wide, persistent)
+
+**Windows (User Mode):**
 - `C:\Users\[Username]\Documents\InventoryManagementSystem\`
 - `%APPDATA%\InventoryManagementSystem\` (if Documents is inaccessible)
 - `%PROGRAMDATA%\InventoryManagementSystem\` (system-wide)

@@ -30,7 +30,7 @@ Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
-PrivilegesRequiredOverridesAllowed=dialog
+PrivilegesRequiredOverridesAllowed=no
 
 ; System requirements
 MinVersion=6.1sp1
@@ -61,6 +61,10 @@ Source: "..\docs\WINDOWS-SERVICE-README.md"; DestDir: "{app}"; Flags: ignorevers
 Name: "{app}\Data"
 Name: "{app}\Logs"
 Name: "{app}\Data\OfflineStorage"
+Name: "{commonappdata}\Inventory Management System"
+Name: "{commonappdata}\Inventory Management System\Data"
+Name: "{commonappdata}\Inventory Management System\Logs"
+Name: "{commonappdata}\Inventory Management System\OfflineStorage"
 
 [Icons]
 Name: "{group}\{#MyAppName} API (Swagger)"; Filename: "http://localhost:5093/swagger"; IconFilename: "{sys}\shell32.dll"; IconIndex: 14
@@ -167,7 +171,7 @@ begin
     '  "ApiSettings": {' + #13#10 +
     '    "BaseUrl": "http://localhost:5093",' + #13#10 +
     '    "EnableOfflineStorage": true,' + #13#10 +
-    '    "OfflineStoragePath": "' + ExpandConstant('{app}\Data\OfflineStorage') + '"' + #13#10 +
+    '    "OfflineStoragePath": "' + ExpandConstant('{commonappdata}\Inventory Management System\OfflineStorage') + '"' + #13#10 +
     '  },' + #13#10 +
     '  "Logging": {' + #13#10 +
     '    "LogLevel": {' + #13#10 +
@@ -240,10 +244,13 @@ begin
     Exec('netsh', 'advfirewall firewall delete rule name="Inventory Management API"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('netsh', 'advfirewall firewall add rule name="Inventory Management API" dir=in action=allow protocol=TCP localport=5093', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
-    // Set environment variables
+    // Set environment variables for persistent storage
     Exec('setx', 'ApiSettings__BaseUrl "http://localhost:5093" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('setx', 'ApiSettings__EnableOfflineStorage "true" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Exec('setx', 'ApiSettings__OfflineStoragePath "' + ExpandConstant('{app}\Data\OfflineStorage') + '" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec('setx', 'ApiSettings__OfflineStoragePath "' + ExpandConstant('{commonappdata}\Inventory Management System\OfflineStorage') + '" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec('setx', 'ConnectionStrings__DefaultConnection "Data Source=' + ExpandConstant('{commonappdata}\Inventory Management System\Data\inventory.db') + '" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec('setx', 'INVENTORY_DATA_PATH "' + ExpandConstant('{commonappdata}\Inventory Management System\Data') + '" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec('setx', 'INVENTORY_LOG_PATH "' + ExpandConstant('{commonappdata}\Inventory Management System\Logs') + '" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
     // Create a batch file for manual service management
     SaveStringToFile(ExpandConstant('{app}\ServiceManagement.bat'), 

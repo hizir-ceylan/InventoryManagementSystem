@@ -34,18 +34,30 @@ namespace Inventory.Api
             if (string.IsNullOrEmpty(connectionString))
             {
                 // Bağlantı dizesi sağlanmamışsa varsayılan olarak SQLite kullan
-                // Uygulama dizininde 'Data' klasörü oluştur ve veritabanını orada sakla
-                var appDirectory = AppContext.BaseDirectory;
-                var dataDirectory = Path.Combine(appDirectory, "Data");
+                // Önce sistem geneli veri yolu environment variable'ını kontrol et (Windows Service için)
+                var dataPath = Environment.GetEnvironmentVariable("INVENTORY_DATA_PATH", EnvironmentVariableTarget.Machine);
                 
-                // Data klasörünün var olduğundan emin ol
-                if (!Directory.Exists(dataDirectory))
+                if (!string.IsNullOrEmpty(dataPath) && Directory.Exists(dataPath))
                 {
-                    Directory.CreateDirectory(dataDirectory);
+                    // Sistem geneli persistent path kullan (Windows Service için ideal)
+                    var dbPath = Path.Combine(dataPath, "inventory.db");
+                    connectionString = $"Data Source={dbPath}";
                 }
-                
-                var dbPath = Path.Combine(dataDirectory, "inventory.db");
-                connectionString = $"Data Source={dbPath}";
+                else
+                {
+                    // Fallback: Uygulama dizininde 'Data' klasörü oluştur ve veritabanını orada sakla
+                    var appDirectory = AppContext.BaseDirectory;
+                    var dataDirectory = Path.Combine(appDirectory, "Data");
+                    
+                    // Data klasörünün var olduğundan emin ol
+                    if (!Directory.Exists(dataDirectory))
+                    {
+                        Directory.CreateDirectory(dataDirectory);
+                    }
+                    
+                    var dbPath = Path.Combine(dataDirectory, "inventory.db");
+                    connectionString = $"Data Source={dbPath}";
+                }
             }
 
             if (connectionString.Contains("Data Source"))
