@@ -313,11 +313,52 @@ namespace Inventory.Api.Services
             
             device.LastSeen = DateTime.UtcNow;
             
+            // Owned entity'lerin ID'lerini sıfırla (SQLite auto-increment için)
+            EnsureOwnedEntityIdsAreReset(device);
+            
             _context.Devices.Add(device);
             await _context.SaveChangesAsync();
             
             _logger.LogInformation("Device created: {DeviceName} ({DeviceId})", device.Name, device.Id);
             return device;
+        }
+
+        private void EnsureOwnedEntityIdsAreReset(Device device)
+        {
+            if (device.HardwareInfo != null)
+            {
+                if (device.HardwareInfo.Disks != null)
+                {
+                    foreach (var disk in device.HardwareInfo.Disks)
+                    {
+                        disk.Id = 0; // Reset to 0 to trigger auto-increment
+                    }
+                }
+
+                if (device.HardwareInfo.RamModules != null)
+                {
+                    foreach (var ram in device.HardwareInfo.RamModules)
+                    {
+                        ram.Id = 0; // Reset to 0 to trigger auto-increment
+                    }
+                }
+
+                if (device.HardwareInfo.Gpus != null)
+                {
+                    foreach (var gpu in device.HardwareInfo.Gpus)
+                    {
+                        gpu.Id = 0; // Reset to 0 to trigger auto-increment
+                    }
+                }
+
+                if (device.HardwareInfo.NetworkAdapters != null)
+                {
+                    foreach (var adapter in device.HardwareInfo.NetworkAdapters)
+                    {
+                        adapter.Id = 0; // Reset to 0 to trigger auto-increment
+                    }
+                }
+            }
         }
 
         public async Task<Device> UpdateDeviceAsync(Device device)
