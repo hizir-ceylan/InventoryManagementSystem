@@ -454,7 +454,18 @@ namespace Inventory.Api.Services
         public async Task<Device> UpdateDeviceAsync(Device device)
         {
             device.LastSeen = DateTime.UtcNow;
-            _context.Devices.Update(device);
+            
+            // Make sure to detach any existing tracked entities to avoid conflicts
+            var existingEntry = _context.Entry(device);
+            if (existingEntry.State == Microsoft.EntityFrameworkCore.EntityState.Detached)
+            {
+                _context.Devices.Update(device);
+            }
+            else
+            {
+                existingEntry.State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+            }
+            
             await _context.SaveChangesAsync();
             
             _logger.LogInformation("Device updated: {DeviceName} ({DeviceId})", device.Name, device.Id);

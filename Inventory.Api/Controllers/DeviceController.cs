@@ -106,8 +106,9 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPost]
-        [SwaggerOperation(Summary = "Yeni cihaz oluştur", Description = "Envanterde yeni bir cihaz oluşturur")]
+        [SwaggerOperation(Summary = "Yeni cihaz oluştur veya güncelle", Description = "MAC adresine göre mevcut cihazı bulur ve günceller veya yeni cihaz oluşturur")]
         [SwaggerResponse(201, "Cihaz başarıyla oluşturuldu", typeof(Device))]
+        [SwaggerResponse(200, "Mevcut cihaz başarıyla güncellendi", typeof(Device))]
         [SwaggerResponse(400, "Geçersiz cihaz verisi")]
         public async Task<ActionResult<Device>> Create(Device device)
         {
@@ -118,10 +119,26 @@ namespace Inventory.Api.Controllers
                 return BadRequest(new { errors = validationErrors });
             }
 
-            device.Id = Guid.NewGuid();
-            
-            var createdDevice = await _deviceService.CreateDeviceAsync(device);
-            return CreatedAtAction(nameof(GetById), new { id = createdDevice.Id }, createdDevice);
+            // MAC adresine göre mevcut cihazı kontrol et
+            Device? existingDevice = null;
+            if (!string.IsNullOrWhiteSpace(device.MacAddress))
+            {
+                existingDevice = await _deviceService.FindDeviceByIpOrMacAsync(device.IpAddress, device.MacAddress);
+            }
+
+            if (existingDevice != null)
+            {
+                // Mevcut cihazı güncelle ve changelog oluştur
+                var updatedDevice = await UpdateExistingDeviceWithChangeLog(existingDevice, device);
+                return Ok(updatedDevice);
+            }
+            else
+            {
+                // Yeni cihaz oluştur
+                device.Id = Guid.NewGuid();
+                var createdDevice = await _deviceService.CreateDeviceAsync(device);
+                return CreatedAtAction(nameof(GetById), new { id = createdDevice.Id }, createdDevice);
+            }
         }
 
         [HttpPost("network-discovered")]
@@ -419,6 +436,289 @@ namespace Inventory.Api.Controllers
         }
 
         // Yardımcı metotlar
+        private async Task<Device> UpdateExistingDeviceWithChangeLog(Device existingDevice, Device newDevice)
+        {
+            var changes = new List<ChangeLog>();
+            
+            // Reload the device from database to ensure we have the latest version
+            var deviceToUpdate = await _deviceService.GetDeviceByIdAsync(existingDevice.Id);
+            if (deviceToUpdate == null)
+            {
+                throw new InvalidOperationException("Device not found for update");
+            }
+            
+            // Track changes and update fields
+            if (!string.IsNullOrEmpty(newDevice.Name) && deviceToUpdate.Name != newDevice.Name)
+            {
+                changes.Add(new ChangeLog
+                {
+                    Id = Guid.NewGuid(),
+                    DeviceId = deviceToUpdate.Id,
+                    ChangeDate = DateTime.UtcNow,
+                    ChangeType = "Name",
+                    OldValue = deviceToUpdate.Name ?? "",
+                    NewValue = newDevice.Name,
+                    ChangedBy = "Agent"
+                });
+                deviceToUpdate.Name = newDevice.Name;
+            }
+
+            if (!string.IsNullOrEmpty(newDevice.IpAddress) && deviceToUpdate.IpAddress != newDevice.IpAddress)
+            {
+                changes.Add(new ChangeLog
+                {
+                    Id = Guid.NewGuid(),
+                    DeviceId = deviceToUpdate.Id,
+                    ChangeDate = DateTime.UtcNow,
+                    ChangeType = "IpAddress",
+                    OldValue = deviceToUpdate.IpAddress ?? "",
+                    NewValue = newDevice.IpAddress,
+                    ChangedBy = "Agent"
+                });
+                deviceToUpdate.IpAddress = newDevice.IpAddress;
+            }
+
+            if (!string.IsNullOrEmpty(newDevice.Model) && deviceToUpdate.Model != newDevice.Model)
+            {
+                changes.Add(new ChangeLog
+                {
+                    Id = Guid.NewGuid(),
+                    DeviceId = deviceToUpdate.Id,
+                    ChangeDate = DateTime.UtcNow,
+                    ChangeType = "Model",
+                    OldValue = deviceToUpdate.Model ?? "",
+                    NewValue = newDevice.Model,
+                    ChangedBy = "Agent"
+                });
+                deviceToUpdate.Model = newDevice.Model;
+            }
+
+            if (!string.IsNullOrEmpty(newDevice.Location) && deviceToUpdate.Location != newDevice.Location)
+            {
+                changes.Add(new ChangeLog
+                {
+                    Id = Guid.NewGuid(),
+                    DeviceId = deviceToUpdate.Id,
+                    ChangeDate = DateTime.UtcNow,
+                    ChangeType = "Location",
+                    OldValue = deviceToUpdate.Location ?? "",
+                    NewValue = newDevice.Location,
+                    ChangedBy = "Agent"
+                });
+                deviceToUpdate.Location = newDevice.Location;
+            }
+
+            if (newDevice.DeviceType != DeviceType.Unknown && deviceToUpdate.DeviceType != newDevice.DeviceType)
+            {
+                changes.Add(new ChangeLog
+                {
+                    Id = Guid.NewGuid(),
+                    DeviceId = deviceToUpdate.Id,
+                    ChangeDate = DateTime.UtcNow,
+                    ChangeType = "DeviceType",
+                    OldValue = deviceToUpdate.DeviceType.ToString(),
+                    NewValue = newDevice.DeviceType.ToString(),
+                    ChangedBy = "Agent"
+                });
+                deviceToUpdate.DeviceType = newDevice.DeviceType;
+            }
+
+            if (newDevice.ManagementType != ManagementType.Unknown && deviceToUpdate.ManagementType != newDevice.ManagementType)
+            {
+                changes.Add(new ChangeLog
+                {
+                    Id = Guid.NewGuid(),
+                    DeviceId = deviceToUpdate.Id,
+                    ChangeDate = DateTime.UtcNow,
+                    ChangeType = "ManagementType",
+                    OldValue = deviceToUpdate.ManagementType.ToString(),
+                    NewValue = newDevice.ManagementType.ToString(),
+                    ChangedBy = "Agent"
+                });
+                deviceToUpdate.ManagementType = newDevice.ManagementType;
+            }
+
+            if (deviceToUpdate.Status != newDevice.Status)
+            {
+                changes.Add(new ChangeLog
+                {
+                    Id = Guid.NewGuid(),
+                    DeviceId = deviceToUpdate.Id,
+                    ChangeDate = DateTime.UtcNow,
+                    ChangeType = "Status",
+                    OldValue = deviceToUpdate.Status.ToString(),
+                    NewValue = newDevice.Status.ToString(),
+                    ChangedBy = "Agent"
+                });
+                deviceToUpdate.Status = newDevice.Status;
+            }
+
+            // HardwareInfo güncelleme - sadece önemli değişiklikleri logla
+            if (newDevice.HardwareInfo != null)
+            {
+                if (deviceToUpdate.HardwareInfo == null)
+                {
+                    changes.Add(new ChangeLog
+                    {
+                        Id = Guid.NewGuid(),
+                        DeviceId = deviceToUpdate.Id,
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "HardwareInfo",
+                        OldValue = "None",
+                        NewValue = "Hardware information added",
+                        ChangedBy = "Agent"
+                    });
+                    deviceToUpdate.HardwareInfo = newDevice.HardwareInfo;
+                }
+                else
+                {
+                    // CPU değişikliği kontrolü
+                    if (!string.IsNullOrEmpty(newDevice.HardwareInfo.Cpu) && 
+                        deviceToUpdate.HardwareInfo.Cpu != newDevice.HardwareInfo.Cpu)
+                    {
+                        changes.Add(new ChangeLog
+                        {
+                            Id = Guid.NewGuid(),
+                            DeviceId = deviceToUpdate.Id,
+                            ChangeDate = DateTime.UtcNow,
+                            ChangeType = "CPU",
+                            OldValue = deviceToUpdate.HardwareInfo.Cpu ?? "",
+                            NewValue = newDevice.HardwareInfo.Cpu,
+                            ChangedBy = "Agent"
+                        });
+                    }
+
+                    // RAM değişikliği kontrolü
+                    if (newDevice.HardwareInfo.RamGB != deviceToUpdate.HardwareInfo.RamGB)
+                    {
+                        changes.Add(new ChangeLog
+                        {
+                            Id = Guid.NewGuid(),
+                            DeviceId = deviceToUpdate.Id,
+                            ChangeDate = DateTime.UtcNow,
+                            ChangeType = "RAM",
+                            OldValue = $"{deviceToUpdate.HardwareInfo.RamGB} GB",
+                            NewValue = $"{newDevice.HardwareInfo.RamGB} GB",
+                            ChangedBy = "Agent"
+                        });
+                    }
+
+                    // Update hardware info without complex nested object updates for now
+                    deviceToUpdate.HardwareInfo.Cpu = newDevice.HardwareInfo.Cpu ?? deviceToUpdate.HardwareInfo.Cpu;
+                    deviceToUpdate.HardwareInfo.CpuCores = newDevice.HardwareInfo.CpuCores > 0 ? newDevice.HardwareInfo.CpuCores : deviceToUpdate.HardwareInfo.CpuCores;
+                    deviceToUpdate.HardwareInfo.CpuLogical = newDevice.HardwareInfo.CpuLogical > 0 ? newDevice.HardwareInfo.CpuLogical : deviceToUpdate.HardwareInfo.CpuLogical;
+                    deviceToUpdate.HardwareInfo.CpuClockMHz = newDevice.HardwareInfo.CpuClockMHz > 0 ? newDevice.HardwareInfo.CpuClockMHz : deviceToUpdate.HardwareInfo.CpuClockMHz;
+                    deviceToUpdate.HardwareInfo.Motherboard = newDevice.HardwareInfo.Motherboard ?? deviceToUpdate.HardwareInfo.Motherboard;
+                    deviceToUpdate.HardwareInfo.MotherboardSerial = newDevice.HardwareInfo.MotherboardSerial ?? deviceToUpdate.HardwareInfo.MotherboardSerial;
+                    deviceToUpdate.HardwareInfo.BiosManufacturer = newDevice.HardwareInfo.BiosManufacturer ?? deviceToUpdate.HardwareInfo.BiosManufacturer;
+                    deviceToUpdate.HardwareInfo.BiosVersion = newDevice.HardwareInfo.BiosVersion ?? deviceToUpdate.HardwareInfo.BiosVersion;
+                    deviceToUpdate.HardwareInfo.BiosSerial = newDevice.HardwareInfo.BiosSerial ?? deviceToUpdate.HardwareInfo.BiosSerial;
+                    deviceToUpdate.HardwareInfo.RamGB = newDevice.HardwareInfo.RamGB > 0 ? newDevice.HardwareInfo.RamGB : deviceToUpdate.HardwareInfo.RamGB;
+                    deviceToUpdate.HardwareInfo.DiskGB = newDevice.HardwareInfo.DiskGB > 0 ? newDevice.HardwareInfo.DiskGB : deviceToUpdate.HardwareInfo.DiskGB;
+                }
+            }
+
+            // SoftwareInfo güncelleme - sadece önemli değişiklikleri logla
+            if (newDevice.SoftwareInfo != null)
+            {
+                if (deviceToUpdate.SoftwareInfo == null)
+                {
+                    changes.Add(new ChangeLog
+                    {
+                        Id = Guid.NewGuid(),
+                        DeviceId = deviceToUpdate.Id,
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "SoftwareInfo",
+                        OldValue = "None",
+                        NewValue = "Software information added",
+                        ChangedBy = "Agent"
+                    });
+                    deviceToUpdate.SoftwareInfo = newDevice.SoftwareInfo;
+                }
+                else
+                {
+                    // OS değişikliği kontrolü
+                    if (!string.IsNullOrEmpty(newDevice.SoftwareInfo.OperatingSystem) && 
+                        deviceToUpdate.SoftwareInfo.OperatingSystem != newDevice.SoftwareInfo.OperatingSystem)
+                    {
+                        changes.Add(new ChangeLog
+                        {
+                            Id = Guid.NewGuid(),
+                            DeviceId = deviceToUpdate.Id,
+                            ChangeDate = DateTime.UtcNow,
+                            ChangeType = "OperatingSystem",
+                            OldValue = deviceToUpdate.SoftwareInfo.OperatingSystem ?? "",
+                            NewValue = newDevice.SoftwareInfo.OperatingSystem,
+                            ChangedBy = "Agent"
+                        });
+                    }
+
+                    // OS Version değişikliği kontrolü
+                    if (!string.IsNullOrEmpty(newDevice.SoftwareInfo.OsVersion) && 
+                        deviceToUpdate.SoftwareInfo.OsVersion != newDevice.SoftwareInfo.OsVersion)
+                    {
+                        changes.Add(new ChangeLog
+                        {
+                            Id = Guid.NewGuid(),
+                            DeviceId = deviceToUpdate.Id,
+                            ChangeDate = DateTime.UtcNow,
+                            ChangeType = "OSVersion",
+                            OldValue = deviceToUpdate.SoftwareInfo.OsVersion ?? "",
+                            NewValue = newDevice.SoftwareInfo.OsVersion,
+                            ChangedBy = "Agent"
+                        });
+                    }
+
+                    // Update software info
+                    deviceToUpdate.SoftwareInfo.OperatingSystem = newDevice.SoftwareInfo.OperatingSystem ?? deviceToUpdate.SoftwareInfo.OperatingSystem;
+                    deviceToUpdate.SoftwareInfo.OsVersion = newDevice.SoftwareInfo.OsVersion ?? deviceToUpdate.SoftwareInfo.OsVersion;
+                    deviceToUpdate.SoftwareInfo.OsArchitecture = newDevice.SoftwareInfo.OsArchitecture ?? deviceToUpdate.SoftwareInfo.OsArchitecture;
+                    deviceToUpdate.SoftwareInfo.RegisteredUser = newDevice.SoftwareInfo.RegisteredUser ?? deviceToUpdate.SoftwareInfo.RegisteredUser;
+                    deviceToUpdate.SoftwareInfo.SerialNumber = newDevice.SoftwareInfo.SerialNumber ?? deviceToUpdate.SoftwareInfo.SerialNumber;
+                    deviceToUpdate.SoftwareInfo.ActiveUser = newDevice.SoftwareInfo.ActiveUser ?? deviceToUpdate.SoftwareInfo.ActiveUser;
+                }
+            }
+
+            // Agent bilgileri güncelle
+            deviceToUpdate.AgentInstalled = newDevice.AgentInstalled;
+            if (newDevice.DiscoveryMethod != DiscoveryMethod.Unknown)
+                deviceToUpdate.DiscoveryMethod = newDevice.DiscoveryMethod;
+            
+            // LastSeen güncelle
+            deviceToUpdate.LastSeen = DateTime.UtcNow;
+
+            // Yeni change log'ları ekle
+            foreach (var changeLog in changes)
+            {
+                deviceToUpdate.ChangeLogs.Add(changeLog);
+            }
+
+            // Cihazı güncelle - use the DeviceService's more robust update method
+            try
+            {
+                var updatedDevice = await _deviceService.UpdateDeviceAsync(deviceToUpdate);
+                
+                if (changes.Any())
+                {
+                    _logger.LogInformation("Device updated with {ChangeCount} changes: {DeviceName} ({MacAddress})", 
+                        changes.Count, deviceToUpdate.Name, deviceToUpdate.MacAddress);
+                }
+                else
+                {
+                    _logger.LogInformation("Device seen but no changes detected: {DeviceName} ({MacAddress})", 
+                        deviceToUpdate.Name, deviceToUpdate.MacAddress);
+                }
+                
+                return updatedDevice;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating device: {DeviceName} ({MacAddress})", 
+                    deviceToUpdate.Name, deviceToUpdate.MacAddress);
+                throw;
+            }
+        }
+
         private async Task<ActionResult<Device>> UpdateExistingNetworkDevice(Device existingDevice, Device newDevice)
         {
             // Mevcut cihazı yeni bilgilerle güncelle
