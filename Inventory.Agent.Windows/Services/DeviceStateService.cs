@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Inventory.Agent.Windows.Models;
@@ -255,6 +256,18 @@ namespace Inventory.Agent.Windows.Services
                     ChangedBy = "Agent"
                 });
             }
+
+            // Compare GPUs - detect added/removed graphics cards
+            CompareGpuChanges(current.Gpus, previous.Gpus, changes);
+
+            // Compare Network Adapters
+            CompareNetworkAdapters(current.NetworkAdapters, previous.NetworkAdapters, changes);
+
+            // Compare RAM Modules
+            CompareRamModules(current.RamModules, previous.RamModules, changes);
+
+            // Compare Disks
+            CompareDiskChanges(current.Disks, previous.Disks, changes);
         }
 
         private void CompareSoftwareInfo(DeviceSoftwareInfoDto? current, DeviceSoftwareInfoDto? previous, List<ChangeLogDto> changes)
@@ -378,6 +391,221 @@ namespace Inventory.Agent.Windows.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"Error cleaning up old change files: {ex.Message}");
+            }
+        }
+
+        private void CompareGpuChanges(List<GpuInfoDto>? current, List<GpuInfoDto>? previous, List<ChangeLogDto> changes)
+        {
+            if (current == null) current = new List<GpuInfoDto>();
+            if (previous == null) previous = new List<GpuInfoDto>();
+
+            // Check for removed GPUs
+            for (int i = 0; i < previous.Count; i++)
+            {
+                var oldGpu = previous[i];
+                var found = current.Any(g => g.Name == oldGpu.Name);
+                if (!found)
+                {
+                    changes.Add(new ChangeLogDto
+                    {
+                        Id = Guid.NewGuid(),
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "Hardware Change",
+                        OldValue = $"GPU {i}: {oldGpu.Name}",
+                        NewValue = "Removed",
+                        ChangedBy = "Agent"
+                    });
+                    Console.WriteLine($"GPU removed: {oldGpu.Name}");
+                }
+            }
+
+            // Check for added GPUs
+            for (int i = 0; i < current.Count; i++)
+            {
+                var newGpu = current[i];
+                var found = previous.Any(g => g.Name == newGpu.Name);
+                if (!found)
+                {
+                    changes.Add(new ChangeLogDto
+                    {
+                        Id = Guid.NewGuid(),
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "Hardware Change",
+                        OldValue = "None",
+                        NewValue = $"GPU {i}: {newGpu.Name}",
+                        ChangedBy = "Agent"
+                    });
+                    Console.WriteLine($"GPU added: {newGpu.Name}");
+                }
+            }
+
+            // Check for GPU memory changes
+            for (int i = 0; i < Math.Min(current.Count, previous.Count); i++)
+            {
+                var currentGpu = current[i];
+                var previousGpu = previous.FirstOrDefault(g => g.Name == currentGpu.Name);
+                
+                if (previousGpu != null && 
+                    Math.Abs((currentGpu.MemoryGB ?? 0) - (previousGpu.MemoryGB ?? 0)) > 0.1)
+                {
+                    changes.Add(new ChangeLogDto
+                    {
+                        Id = Guid.NewGuid(),
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "GPU Memory",
+                        OldValue = $"{currentGpu.Name}: {previousGpu.MemoryGB?.ToString("F1") ?? "Unknown"} GB",
+                        NewValue = $"{currentGpu.Name}: {currentGpu.MemoryGB?.ToString("F1") ?? "Unknown"} GB",
+                        ChangedBy = "Agent"
+                    });
+                }
+            }
+        }
+
+        private void CompareNetworkAdapters(List<NetworkAdapterDto>? current, List<NetworkAdapterDto>? previous, List<ChangeLogDto> changes)
+        {
+            if (current == null) current = new List<NetworkAdapterDto>();
+            if (previous == null) previous = new List<NetworkAdapterDto>();
+
+            // Check for removed network adapters
+            foreach (var oldAdapter in previous)
+            {
+                var found = current.Any(a => a.MacAddress == oldAdapter.MacAddress);
+                if (!found)
+                {
+                    changes.Add(new ChangeLogDto
+                    {
+                        Id = Guid.NewGuid(),
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "Network Adapter",
+                        OldValue = $"{oldAdapter.Description} ({oldAdapter.MacAddress})",
+                        NewValue = "Removed",
+                        ChangedBy = "Agent"
+                    });
+                }
+            }
+
+            // Check for added network adapters
+            foreach (var newAdapter in current)
+            {
+                var found = previous.Any(a => a.MacAddress == newAdapter.MacAddress);
+                if (!found)
+                {
+                    changes.Add(new ChangeLogDto
+                    {
+                        Id = Guid.NewGuid(),
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "Network Adapter",
+                        OldValue = "None",
+                        NewValue = $"{newAdapter.Description} ({newAdapter.MacAddress})",
+                        ChangedBy = "Agent"
+                    });
+                }
+            }
+        }
+
+        private void CompareRamModules(List<RamModuleDto>? current, List<RamModuleDto>? previous, List<ChangeLogDto> changes)
+        {
+            if (current == null) current = new List<RamModuleDto>();
+            if (previous == null) previous = new List<RamModuleDto>();
+
+            // Check for removed RAM modules
+            foreach (var oldRam in previous)
+            {
+                var found = current.Any(r => r.Slot == oldRam.Slot && r.SerialNumber == oldRam.SerialNumber);
+                if (!found)
+                {
+                    changes.Add(new ChangeLogDto
+                    {
+                        Id = Guid.NewGuid(),
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "RAM Module",
+                        OldValue = $"{oldRam.Slot}: {oldRam.CapacityGB}GB {oldRam.Manufacturer}",
+                        NewValue = "Removed",
+                        ChangedBy = "Agent"
+                    });
+                }
+            }
+
+            // Check for added RAM modules
+            foreach (var newRam in current)
+            {
+                var found = previous.Any(r => r.Slot == newRam.Slot && r.SerialNumber == newRam.SerialNumber);
+                if (!found)
+                {
+                    changes.Add(new ChangeLogDto
+                    {
+                        Id = Guid.NewGuid(),
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "RAM Module",
+                        OldValue = "None",
+                        NewValue = $"{newRam.Slot}: {newRam.CapacityGB}GB {newRam.Manufacturer}",
+                        ChangedBy = "Agent"
+                    });
+                }
+            }
+        }
+
+        private void CompareDiskChanges(List<DiskInfoDto>? current, List<DiskInfoDto>? previous, List<ChangeLogDto> changes)
+        {
+            if (current == null) current = new List<DiskInfoDto>();
+            if (previous == null) previous = new List<DiskInfoDto>();
+
+            // Check for removed disks
+            foreach (var oldDisk in previous)
+            {
+                var found = current.Any(d => d.DeviceId == oldDisk.DeviceId);
+                if (!found)
+                {
+                    changes.Add(new ChangeLogDto
+                    {
+                        Id = Guid.NewGuid(),
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "Storage Device",
+                        OldValue = $"{oldDisk.DeviceId}: {oldDisk.TotalGB}GB",
+                        NewValue = "Removed",
+                        ChangedBy = "Agent"
+                    });
+                }
+            }
+
+            // Check for added disks
+            foreach (var newDisk in current)
+            {
+                var found = previous.Any(d => d.DeviceId == newDisk.DeviceId);
+                if (!found)
+                {
+                    changes.Add(new ChangeLogDto
+                    {
+                        Id = Guid.NewGuid(),
+                        ChangeDate = DateTime.UtcNow,
+                        ChangeType = "Storage Device",
+                        OldValue = "None",
+                        NewValue = $"{newDisk.DeviceId}: {newDisk.TotalGB}GB",
+                        ChangedBy = "Agent"
+                    });
+                }
+            }
+
+            // Check for disk capacity changes (significant changes only)
+            foreach (var currentDisk in current)
+            {
+                var previousDisk = previous.FirstOrDefault(d => d.DeviceId == currentDisk.DeviceId);
+                if (previousDisk != null)
+                {
+                    var capacityDiff = Math.Abs(currentDisk.TotalGB - previousDisk.TotalGB);
+                    if (capacityDiff > 1.0) // Only log significant capacity changes (>1GB)
+                    {
+                        changes.Add(new ChangeLogDto
+                        {
+                            Id = Guid.NewGuid(),
+                            ChangeDate = DateTime.UtcNow,
+                            ChangeType = "Storage Capacity",
+                            OldValue = $"{currentDisk.DeviceId}: {previousDisk.TotalGB}GB",
+                            NewValue = $"{currentDisk.DeviceId}: {currentDisk.TotalGB}GB",
+                            ChangedBy = "Agent"
+                        });
+                    }
+                }
             }
         }
     }

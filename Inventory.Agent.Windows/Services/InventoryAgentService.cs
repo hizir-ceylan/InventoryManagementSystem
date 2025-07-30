@@ -4,6 +4,7 @@ using Inventory.Agent.Windows.Configuration;
 using Inventory.Agent.Windows.Services;
 using Inventory.Agent.Windows.Models;
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,10 +17,13 @@ namespace Inventory.Agent.Windows.Services
         private readonly ApiSettings _apiSettings;
         private ConnectivityMonitorService? _connectivityMonitor;
         private readonly int _inventoryIntervalMinutes = 30; // Her 30 dakikada bir
+        private readonly int _hardwareChangeCheckMinutes = 5; // Hardware değişiklik kontrolü her 5 dakikada bir
         private readonly int _initialDelaySeconds = 15; // Service startup'tan sonra ilk tarama için bekleme süresi (azaltıldı)
         private readonly int _apiCheckIntervalSeconds = 3; // API hazır olma kontrolü aralığı (azaltıldı)
         private readonly int _maxApiCheckAttempts = 5; // Maksimum API kontrol deneme sayısı (15 saniye toplam)
         private OfflineStorageService? _offlineStorage;
+        private DeviceStateService? _deviceStateService;
+        private LocalChangeLogService? _localChangeLogService;
         private readonly CancellationTokenSource _startupCancellation = new();
 
         public InventoryAgentService(ILogger<InventoryAgentService> logger)
@@ -58,8 +62,11 @@ namespace Inventory.Agent.Windows.Services
                 // Start the main service loop immediately
                 var serviceTask = RunServiceLoopAsync(cancellationToken);
 
+                // Start hardware change monitoring loop
+                var hardwareMonitorTask = RunHardwareChangeMonitoringAsync(cancellationToken);
+
                 // Wait for either task to complete or cancellation
-                await Task.WhenAny(backgroundTask, serviceTask);
+                await Task.WhenAny(backgroundTask, serviceTask, hardwareMonitorTask);
                 
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -97,6 +104,28 @@ namespace Inventory.Agent.Windows.Services
                 {
                     _logger.LogError(ex, "Offline Storage başlatılırken hata oluştu. Devam edilecek.");
                 }
+            }
+
+            // Initialize device state service for hardware change detection
+            try
+            {
+                _deviceStateService = new DeviceStateService(_apiSettings.OfflineStoragePath);
+                _logger.LogInformation("Device State Service başlatıldı.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Device State Service başlatılırken hata oluştu. Devam edilecek.");
+            }
+
+            // Initialize local change log service
+            try
+            {
+                _localChangeLogService = new LocalChangeLogService(_apiSettings);
+                _logger.LogInformation($"Local Change Log Service başlatıldı. Log directory: {_localChangeLogService.GetChangeLogDirectory()}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Local Change Log Service başlatılırken hata oluştu. Devam edilecek.");
             }
         }
 
@@ -245,6 +274,19 @@ namespace Inventory.Agent.Windows.Services
                 // DeviceLogger kullanma (konsol çıktısı service için uygun değil)
                 _logger.LogInformation($"Device: {device.Name}, IP: {device.IpAddress}, MAC: {device.MacAddress}");
 
+                // Device state service varsa durumu kaydet
+                if (_deviceStateService != null)
+                {
+                    try
+                    {
+                        await _deviceStateService.SaveCurrentStateAsync(device);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Device state kaydedilirken hata oluştu.");
+                    }
+                }
+
                 // API'ye gönder
                 string apiUrl = _apiSettings.GetDeviceEndpoint();
                 bool success = await ApiClient.PostDeviceAsync(device, apiUrl, offlineStorage);
@@ -265,6 +307,104 @@ namespace Inventory.Agent.Windows.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Envanter toplama sırasında hata oluştu.");
+            }
+        }
+
+        private async Task RunHardwareChangeMonitoringAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogInformation($"Hardware change monitoring başlatıldı, {_hardwareChangeCheckMinutes} dakikada bir kontrol edilecek.");
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    // İlk check için biraz bekle (ana envanter taramasının tamamlanması için)
+                    await Task.Delay(TimeSpan.FromMinutes(2), cancellationToken);
+                    
+                    if (!cancellationToken.IsCancellationRequested)
+                    {
+                        _logger.LogInformation("Hardware değişiklik kontrolü başlatılıyor...");
+                        await CheckForHardwareChangesAsync();
+                    }
+
+                    // Sonraki kontrol için bekle
+                    await Task.Delay(TimeSpan.FromMinutes(_hardwareChangeCheckMinutes), cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Normal shutdown, break the loop
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Hardware değişiklik kontrolü sırasında hata oluştu. Bir sonraki döngüde devam edilecek.");
+                    
+                    // Hata sonrası kısa bekleme
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        private async Task CheckForHardwareChangesAsync()
+        {
+            try
+            {
+                if (_deviceStateService == null)
+                {
+                    _logger.LogWarning("Device State Service kullanılamıyor, hardware değişiklik kontrolü atlanıyor.");
+                    return;
+                }
+
+                // Mevcut donanım bilgilerini topla
+                var currentDevice = CrossPlatformSystemInfo.GatherSystemInformation();
+                var previousDevice = await _deviceStateService.GetLastKnownStateAsync();
+                
+                // Değişiklikleri tespit et
+                var changes = await _deviceStateService.DetectChangesAsync(currentDevice, previousDevice);
+                
+                if (changes.Any())
+                {
+                    _logger.LogInformation($"{changes.Count} donanım değişikliği tespit edildi.");
+                    
+                    // Save changes locally first
+                    if (_localChangeLogService != null)
+                    {
+                        try
+                        {
+                            var localLogPath = await _localChangeLogService.SaveChangeLogsAsync(changes, currentDevice.Name);
+                            _logger.LogInformation($"Hardware değişiklikleri yerel dosyaya kaydedildi: {localLogPath}");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Hardware değişiklikleri yerel dosyaya kaydedilirken hata oluştu.");
+                        }
+                    }
+                    
+                    // Değişiklikleri API'ye gönder
+                    var changeLogApiClient = new ChangeLogApiClient(_apiSettings);
+                    await changeLogApiClient.SendChangeLogsAsync(currentDevice.MacAddress, changes);
+                    
+                    // Güncel durumu kaydet
+                    await _deviceStateService.SaveCurrentStateAsync(currentDevice);
+                    
+                    // Eski değişiklik dosyalarını temizle
+                    await _deviceStateService.CleanupOldChangesAsync();
+                }
+                else
+                {
+                    _logger.LogDebug("Hardware değişikliği tespit edilmedi.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Hardware değişiklik kontrolü sırasında hata oluştu.");
             }
         }
 
