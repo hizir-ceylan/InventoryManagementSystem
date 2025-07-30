@@ -49,9 +49,9 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpGet("{id}/available-fields")]
-        [SwaggerOperation(Summary = "Get available fields for a device", Description = "Returns information about which fields are available for a specific device")]
-        [SwaggerResponse(200, "Returns the available fields information")]
-        [SwaggerResponse(404, "Device not found")]
+        [SwaggerOperation(Summary = "Cihaz için mevcut alanları getir", Description = "Belirli bir cihaz için hangi alanların mevcut olduğu bilgisini döndürür")]
+        [SwaggerResponse(200, "Mevcut alan bilgilerini döndürür")]
+        [SwaggerResponse(404, "Cihaz bulunamadı")]
         public async Task<ActionResult<object>> GetAvailableFields(Guid id)
         {
             var device = await _deviceService.GetDeviceByIdAsync(id);
@@ -94,9 +94,9 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        [SwaggerOperation(Summary = "Get device by ID", Description = "Returns a specific device by its ID")]
-        [SwaggerResponse(200, "Returns the device", typeof(Device))]
-        [SwaggerResponse(404, "Device not found")]
+        [SwaggerOperation(Summary = "ID ile cihaz getir", Description = "ID'si ile belirli bir cihazı döndürür")]
+        [SwaggerResponse(200, "Cihazı döndürür", typeof(Device))]
+        [SwaggerResponse(404, "Cihaz bulunamadı")]
         public async Task<ActionResult<Device>> GetById(Guid id)
         {
             var device = await _deviceService.GetDeviceByIdAsync(id);
@@ -106,9 +106,9 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPost]
-        [SwaggerOperation(Summary = "Create a new device", Description = "Creates a new device in the inventory")]
-        [SwaggerResponse(201, "Device created successfully", typeof(Device))]
-        [SwaggerResponse(400, "Invalid device data")]
+        [SwaggerOperation(Summary = "Yeni cihaz oluştur", Description = "Envanterde yeni bir cihaz oluşturur")]
+        [SwaggerResponse(201, "Cihaz başarıyla oluşturuldu", typeof(Device))]
+        [SwaggerResponse(400, "Geçersiz cihaz verisi")]
         public async Task<ActionResult<Device>> Create(Device device)
         {
             // Cihazı doğrula
