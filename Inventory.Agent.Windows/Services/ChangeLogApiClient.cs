@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Inventory.Agent.Windows.Models;
+using Inventory.Agent.Windows.Configuration;
 
 namespace Inventory.Agent.Windows.Services
 {
@@ -21,7 +23,19 @@ namespace Inventory.Agent.Windows.Services
             _deviceMacAddress = deviceMacAddress;
         }
 
+        public ChangeLogApiClient(ApiSettings apiSettings)
+        {
+            _baseUrl = apiSettings.BaseUrl;
+            _deviceIpAddress = "";
+            _deviceMacAddress = "";
+        }
+
         public async Task<bool> SendChangeLogsAsync(List<ChangeLogDto> changeLogs)
+        {
+            return await SendChangeLogsAsync("", changeLogs);
+        }
+
+        public async Task<bool> SendChangeLogsAsync(string deviceMacAddress, List<ChangeLogDto> changeLogs)
         {
             if (changeLogs == null || changeLogs.Count == 0)
             {
@@ -37,7 +51,7 @@ namespace Inventory.Agent.Windows.Services
                 var batchDto = new
                 {
                     DeviceIpAddress = _deviceIpAddress,
-                    DeviceMacAddress = _deviceMacAddress,
+                    DeviceMacAddress = !string.IsNullOrEmpty(deviceMacAddress) ? deviceMacAddress : _deviceMacAddress,
                     ChangeLogs = changeLogs.Select(c => new
                     {
                         ChangeDate = c.ChangeDate,

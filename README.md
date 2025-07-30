@@ -103,10 +103,23 @@ InventoryManagementSystem/
 - **Veritabanı**: `C:\ProgramData\Inventory Management System\Data\inventory.db`
 - **Offline Veriler**: `C:\ProgramData\Inventory Management System\OfflineStorage\`
 - **Yerel Loglar**: `C:\ProgramData\Inventory Management System\Logs\`
+- **Hardware Değişiklik Logları**: `C:\ProgramData\Inventory Management System\Logs\ChangeLogs\`
+- **Device State Dosyaları**: `C:\ProgramData\Inventory Management System\OfflineStorage\Changes\`
 
 **Manuel Kullanıcı Modunda:**
 - **Offline Veriler**: `Documents/InventoryManagementSystem/OfflineStorage/`
 - **Yerel Loglar**: `Documents/InventoryManagementSystem/LocalLogs/`
+- **Hardware Değişiklik Logları**: `Documents/InventoryManagementSystem/LocalLogs/ChangeLogs/`
+- **Device State Dosyaları**: `Documents/InventoryManagementSystem/OfflineStorage/Changes/`
+
+### Hardware Değişiklik Takibi
+
+Agent otomatik olarak hardware değişikliklerini (GPU ekleme/çıkarma, RAM değişiklikleri, disk değişiklikleri) tespit eder ve şu şekilde loglar:
+
+- **API Gönderimi**: Değişiklikler API'ye otomatik olarak gönderilir ve veritabanında saklanır
+- **Yerel Loglar**: Değişiklikler bilgisayarda JSON formatında yerel olarak kaydedilir
+- **Real-time Detection**: Hardware değişiklikleri 5 dakika içinde tespit edilir
+- **Change Log Examples**: "GPU 0: AMD Radeon Graphics - Removed", "RAM Module: DIMM0 8GB Samsung - Added"
 
 Detaylı bilgi için [Veri Kalıcılığı Kılavuzu](docs/DATA-PERSISTENCE-GUIDE.md)'na bakın.
 
