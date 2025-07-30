@@ -16,7 +16,7 @@ namespace Inventory.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Simple Device configuration for now
+            // Device için temel yapılandırma
             modelBuilder.Entity<Device>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -28,7 +28,7 @@ namespace Inventory.Data
                 entity.HasIndex(e => e.MacAddress);
                 entity.HasIndex(e => e.IpAddress);
 
-                // Configure DeviceHardwareInfo as owned entity
+                // DeviceHardwareInfo'yu owned entity olarak yapılandır
                 entity.OwnsOne(e => e.HardwareInfo, hardware =>
                 {
                     hardware.Property(h => h.Cpu).HasMaxLength(200);
@@ -38,10 +38,9 @@ namespace Inventory.Data
                     hardware.Property(h => h.BiosVersion).HasMaxLength(100);
                     hardware.Property(h => h.BiosSerial).HasMaxLength(100);
                     
-                    // Nested koleksiyonları owned entity olarak yapılandır
+                    // İç koleksiyonları owned entity olarak yapılandır
                     hardware.OwnsMany(h => h.RamModules, ram =>
                     {
-                        ram.WithOwner().HasForeignKey("DeviceHardwareInfoId");
                         ram.HasKey(r => r.Id);
                         ram.Property(r => r.Slot).HasMaxLength(50);
                         ram.Property(r => r.SpeedMHz).HasMaxLength(50);
@@ -52,21 +51,18 @@ namespace Inventory.Data
                     
                     hardware.OwnsMany(h => h.Disks, disk =>
                     {
-                        disk.WithOwner().HasForeignKey("DeviceHardwareInfoId");
                         disk.HasKey(d => d.Id);
                         disk.Property(d => d.DeviceId).HasMaxLength(200);
                     });
                     
                     hardware.OwnsMany(h => h.Gpus, gpu =>
                     {
-                        gpu.WithOwner().HasForeignKey("DeviceHardwareInfoId");
                         gpu.HasKey(g => g.Id);
                         gpu.Property(g => g.Name).HasMaxLength(200);
                     });
                     
                     hardware.OwnsMany(h => h.NetworkAdapters, adapter =>
                     {
-                        adapter.WithOwner().HasForeignKey("DeviceHardwareInfoId");
                         adapter.HasKey(a => a.Id);
                         adapter.Property(a => a.Description).HasMaxLength(200);
                         adapter.Property(a => a.MacAddress).HasMaxLength(17);
@@ -74,7 +70,7 @@ namespace Inventory.Data
                     });
                 });
 
-                // Configure DeviceSoftwareInfo as owned entity
+                // DeviceSoftwareInfo'yu owned entity olarak yapılandır
                 entity.OwnsOne(e => e.SoftwareInfo, software =>
                 {
                     software.Property(s => s.OperatingSystem).HasMaxLength(200);
@@ -86,7 +82,7 @@ namespace Inventory.Data
                 });
             });
 
-            // Simple ChangeLog configuration
+            // ChangeLog için temel yapılandırma
             modelBuilder.Entity<ChangeLog>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -97,7 +93,7 @@ namespace Inventory.Data
                 entity.HasIndex(c => c.ChangeDate);
                 entity.HasIndex(c => c.DeviceId);
                 
-                // Configure foreign key relationship to Device
+                // Device ile foreign key ilişkisini yapılandır
                 entity.HasOne<Device>()
                     .WithMany(d => d.ChangeLogs)
                     .HasForeignKey(c => c.DeviceId)

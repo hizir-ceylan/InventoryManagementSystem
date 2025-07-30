@@ -125,9 +125,9 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPost("network-discovered")]
-        [SwaggerOperation(Summary = "Create a network-discovered device", Description = "Creates a new device discovered through network scanning")]
-        [SwaggerResponse(201, "Device created successfully", typeof(Device))]
-        [SwaggerResponse(400, "Invalid device data")]
+        [SwaggerOperation(Summary = "Ağ keşfi ile bulunan cihaz oluştur", Description = "Ağ taraması ile keşfedilen yeni bir cihaz oluşturur")]
+        [SwaggerResponse(201, "Cihaz başarıyla oluşturuldu", typeof(Device))]
+        [SwaggerResponse(400, "Geçersiz cihaz verisi")]
         public async Task<ActionResult<Device>> CreateNetworkDiscoveredDevice(NetworkDeviceRegistrationDto deviceDto)
         {
             // DTO'dan cihaz oluştur
@@ -173,10 +173,10 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPost("register-by-ip-mac")]
-        [SwaggerOperation(Summary = "Register or update device by IP/MAC", Description = "Registers a new device or updates an existing one based on IP or MAC address")]
-        [SwaggerResponse(200, "Device updated successfully", typeof(Device))]
-        [SwaggerResponse(201, "Device created successfully", typeof(Device))]
-        [SwaggerResponse(400, "Invalid device data")]
+        [SwaggerOperation(Summary = "IP/MAC ile cihaz kaydet veya güncelle", Description = "IP veya MAC adresine göre yeni cihaz kaydeder veya mevcut olanı günceller")]
+        [SwaggerResponse(200, "Cihaz başarıyla güncellendi", typeof(Device))]
+        [SwaggerResponse(201, "Cihaz başarıyla oluşturuldu", typeof(Device))]
+        [SwaggerResponse(400, "Geçersiz cihaz verisi")]
         public async Task<ActionResult<Device>> RegisterOrUpdateByIpMac(NetworkDeviceRegistrationDto deviceDto)
         {
             // Mevcut cihazı IP veya MAC ile bul
@@ -193,7 +193,7 @@ namespace Inventory.Api.Controllers
                 existingDevice.AgentInstalled = deviceDto.AgentInstalled;
                 existingDevice.LastSeen = DateTime.UtcNow;
 
-                // Validate updated device
+                // Güncellenen cihazı doğrula
                 var validationErrors = DeviceValidator.ValidateDevice(existingDevice);
                 if (validationErrors.Any())
                 {
@@ -211,17 +211,17 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        [SwaggerOperation(Summary = "Update a device", Description = "Updates an existing device")]
-        [SwaggerResponse(204, "Device updated successfully")]
-        [SwaggerResponse(404, "Device not found")]
-        [SwaggerResponse(400, "Invalid device data")]
+        [SwaggerOperation(Summary = "Cihaz güncelle", Description = "Mevcut bir cihazı günceller")]
+        [SwaggerResponse(204, "Cihaz başarıyla güncellendi")]
+        [SwaggerResponse(404, "Cihaz bulunamadı")]
+        [SwaggerResponse(400, "Geçersiz cihaz verisi")]
         public async Task<IActionResult> Update(Guid id, Device updatedDevice)
         {
             var device = await _deviceService.GetDeviceByIdAsync(id);
             if (device == null)
                 return NotFound();
 
-            // Update device properties
+            // Cihaz özelliklerini güncelle
             device.Name = updatedDevice.Name;
             device.MacAddress = updatedDevice.MacAddress;
             device.IpAddress = updatedDevice.IpAddress;
@@ -240,10 +240,10 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPut("{id}/device-type")]
-        [SwaggerOperation(Summary = "Assign device type", Description = "Assigns a device type to a network-discovered device")]
-        [SwaggerResponse(204, "Device type assigned successfully")]
-        [SwaggerResponse(404, "Device not found")]
-        [SwaggerResponse(400, "Invalid request")]
+        [SwaggerOperation(Summary = "Cihaz tipini ata", Description = "Ağ keşfi ile bulunan cihaza cihaz tipi atar")]
+        [SwaggerResponse(204, "Cihaz tipi başarıyla atandı")]
+        [SwaggerResponse(404, "Cihaz bulunamadı")]
+        [SwaggerResponse(400, "Geçersiz istek")]
         public async Task<IActionResult> AssignDeviceType(Guid id, [FromBody] DeviceType deviceType)
         {
             var device = await _deviceService.GetDeviceByIdAsync(id);
@@ -252,7 +252,7 @@ namespace Inventory.Api.Controllers
 
             // Sadece ağ keşfi ile bulunan cihazlarda tip atamasına izin ver
             if (device.AgentInstalled)
-                return BadRequest(new { error = "Device type cannot be changed for agent-installed devices." });
+                return BadRequest(new { error = "Agent kurulu cihazlarda cihaz tipi değiştirilemez." });
 
             device.DeviceType = deviceType;
             await _deviceService.UpdateDeviceAsync(device);
@@ -261,10 +261,10 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPut("{id}/network-discovered")]
-        [SwaggerOperation(Summary = "Update network-discovered device", Description = "Updates a network-discovered device")]
-        [SwaggerResponse(204, "Device updated successfully")]
-        [SwaggerResponse(404, "Device not found")]
-        [SwaggerResponse(400, "Invalid request")]
+        [SwaggerOperation(Summary = "Ağ keşfi ile bulunan cihazı güncelle", Description = "Ağ keşfi ile bulunan bir cihazı günceller")]
+        [SwaggerResponse(204, "Cihaz başarıyla güncellendi")]
+        [SwaggerResponse(404, "Cihaz bulunamadı")]
+        [SwaggerResponse(400, "Geçersiz istek")]
         public async Task<IActionResult> UpdateNetworkDiscoveredDevice(Guid id, [FromBody] NetworkDeviceRegistrationDto updateDto)
         {
             var device = await _deviceService.GetDeviceByIdAsync(id);
@@ -273,7 +273,7 @@ namespace Inventory.Api.Controllers
 
             // Sadece ağ keşfi ile bulunan cihazlarda güncellemeye izin ver
             if (device.AgentInstalled)
-                return BadRequest(new { error = "Agent-installed devices cannot be updated through this endpoint." });
+                return BadRequest(new { error = "Agent kurulu cihazlar bu endpoint üzerinden güncellenemez." });
 
             // Sadece sağlanan alanları güncelle
             if (!string.IsNullOrEmpty(updateDto.Name))
@@ -303,9 +303,9 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpPost("batch")]
-        [SwaggerOperation(Summary = "Batch upload devices", Description = "Uploads multiple devices in a single request")]
-        [SwaggerResponse(200, "Batch upload completed", typeof(BatchUploadResultDto))]
-        [SwaggerResponse(400, "Invalid batch data")]
+        [SwaggerOperation(Summary = "Toplu cihaz yükleme", Description = "Tek istekte birden fazla cihaz yükler")]
+        [SwaggerResponse(200, "Toplu yükleme tamamlandı", typeof(BatchUploadResultDto))]
+        [SwaggerResponse(400, "Geçersiz toplu veri")]
         public async Task<ActionResult<BatchUploadResultDto>> BatchUpload([FromBody] DeviceBatchDto[] deviceDtos)
         {
             var result = new BatchUploadResultDto
@@ -406,9 +406,9 @@ namespace Inventory.Api.Controllers
         }
 
         [HttpDelete("{id}")]
-        [SwaggerOperation(Summary = "Delete a device", Description = "Deletes a device from the inventory")]
-        [SwaggerResponse(204, "Device deleted successfully")]
-        [SwaggerResponse(404, "Device not found")]
+        [SwaggerOperation(Summary = "Cihaz sil", Description = "Envanterden bir cihazı siler")]
+        [SwaggerResponse(204, "Cihaz başarıyla silindi")]
+        [SwaggerResponse(404, "Cihaz bulunamadı")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var success = await _deviceService.DeleteDeviceAsync(id);
