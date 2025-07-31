@@ -716,6 +716,12 @@ namespace Inventory.Api.Services
                         existingDevice.SoftwareInfo.RegisteredUser = device.SoftwareInfo.RegisteredUser ?? existingDevice.SoftwareInfo.RegisteredUser;
                         existingDevice.SoftwareInfo.SerialNumber = device.SoftwareInfo.SerialNumber ?? existingDevice.SoftwareInfo.SerialNumber;
                         existingDevice.SoftwareInfo.ActiveUser = device.SoftwareInfo.ActiveUser ?? existingDevice.SoftwareInfo.ActiveUser;
+                        
+                        // Update InstalledApps list based on provided data
+                        if (device.SoftwareInfo.InstalledApps != null && device.SoftwareInfo.InstalledApps.Any())
+                        {
+                            existingDevice.SoftwareInfo.InstalledApps = device.SoftwareInfo.InstalledApps;
+                        }
                     }
                 }
 
@@ -729,6 +735,23 @@ namespace Inventory.Api.Services
                 foreach (var changeLog in changes)
                 {
                     existingDevice.ChangeLogs.Add(changeLog);
+                }
+
+                // Add any new change logs provided in the device update request
+                if (device.ChangeLogs != null && device.ChangeLogs.Any())
+                {
+                    foreach (var newChangeLog in device.ChangeLogs)
+                    {
+                        // Ensure the change log has the correct device ID
+                        newChangeLog.DeviceId = existingDevice.Id;
+                        existingDevice.ChangeLogs.Add(newChangeLog);
+
+                        // Process application install/uninstall changes to update InstalledApps list
+                        if (existingDevice.SoftwareInfo != null)
+                        {
+                            ProcessApplicationChangeLog(existingDevice.SoftwareInfo, newChangeLog);
+                        }
+                    }
                 }
 
                 var result = await UpdateDeviceAsync(existingDevice);
@@ -776,6 +799,65 @@ namespace Inventory.Api.Services
             }
             
             return results;
+        }
+
+        /// <summary>
+        /// Processes application install/uninstall change logs to update the InstalledApps list
+        /// </summary>
+        private void ProcessApplicationChangeLog(DeviceSoftwareInfo softwareInfo, ChangeLog changeLog)
+        {
+            // Ensure InstalledApps list exists
+            softwareInfo.InstalledApps ??= new List<string>();
+
+            switch (changeLog.ChangeType)
+            {
+                case "Application Installed":
+                    // Add new application if not already present
+                    if (!string.IsNullOrEmpty(changeLog.NewValue) && 
+                        !softwareInfo.InstalledApps.Any(app => app.Equals(changeLog.NewValue, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        softwareInfo.InstalledApps.Add(changeLog.NewValue);
+                        _logger.LogDebug("Added application to InstalledApps: {Application}", changeLog.NewValue);
+                    }
+                    break;
+
+                case "Application Uninstalled":
+                    // Remove application if present
+                    if (!string.IsNullOrEmpty(changeLog.OldValue))
+                    {
+                        var appToRemove = softwareInfo.InstalledApps.FirstOrDefault(app => 
+                            app.Equals(changeLog.OldValue, StringComparison.OrdinalIgnoreCase));
+                        
+                        if (appToRemove != null)
+                        {
+                            softwareInfo.InstalledApps.Remove(appToRemove);
+                            _logger.LogDebug("Removed application from InstalledApps: {Application}", changeLog.OldValue);
+                        }
+                    }
+                    break;
+
+                case "Application Updated":
+                    // Handle application updates (remove old, add new)
+                    if (!string.IsNullOrEmpty(changeLog.OldValue) && !string.IsNullOrEmpty(changeLog.NewValue))
+                    {
+                        var oldAppToRemove = softwareInfo.InstalledApps.FirstOrDefault(app => 
+                            app.Equals(changeLog.OldValue, StringComparison.OrdinalIgnoreCase));
+                        
+                        if (oldAppToRemove != null)
+                        {
+                            softwareInfo.InstalledApps.Remove(oldAppToRemove);
+                        }
+                        
+                        if (!softwareInfo.InstalledApps.Any(app => app.Equals(changeLog.NewValue, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            softwareInfo.InstalledApps.Add(changeLog.NewValue);
+                        }
+                        
+                        _logger.LogDebug("Updated application in InstalledApps: {OldApp} -> {NewApp}", 
+                            changeLog.OldValue, changeLog.NewValue);
+                    }
+                    break;
+            }
         }
     }
 }
