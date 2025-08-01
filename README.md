@@ -32,7 +32,7 @@ cd build-tools
 ```
 
 **API Erişimi:**
-- http://localhost:5093/swagger
+- http://localhost:5093/index.html
 
 ### Sistem Gereksinimleri
 - .NET 8.0 Runtime
