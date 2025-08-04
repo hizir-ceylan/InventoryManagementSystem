@@ -1,4 +1,4 @@
-// Inventory Management System Web GUI
+// Çaykur Envanter Yönetim Sistemi - Tea Theme
 class InventoryApp {
     constructor() {
         this.apiBaseUrl = '';
@@ -13,6 +13,7 @@ class InventoryApp {
     init() {
         this.setupEventListeners();
         this.loadInitialData();
+        this.setupMobileMenu();
         
         // Set up auto-refresh every 30 seconds
         setInterval(() => {
@@ -20,6 +21,32 @@ class InventoryApp {
                 this.loadDevices(false); // Silent refresh
             }
         }, 30000);
+    }
+
+    // Setup mobile menu
+    setupMobileMenu() {
+        const toggle = document.getElementById('navbar-toggle');
+        const menu = document.getElementById('navbar-menu');
+        
+        if (toggle && menu) {
+            toggle.addEventListener('click', () => {
+                menu.classList.toggle('show');
+            });
+            
+            // Close menu when clicking on links
+            menu.addEventListener('click', (e) => {
+                if (e.target.classList.contains('nav-link')) {
+                    menu.classList.remove('show');
+                }
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!toggle.contains(e.target) && !menu.contains(e.target)) {
+                    menu.classList.remove('show');
+                }
+            });
+        }
     }
 
     // Setup event listeners
@@ -234,13 +261,26 @@ class InventoryApp {
             modalContent.innerHTML = this.renderDeviceDetail(device);
             
             // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('deviceDetailModal'));
-            modal.show();
+            this.showModal();
             
             this.hideLoading();
         } catch (error) {
             this.showError('Cihaz detayları yüklenirken hata oluştu: ' + error.message);
         }
+    }
+
+    // Show modal
+    showModal() {
+        const modal = document.getElementById('deviceDetailModal');
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Close modal
+    closeModal() {
+        const modal = document.getElementById('deviceDetailModal');
+        modal.classList.remove('show');
+        document.body.style.overflow = 'auto';
     }
 
     // Render device detail content
@@ -350,14 +390,26 @@ class InventoryApp {
         });
 
         // Show selected page
-        document.getElementById(pageId + '-page').classList.remove('d-none');
-        document.getElementById(pageId + '-page').classList.add('active');
+        const targetPage = document.getElementById(pageId + '-page');
+        if (targetPage) {
+            targetPage.classList.remove('d-none');
+            setTimeout(() => {
+                targetPage.classList.add('active');
+            }, 10);
+        }
 
         // Update navigation
         document.querySelectorAll('.nav-link').forEach(link => {
             link.classList.remove('active');
         });
-        event.target.classList.add('active');
+        
+        // Find the clicked nav link and make it active
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            if (link.getAttribute('onclick') && link.getAttribute('onclick').includes(pageId)) {
+                link.classList.add('active');
+            }
+        });
 
         this.currentPage = pageId;
 
@@ -479,6 +531,10 @@ function refreshDevices() {
 
 function clearFilters() {
     app.clearFilters();
+}
+
+function closeModal() {
+    app.closeModal();
 }
 
 // Initialize the application when the page loads
