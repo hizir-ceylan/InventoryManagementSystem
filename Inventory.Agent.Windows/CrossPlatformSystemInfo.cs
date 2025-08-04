@@ -386,7 +386,7 @@ namespace Inventory.Agent.Windows
         private static List<string> GetInstalledSoftwareFast()
         {
             var installedApps = new List<string>();
-            const int maxApps = 150; // Limit to improve performance
+            const int maxApps = 300; // Limit to improve performance
 
             try
             {
