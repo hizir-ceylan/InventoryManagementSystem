@@ -104,9 +104,10 @@ body {
 .navbar-brand {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 20px;
     color: var(--white);
     text-decoration: none;
+    min-width: 280px;
 }
 
 .logo {
@@ -132,6 +133,7 @@ body {
     font-size: 0.9rem;
     font-weight: 400;
     opacity: 0.9;
+    white-space: nowrap;
 }
 
 .navbar-toggle {
@@ -1196,4 +1198,199 @@ body {
         text-align: left;
         font-size: 0.85rem;
     }
+}
+
+/* Device Details Placeholder */
+.device-details-placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--light-gray);
+    border-radius: var(--radius-lg);
+    border: 2px dashed rgba(45, 80, 22, 0.2);
+}
+
+.placeholder-content {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.placeholder-content i {
+    font-size: 4rem;
+    color: var(--tea-green);
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+
+.placeholder-content h3 {
+    color: var(--tea-green);
+    font-weight: 600;
+    margin-bottom: 12px;
+    font-size: 1.5rem;
+}
+
+.placeholder-content p {
+    color: var(--gray);
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+
+.btn-primary {
+    background: var(--primary-gradient);
+    color: var(--white);
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--radius-lg);
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: var(--transition-normal);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+/* Improved Coming Soon Styling */
+.coming-soon {
+    text-align: center;
+    padding: 60px 20px;
+    background: linear-gradient(135deg, var(--tea-cream), #f0f5e8);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(45, 80, 22, 0.1);
+}
+
+.coming-soon-content i {
+    font-size: 4rem;
+    color: var(--tea-green);
+    margin-bottom: 20px;
+    opacity: 0.8;
+}
+
+.coming-soon-content h3 {
+    color: var(--tea-green);
+    font-weight: 600;
+    margin-bottom: 12px;
+    font-size: 1.5rem;
+}
+
+.coming-soon-content p {
+    color: var(--gray);
+    font-size: 1rem;
+}
+
+/* Device Details Header */
+.device-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: var(--light-gray);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(45, 80, 22, 0.1);
+}
+
+.device-header-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.device-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.device-title i {
+    font-size: 2rem;
+    color: var(--tea-green);
+}
+
+.device-title h3 {
+    color: var(--tea-green);
+    font-weight: 600;
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.btn-secondary {
+    background: var(--gray);
+    color: var(--white);
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius-lg);
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: var(--transition-normal);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+    background: var(--dark-gray);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Button Groups */
+.btn-group {
+    display: flex;
+    gap: 4px;
+}
+
+.btn-group .btn {
+    border-radius: var(--radius-sm);
+}
+
+.btn-group .btn:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.btn-group .btn:last-child {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/* Small buttons */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.btn-outline-primary {
+    background: transparent;
+    color: var(--tea-green);
+    border: 1px solid var(--tea-green);
+    transition: var(--transition-fast);
+}
+
+.btn-outline-primary:hover {
+    background: var(--tea-green);
+    color: var(--white);
+}
+
+.btn-outline-success {
+    background: transparent;
+    color: var(--success);
+    border: 1px solid var(--success);
+    transition: var(--transition-fast);
+}
+
+.btn-outline-success:hover {
+    background: var(--success);
+    color: var(--white);
 }

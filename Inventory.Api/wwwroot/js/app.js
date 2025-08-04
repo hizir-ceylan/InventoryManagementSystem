@@ -240,10 +240,15 @@ class InventoryApp {
                     </small>
                 </td>
                 <td>
-                    <button class="btn btn-outline-primary btn-sm" onclick="app.showDeviceDetail(${device.id})">
-                        <i class="bi bi-eye"></i>
-                        <span class="d-none d-md-inline">Detay</span>
-                    </button>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary btn-sm" onclick="app.showDeviceDetail(${device.id})" title="Detay Görüntüle">
+                            <i class="bi bi-eye"></i>
+                            <span class="d-none d-md-inline">Detay</span>
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="app.showDeviceDetailPage(${device.id})" title="Detay Sayfasında Aç">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `).join('');
@@ -281,6 +286,45 @@ class InventoryApp {
         const modal = document.getElementById('deviceDetailModal');
         modal.classList.remove('show');
         document.body.style.overflow = 'auto';
+    }
+
+    // Show device detail in dedicated page
+    async showDeviceDetailPage(deviceId) {
+        try {
+            this.showLoading();
+            
+            // Get device details with related data
+            const device = await this.apiCall(`device/${deviceId}`);
+            
+            // Update device details page content
+            const detailsContent = document.getElementById('device-details-content');
+            detailsContent.innerHTML = `
+                <div class="device-details-header">
+                    <div class="device-header-info">
+                        <div class="device-title">
+                            <i class="bi ${this.getDeviceIcon(device.deviceType)}"></i>
+                            <h3>${device.name || 'Bilinmeyen Cihaz'}</h3>
+                            <span class="badge ${this.getDeviceTypeBadgeClass(device.deviceType)}">${this.getDeviceTypeText(device.deviceType)}</span>
+                        </div>
+                        <div class="device-status">
+                            <span class="badge ${this.getStatusBadgeClass(device.status)}">${this.getStatusText(device.status)}</span>
+                        </div>
+                    </div>
+                    <button class="btn-secondary" onclick="showPage('devices')">
+                        <i class="bi bi-arrow-left"></i>
+                        Cihazlar Listesine Dön
+                    </button>
+                </div>
+                ${this.renderDeviceDetail(device)}
+            `;
+            
+            // Show device details page
+            this.showPage('device-details');
+            
+            this.hideLoading();
+        } catch (error) {
+            this.showError('Cihaz detayları yüklenirken hata oluştu: ' + error.message);
+        }
     }
 
     // Render device detail content
@@ -535,6 +579,10 @@ function clearFilters() {
 
 function closeModal() {
     app.closeModal();
+}
+
+function showDeviceDetailPage(deviceId) {
+    app.showDeviceDetailPage(deviceId);
 }
 
 // Initialize the application when the page loads

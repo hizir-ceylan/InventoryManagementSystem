@@ -18,7 +18,6 @@
         <div class="container">
             <div class="navbar-brand">
                 <div class="logo">
-                    <i class="bi bi-cup-hot"></i>
                     <span>Çaykur</span>
                 </div>
                 <span class="subtitle">Envanter Yönetim Sistemi</span>
@@ -36,6 +35,12 @@
                         <a class="nav-link active" href="#" onclick="showPage('devices')">
                             <i class="bi bi-laptop"></i>
                             <span>Cihazlar</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('device-details')">
+                            <i class="bi bi-info-circle"></i>
+                            <span>Cihaz Detayları</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -301,6 +306,35 @@
                                 <i class="bi bi-journal-text"></i>
                                 <h3>Geliştiriliyor</h3>
                                 <p>Değişiklik logları özelliği yakında eklenecek.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device Details Page -->
+                <div id="device-details-page" class="page d-none">
+                    <div class="page-card">
+                        <div class="page-header">
+                            <div class="page-title">
+                                <h2>
+                                    <i class="bi bi-info-circle"></i>
+                                    Cihaz Detayları
+                                </h2>
+                                <p>Seçili cihazın detaylı bilgilerini görüntüleyin</p>
+                            </div>
+                        </div>
+                        
+                        <div id="device-details-content">
+                            <div class="device-details-placeholder">
+                                <div class="placeholder-content">
+                                    <i class="bi bi-laptop"></i>
+                                    <h3>Cihaz Seçiniz</h3>
+                                    <p>Detaylarını görüntülemek için cihazlar listesinden bir cihaz seçin.</p>
+                                    <button class="btn-primary" onclick="showPage('devices')">
+                                        <i class="bi bi-list-ul"></i>
+                                        Cihazlar Listesine Git
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
