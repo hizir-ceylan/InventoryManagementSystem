@@ -117,6 +117,33 @@ Production için `.env.production` dosyasını oluşturun:
 VITE_API_BASE_URL=https://its.company.gov.tr
 ```
 
+### Mock Data Konfigürasyonu
+
+Uygulama, backend bağlantısının durumuna göre mock data kullanımını destekler:
+
+#### Geliştirme Ortamı (Mock Data ile)
+`.env.local` dosyası oluşturun:
+```bash
+# Backend API URL
+VITE_API_BASE_URL=http://localhost:5093
+
+# Mock data konfigürasyonu
+# 'false' - Backend yoksa mock data kullan (varsayılan)
+# 'true' - Sadece gerçek backend data kullan
+VITE_DISABLE_MOCK_DATA=false
+```
+
+#### Production Ortamı (Sadece Real Data)
+```bash
+VITE_API_BASE_URL=https://your-api-server.com
+VITE_DISABLE_MOCK_DATA=true
+```
+
+Bu konfigürasyon ile:
+- Backend mevcut değilse ve `VITE_DISABLE_MOCK_DATA=false` ise mock data kullanılır
+- Backend mevcut değilse ve `VITE_DISABLE_MOCK_DATA=true` ise hata mesajları gösterilir
+- Backend mevcut ise her zaman gerçek data kullanılır
+
 ## Geliştirme
 
 ### Yeni Bileşen Ekleme
