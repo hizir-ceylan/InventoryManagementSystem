@@ -204,6 +204,7 @@ namespace Inventory.Api.Services
         Task<IEnumerable<Device>> GetNetworkDiscoveredDevicesAsync();
         Task<Device?> GetDeviceByIdAsync(Guid id);
         Task<Device?> FindDeviceByIpOrMacAsync(string? ipAddress, string? macAddress);
+        Task<Device?> FindDeviceByNameAndIpAsync(string? deviceName, string? ipAddress);
         Task<Device> CreateDeviceAsync(Device device);
         Task<Device> UpdateDeviceAsync(Device device);
         Task<bool> DeleteDeviceAsync(Guid id);
@@ -264,7 +265,6 @@ namespace Inventory.Api.Services
         public async Task<IEnumerable<Device>> GetAllDevicesAsync()
         {
             return await _context.Devices
-                .Include(d => d.ChangeLogs)
                 .ToListAsync();
         }
 
@@ -272,7 +272,6 @@ namespace Inventory.Api.Services
         {
             return await _context.Devices
                 .Where(d => d.AgentInstalled || d.ManagementType == ManagementType.Agent)
-                .Include(d => d.ChangeLogs)
                 .ToListAsync();
         }
 
@@ -281,24 +280,47 @@ namespace Inventory.Api.Services
             return await _context.Devices
                 .Where(d => !d.AgentInstalled && 
                     (d.ManagementType == ManagementType.NetworkDiscovery || d.DiscoveryMethod == DiscoveryMethod.NetworkDiscovery))
-                .Include(d => d.ChangeLogs)
                 .ToListAsync();
         }
 
         public async Task<Device?> GetDeviceByIdAsync(Guid id)
         {
             return await _context.Devices
-                .Include(d => d.ChangeLogs)
                 .FirstOrDefaultAsync(d => d.Id == id);
         }
 
         public async Task<Device?> FindDeviceByIpOrMacAsync(string? ipAddress, string? macAddress)
         {
+            // First try to find by IP address (prioritize this for devices with multiple network interfaces)
+            if (!string.IsNullOrWhiteSpace(ipAddress))
+            {
+                var deviceByIp = await _context.Devices
+                    .FirstOrDefaultAsync(d => d.IpAddress == ipAddress);
+                if (deviceByIp != null)
+                    return deviceByIp;
+            }
+            
+            // If not found by IP, try by MAC address
+            if (!string.IsNullOrWhiteSpace(macAddress))
+            {
+                var deviceByMac = await _context.Devices
+                    .FirstOrDefaultAsync(d => d.MacAddress == macAddress);
+                if (deviceByMac != null)
+                    return deviceByMac;
+            }
+            
+            return null;
+        }
+
+        public async Task<Device?> FindDeviceByNameAndIpAsync(string? deviceName, string? ipAddress)
+        {
+            if (string.IsNullOrWhiteSpace(deviceName) || string.IsNullOrWhiteSpace(ipAddress))
+                return null;
+                
             return await _context.Devices
-                .Include(d => d.ChangeLogs)
                 .FirstOrDefaultAsync(d => 
-                    (!string.IsNullOrWhiteSpace(ipAddress) && d.IpAddress == ipAddress) ||
-                    (!string.IsNullOrWhiteSpace(macAddress) && d.MacAddress == macAddress));
+                    d.Name.Equals(deviceName, StringComparison.OrdinalIgnoreCase) && 
+                    d.IpAddress == ipAddress);
         }
 
         public async Task<Device> CreateDeviceAsync(Device device)
@@ -483,7 +505,20 @@ namespace Inventory.Api.Services
 
         public async Task<Device?> CreateOrUpdateDeviceAsync(Device device)
         {
-            var existingDevice = await FindDeviceByIpOrMacAsync(device.IpAddress, device.MacAddress);
+            Device? existingDevice = null;
+            
+            // Try to find existing device using multiple strategies to avoid duplicates
+            // 1. First try by device name and IP address (best for multi-interface devices)
+            if (!string.IsNullOrWhiteSpace(device.Name) && !string.IsNullOrWhiteSpace(device.IpAddress))
+            {
+                existingDevice = await FindDeviceByNameAndIpAsync(device.Name, device.IpAddress);
+            }
+            
+            // 2. If not found, try by IP or MAC
+            if (existingDevice == null)
+            {
+                existingDevice = await FindDeviceByIpOrMacAsync(device.IpAddress, device.MacAddress);
+            }
             
             if (existingDevice != null)
             {
@@ -857,7 +892,68 @@ namespace Inventory.Api.Services
                             changeLog.OldValue, changeLog.NewValue);
                     }
                     break;
+
+                // Handle version updates that might come as different change types
+                case "Software Version Changed":
+                case "Application Version Updated":
+                    if (!string.IsNullOrEmpty(changeLog.OldValue) && !string.IsNullOrEmpty(changeLog.NewValue))
+                    {
+                        // Try to find the application by extracting the base name (without version)
+                        var oldApp = ExtractAppNameFromVersionString(changeLog.OldValue);
+                        var newApp = ExtractAppNameFromVersionString(changeLog.NewValue);
+                        
+                        // Remove the old version
+                        var existingApp = softwareInfo.InstalledApps.FirstOrDefault(app => 
+                            ExtractAppNameFromVersionString(app).Equals(oldApp, StringComparison.OrdinalIgnoreCase) ||
+                            app.Equals(changeLog.OldValue, StringComparison.OrdinalIgnoreCase));
+                            
+                        if (existingApp != null)
+                        {
+                            softwareInfo.InstalledApps.Remove(existingApp);
+                        }
+                        
+                        // Add the new version
+                        if (!softwareInfo.InstalledApps.Any(app => app.Equals(changeLog.NewValue, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            softwareInfo.InstalledApps.Add(changeLog.NewValue);
+                        }
+                        
+                        _logger.LogDebug("Updated application version in InstalledApps: {OldApp} -> {NewApp}", 
+                            changeLog.OldValue, changeLog.NewValue);
+                    }
+                    break;
             }
+        }
+
+        /// <summary>
+        /// Extracts application name from a version string (e.g., "Microsoft Edge 109.0.1518.78" -> "Microsoft Edge")
+        /// </summary>
+        private string ExtractAppNameFromVersionString(string appWithVersion)
+        {
+            if (string.IsNullOrEmpty(appWithVersion))
+                return appWithVersion;
+
+            // Try to find version pattern and remove it
+            // Common patterns: "AppName 1.2.3", "AppName (1.2.3)", "AppName v1.2.3"
+            var patterns = new[]
+            {
+                @"\s+\d+(\.\d+)*(\.\d+)*(\.\d+)*$",  // "AppName 1.2.3.4"
+                @"\s+v\d+(\.\d+)*(\.\d+)*(\.\d+)*$", // "AppName v1.2.3.4"
+                @"\s+\(\d+(\.\d+)*(\.\d+)*(\.\d+)*\)$", // "AppName (1.2.3.4)"
+                @"\s+version\s+\d+(\.\d+)*(\.\d+)*(\.\d+)*$" // "AppName version 1.2.3.4"
+            };
+
+            foreach (var pattern in patterns)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(appWithVersion, pattern, 
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    return appWithVersion.Substring(0, match.Index).Trim();
+                }
+            }
+
+            return appWithVersion; // Return original if no version pattern found
         }
     }
 }
