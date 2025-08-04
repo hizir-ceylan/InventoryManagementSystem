@@ -3,6 +3,7 @@ import type { Device, NetworkScanRequest, NetworkScanResult, ChangeLog, Statisti
 import { mockDevices, mockStatistics } from '../data/mockData'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+const DISABLE_MOCK_DATA = import.meta.env.VITE_DISABLE_MOCK_DATA === 'true'
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -14,11 +15,17 @@ const api = axios.create({
 // Helper function to check if backend is available
 const isBackendAvailable = async (): Promise<boolean> => {
   try {
-    // For development, we'll always use mock data until backend is running
-    // await api.get('/health', { timeout: 2000 })
-    // return true
-    return false
-  } catch {
+    // Check if API base URL is configured
+    if (!API_BASE_URL) {
+      console.warn('API_BASE_URL not configured, using mock data')
+      return false
+    }
+    
+    // Try to reach the backend API
+    await api.get('/device', { timeout: 5000 })
+    return true
+  } catch (error) {
+    console.warn('Backend not available, using mock data:', error)
     return false
   }
 }
@@ -30,8 +37,12 @@ export const deviceApi = {
       const response = await api.get('/device')
       return response.data
     }
-    // Return mock data if backend is not available
-    return Promise.resolve(mockDevices)
+    // Return mock data if backend is not available and mock data is enabled
+    if (!DISABLE_MOCK_DATA) {
+      return Promise.resolve(mockDevices)
+    }
+    // If mock data is disabled and backend is not available, throw error
+    throw new Error('Backend not available and mock data is disabled')
   },
 
   // Get device by ID
@@ -40,12 +51,16 @@ export const deviceApi = {
       const response = await api.get(`/device/${id}`)
       return response.data
     }
-    // Return mock data if backend is not available
-    const device = mockDevices.find(d => d.id === id)
-    if (!device) {
-      throw new Error(`Device with ID ${id} not found`)
+    // Return mock data if backend is not available and mock data is enabled
+    if (!DISABLE_MOCK_DATA) {
+      const device = mockDevices.find(d => d.id === id)
+      if (!device) {
+        throw new Error(`Device with ID ${id} not found`)
+      }
+      return Promise.resolve(device)
     }
-    return Promise.resolve(device)
+    // If mock data is disabled and backend is not available, throw error
+    throw new Error('Backend not available and mock data is disabled')
   },
 
   // Get devices with agent installed
@@ -54,8 +69,12 @@ export const deviceApi = {
       const response = await api.get('/device/agent-installed')
       return response.data
     }
-    // Return mock data if backend is not available
-    return Promise.resolve(mockDevices.filter(d => d.managementType === 1))
+    // Return mock data if backend is not available and mock data is enabled
+    if (!DISABLE_MOCK_DATA) {
+      return Promise.resolve(mockDevices.filter(d => d.managementType === 1))
+    }
+    // If mock data is disabled and backend is not available, throw error
+    throw new Error('Backend not available and mock data is disabled')
   },
 
   // Get network discovered devices
@@ -64,8 +83,12 @@ export const deviceApi = {
       const response = await api.get('/device/network-discovered')
       return response.data
     }
-    // Return mock data if backend is not available
-    return Promise.resolve(mockDevices.filter(d => d.managementType === 2))
+    // Return mock data if backend is not available and mock data is enabled
+    if (!DISABLE_MOCK_DATA) {
+      return Promise.resolve(mockDevices.filter(d => d.managementType === 2))
+    }
+    // If mock data is disabled and backend is not available, throw error
+    throw new Error('Backend not available and mock data is disabled')
   },
 
   // Add new device
@@ -74,8 +97,12 @@ export const deviceApi = {
       const response = await api.post('/device', device)
       return response.data
     }
-    // For development, just return a mock response
-    return Promise.resolve({ ...device, id: Date.now() } as Device)
+    // For development, return a mock response if mock data is enabled
+    if (!DISABLE_MOCK_DATA) {
+      return Promise.resolve({ ...device, id: Date.now() } as Device)
+    }
+    // If mock data is disabled and backend is not available, throw error
+    throw new Error('Backend not available and mock data is disabled')
   },
 
   // Update device
@@ -84,17 +111,26 @@ export const deviceApi = {
       const response = await api.put(`/device/${id}`, device)
       return response.data
     }
-    // For development, just return the updated device
-    return Promise.resolve({ ...device, id } as Device)
+    // For development, return the updated device if mock data is enabled
+    if (!DISABLE_MOCK_DATA) {
+      return Promise.resolve({ ...device, id } as Device)
+    }
+    // If mock data is disabled and backend is not available, throw error
+    throw new Error('Backend not available and mock data is disabled')
   },
 
   // Delete device
   deleteDevice: async (id: number): Promise<void> => {
     if (await isBackendAvailable()) {
       await api.delete(`/device/${id}`)
+      return
     }
-    // For development, just resolve
-    return Promise.resolve()
+    // For development, just resolve if mock data is enabled
+    if (!DISABLE_MOCK_DATA) {
+      return Promise.resolve()
+    }
+    // If mock data is disabled and backend is not available, throw error
+    throw new Error('Backend not available and mock data is disabled')
   },
 }
 
@@ -143,8 +179,12 @@ export const statisticsApi = {
         networkDevices: networkDevices.length,
       }
     }
-    // Return mock statistics if backend is not available
-    return Promise.resolve(mockStatistics)
+    // Return mock statistics if backend is not available and mock data is enabled
+    if (!DISABLE_MOCK_DATA) {
+      return Promise.resolve(mockStatistics)
+    }
+    // If mock data is disabled and backend is not available, throw error
+    throw new Error('Backend not available and mock data is disabled')
   },
 }
 
