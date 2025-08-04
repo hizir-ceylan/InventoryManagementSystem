@@ -33,6 +33,14 @@ logs/
 **/ApiLogs/
 **/LocalLogs/
 
+# Node.js for React frontend
+inventory-frontend/node_modules/
+inventory-frontend/dist/
+inventory-frontend/.env.local
+inventory-frontend/.env.development.local
+inventory-frontend/.env.test.local
+inventory-frontend/.env.production.local
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
