@@ -6,6 +6,7 @@ export interface Device {
   deviceType: DeviceType
   status: DeviceStatus
   model?: string
+  manufacturer?: string
   location?: string
   managementType: ManagementType
   discoveryMethod: DiscoveryMethod

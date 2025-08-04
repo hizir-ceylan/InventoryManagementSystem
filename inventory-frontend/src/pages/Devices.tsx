@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Search, Filter, RotateCcw, Eye, Plus } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Search, Filter, RotateCcw, Eye, Plus, Building } from 'lucide-react'
 import { useDevices } from '../hooks'
 import type { Device } from '../types'
 import { 
@@ -10,14 +11,12 @@ import {
   getStatusColor,
   formatRelativeTime 
 } from '../utils'
-import DeviceModal from '../components/DeviceModal'
 
 const Devices: React.FC = () => {
   const { data: devices, isLoading, refetch } = useDevices()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [typeFilter, setTypeFilter] = useState<string>('')
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
 
   // Filter devices based on search and filters
   const filteredDevices = devices?.filter((device) => {
@@ -26,6 +25,7 @@ const Devices: React.FC = () => {
       device.ipAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       device.macAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       device.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      device.manufacturer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       device.location?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = !statusFilter || device.status.toString() === statusFilter
@@ -70,7 +70,7 @@ const Devices: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Cihaz adı, IP, MAC adresi ile arama..."
+              placeholder="Cihaz adı, IP, MAC, üretici ile arama..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -142,6 +142,9 @@ const Devices: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                     MAC Adresi
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                    Üretici
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Tür
                   </th>
@@ -150,9 +153,6 @@ const Devices: React.FC = () => {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                     Model
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                    Konum
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                     Son Görülme
@@ -175,14 +175,25 @@ const Devices: React.FC = () => {
                             <div className="text-sm font-medium text-gray-900">
                               {device.name || 'N/A'}
                             </div>
+                            <div className="text-sm text-gray-500">
+                              ID: #{device.id}
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
                         {device.ipAddress || 'N/A'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono hidden md:table-cell">
                         {device.macAddress || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
+                        {device.manufacturer ? (
+                          <div className="flex items-center">
+                            <Building className="h-4 w-4 mr-2 text-gray-400" />
+                            {device.manufacturer}
+                          </div>
+                        ) : 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getDeviceTypeColor(device.deviceType)}`}>
@@ -198,19 +209,16 @@ const Devices: React.FC = () => {
                         {device.model || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
-                        {device.location || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
                         {formatRelativeTime(device.lastSeen)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => setSelectedDevice(device)}
-                          className="text-blue-600 hover:text-blue-900 inline-flex items-center"
+                        <Link
+                          to={`/devices/${device.id}`}
+                          className="text-blue-600 hover:text-blue-900 inline-flex items-center transition-colors duration-200"
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           <span className="hidden sm:inline">Detay</span>
-                        </button>
+                        </Link>
                       </td>
                     </tr>
                   )
@@ -221,14 +229,34 @@ const Devices: React.FC = () => {
         )}
       </div>
 
-      {/* Device Detail Modal */}
-      {selectedDevice && (
-        <DeviceModal
-          device={selectedDevice}
-          isOpen={!!selectedDevice}
-          onClose={() => setSelectedDevice(null)}
-        />
-      )}
+      {/* Summary Statistics */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Özet</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">{filteredDevices.length}</div>
+            <div className="text-sm text-gray-500">Toplam Cihaz</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">
+              {filteredDevices.filter(d => d.status === 0).length}
+            </div>
+            <div className="text-sm text-gray-500">Aktif</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-600">
+              {filteredDevices.filter(d => d.managementType === 1).length}
+            </div>
+            <div className="text-sm text-gray-500">Agent Kurulu</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600">
+              {new Set(filteredDevices.map(d => d.manufacturer).filter(Boolean)).size}
+            </div>
+            <div className="text-sm text-gray-500">Farklı Üretici</div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
