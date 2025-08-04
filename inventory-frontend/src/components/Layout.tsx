@@ -8,9 +8,12 @@ import {
   Menu, 
   X,
   Laptop,
-  ExternalLink 
+  ExternalLink,
+  Play,
+  Database
 } from 'lucide-react'
 import { formatDate } from '../utils'
+import { toggleDemoMode, isDemoMode } from '../api'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -18,7 +21,15 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [demoMode, setDemoMode] = useState(isDemoMode())
   const location = useLocation()
+
+  const handleDemoToggle = () => {
+    const newDemoMode = toggleDemoMode()
+    setDemoMode(newDemoMode)
+    // Reload the page to refresh data
+    window.location.reload()
+  }
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: BarChart3 },
@@ -52,22 +63,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-          <div className="flex items-center space-x-2">
-            <Laptop className="h-8 w-8 text-blue-600" />
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl">
+              <Laptop className="h-6 w-6 text-white" />
+            </div>
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">Envanter</h1>
-              <p className="text-xs text-gray-500">Yönetim Sistemi</p>
+              <h1 className="text-lg font-bold text-gray-900">Envanter</h1>
+              <p className="text-xs text-gray-500 -mt-1">Yönetim Sistemi</p>
             </div>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1 rounded-md text-gray-400 hover:text-gray-500"
+            className="lg:hidden p-2 rounded-xl text-gray-400 hover:text-gray-500 hover:bg-gray-100 transition-all duration-200"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1">
+        <nav className="flex-1 px-4 py-6 space-y-2">
           {navigation.map((item) => {
             const Icon = item.icon
             const active = isActive(item.href)
@@ -78,28 +91,64 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 to={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={`
-                  flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200
+                  flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group
                   ${active
-                    ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg transform scale-[1.02]'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:scale-[1.01]'
                   }
                 `}
               >
-                <Icon className={`mr-3 h-5 w-5 ${active ? 'text-blue-700' : 'text-gray-400'}`} />
+                <Icon className={`mr-3 h-5 w-5 transition-all duration-200 ${
+                  active ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'
+                }`} />
                 {item.name}
+                {active && (
+                  <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                )}
               </Link>
             )
           })}
         </nav>
 
         <div className="px-4 py-4 border-t border-gray-200">
+          <button
+            onClick={handleDemoToggle}
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group mb-3 ${
+              demoMode 
+                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg' 
+                : 'text-gray-600 hover:bg-green-50 hover:text-green-700 border border-gray-200'
+            }`}
+          >
+            <div className={`p-1 rounded-lg mr-3 transition-colors duration-200 ${
+              demoMode 
+                ? 'bg-white bg-opacity-20' 
+                : 'bg-green-100 group-hover:bg-green-200'
+            }`}>
+              {demoMode ? (
+                <Database className={`h-4 w-4 ${demoMode ? 'text-white' : 'text-green-600'}`} />
+              ) : (
+                <Play className="h-4 w-4 text-green-600" />
+              )}
+            </div>
+            <div className="flex-1 text-left">
+              <div className="font-medium">
+                {demoMode ? 'Demo Modu Aktif' : 'Demo Verilerini Göster'}
+              </div>
+              <div className={`text-xs ${demoMode ? 'text-white text-opacity-80' : 'text-gray-500'}`}>
+                {demoMode ? 'Örnek veriler görüntüleniyor' : 'Örnek verilerle test edin'}
+              </div>
+            </div>
+          </button>
+          
           <a
             href="/swagger"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200"
+            className="flex items-center px-4 py-3 text-sm font-medium text-gray-600 rounded-xl hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 group"
           >
-            <ExternalLink className="mr-3 h-5 w-5 text-gray-400" />
+            <div className="p-1 bg-gray-100 rounded-lg mr-3 group-hover:bg-blue-100 transition-colors duration-200">
+              <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors duration-200" />
+            </div>
             API Dökümanları
           </a>
         </div>
@@ -108,18 +157,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <div className="flex items-center justify-between h-16 px-6 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between h-16 px-6 bg-white border-b border-gray-200 shadow-sm">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-1 rounded-md text-gray-400 hover:text-gray-500"
+            className="lg:hidden p-2 rounded-xl text-gray-400 hover:text-gray-500 hover:bg-gray-100 transition-all duration-200"
           >
-            <Menu className="h-6 w-6" />
+            <Menu className="h-5 w-5" />
           </button>
           
           <div className="flex-1" />
           
-          <div className="text-sm text-gray-500">
-            Son güncelleme: {formatDate(new Date().toISOString())}
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
+              Son güncelleme: {formatDate(new Date().toISOString())}
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            </div>
           </div>
         </div>
 

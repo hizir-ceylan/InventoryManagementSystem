@@ -22,7 +22,7 @@ const isBackendAvailable = async (): Promise<boolean> => {
     }
     
     // Try to reach the backend API
-    await api.get('/device', { timeout: 5000 })
+    await api.get('/device', { timeout: 3000 })
     return true
   } catch (error) {
     console.warn('Backend not available, using mock data:', error)
@@ -30,17 +30,33 @@ const isBackendAvailable = async (): Promise<boolean> => {
   }
 }
 
+// Add flag to always use mock data for demo purposes
+let FORCE_DEMO_MODE = false
+
+export const toggleDemoMode = () => {
+  FORCE_DEMO_MODE = !FORCE_DEMO_MODE
+  return FORCE_DEMO_MODE
+}
+
+export const isDemoMode = () => FORCE_DEMO_MODE
+
+// Auto-enable demo mode if URL contains demo parameter
+if (typeof window !== 'undefined' && window.location.search.includes('demo=true')) {
+  FORCE_DEMO_MODE = true
+}
+
 export const deviceApi = {
   // Get all devices
   getDevices: async (): Promise<Device[]> => {
+    if (FORCE_DEMO_MODE || (!DISABLE_MOCK_DATA && !(await isBackendAvailable()))) {
+      return Promise.resolve(mockDevices)
+    }
+    
     if (await isBackendAvailable()) {
       const response = await api.get('/device')
       return response.data
     }
-    // Return mock data if backend is not available and mock data is enabled
-    if (!DISABLE_MOCK_DATA) {
-      return Promise.resolve(mockDevices)
-    }
+    
     // If mock data is disabled and backend is not available, throw error
     throw new Error('Backend not available and mock data is disabled')
   },
@@ -165,6 +181,10 @@ export const changeLogApi = {
 export const statisticsApi = {
   // Get dashboard statistics
   getStatistics: async (): Promise<Statistics> => {
+    if (FORCE_DEMO_MODE || (!DISABLE_MOCK_DATA && !(await isBackendAvailable()))) {
+      return Promise.resolve(mockStatistics)
+    }
+    
     if (await isBackendAvailable()) {
       const [allDevices, agentDevices, networkDevices] = await Promise.all([
         deviceApi.getDevices(),
@@ -179,10 +199,7 @@ export const statisticsApi = {
         networkDevices: networkDevices.length,
       }
     }
-    // Return mock statistics if backend is not available and mock data is enabled
-    if (!DISABLE_MOCK_DATA) {
-      return Promise.resolve(mockStatistics)
-    }
+    
     // If mock data is disabled and backend is not available, throw error
     throw new Error('Backend not available and mock data is disabled')
   },
