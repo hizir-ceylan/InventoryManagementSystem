@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, Filter, RotateCcw, Eye, Plus, Building } from 'lucide-react'
 import { useDevices } from '../hooks'
-import type { Device } from '../types'
 import { 
   getDeviceTypeIcon, 
   getDeviceTypeText, 
