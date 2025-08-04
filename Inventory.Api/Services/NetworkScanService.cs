@@ -204,6 +204,7 @@ namespace Inventory.Api.Services
         Task<IEnumerable<Device>> GetNetworkDiscoveredDevicesAsync();
         Task<Device?> GetDeviceByIdAsync(Guid id);
         Task<Device?> FindDeviceByIpOrMacAsync(string? ipAddress, string? macAddress);
+        Task<Device?> FindDeviceByNameAndIpAsync(string? deviceName, string? ipAddress);
         Task<Device> CreateDeviceAsync(Device device);
         Task<Device> UpdateDeviceAsync(Device device);
         Task<bool> DeleteDeviceAsync(Guid id);
@@ -264,7 +265,6 @@ namespace Inventory.Api.Services
         public async Task<IEnumerable<Device>> GetAllDevicesAsync()
         {
             return await _context.Devices
-                .Include(d => d.ChangeLogs)
                 .ToListAsync();
         }
 
@@ -272,7 +272,6 @@ namespace Inventory.Api.Services
         {
             return await _context.Devices
                 .Where(d => d.AgentInstalled || d.ManagementType == ManagementType.Agent)
-                .Include(d => d.ChangeLogs)
                 .ToListAsync();
         }
 
@@ -281,24 +280,47 @@ namespace Inventory.Api.Services
             return await _context.Devices
                 .Where(d => !d.AgentInstalled && 
                     (d.ManagementType == ManagementType.NetworkDiscovery || d.DiscoveryMethod == DiscoveryMethod.NetworkDiscovery))
-                .Include(d => d.ChangeLogs)
                 .ToListAsync();
         }
 
         public async Task<Device?> GetDeviceByIdAsync(Guid id)
         {
             return await _context.Devices
-                .Include(d => d.ChangeLogs)
                 .FirstOrDefaultAsync(d => d.Id == id);
         }
 
         public async Task<Device?> FindDeviceByIpOrMacAsync(string? ipAddress, string? macAddress)
         {
+            // First try to find by IP address (prioritize this for devices with multiple network interfaces)
+            if (!string.IsNullOrWhiteSpace(ipAddress))
+            {
+                var deviceByIp = await _context.Devices
+                    .FirstOrDefaultAsync(d => d.IpAddress == ipAddress);
+                if (deviceByIp != null)
+                    return deviceByIp;
+            }
+            
+            // If not found by IP, try by MAC address
+            if (!string.IsNullOrWhiteSpace(macAddress))
+            {
+                var deviceByMac = await _context.Devices
+                    .FirstOrDefaultAsync(d => d.MacAddress == macAddress);
+                if (deviceByMac != null)
+                    return deviceByMac;
+            }
+            
+            return null;
+        }
+
+        public async Task<Device?> FindDeviceByNameAndIpAsync(string? deviceName, string? ipAddress)
+        {
+            if (string.IsNullOrWhiteSpace(deviceName) || string.IsNullOrWhiteSpace(ipAddress))
+                return null;
+                
             return await _context.Devices
-                .Include(d => d.ChangeLogs)
                 .FirstOrDefaultAsync(d => 
-                    (!string.IsNullOrWhiteSpace(ipAddress) && d.IpAddress == ipAddress) ||
-                    (!string.IsNullOrWhiteSpace(macAddress) && d.MacAddress == macAddress));
+                    d.Name.ToLower() == deviceName.ToLower() && 
+                    d.IpAddress == ipAddress);
         }
 
         public async Task<Device> CreateDeviceAsync(Device device)
@@ -483,7 +505,20 @@ namespace Inventory.Api.Services
 
         public async Task<Device?> CreateOrUpdateDeviceAsync(Device device)
         {
-            var existingDevice = await FindDeviceByIpOrMacAsync(device.IpAddress, device.MacAddress);
+            Device? existingDevice = null;
+            
+            // Try to find existing device using multiple strategies to avoid duplicates
+            // 1. First try by device name and IP address (best for multi-interface devices)
+            if (!string.IsNullOrWhiteSpace(device.Name) && !string.IsNullOrWhiteSpace(device.IpAddress))
+            {
+                existingDevice = await FindDeviceByNameAndIpAsync(device.Name, device.IpAddress);
+            }
+            
+            // 2. If not found, try by IP or MAC
+            if (existingDevice == null)
+            {
+                existingDevice = await FindDeviceByIpOrMacAsync(device.IpAddress, device.MacAddress);
+            }
             
             if (existingDevice != null)
             {
@@ -709,19 +744,13 @@ namespace Inventory.Api.Services
                             });
                         }
 
-                        // Update software info fields
+                        // Update software info fields (but not InstalledApps yet - we'll handle that after processing change logs)
                         existingDevice.SoftwareInfo.OperatingSystem = device.SoftwareInfo.OperatingSystem ?? existingDevice.SoftwareInfo.OperatingSystem;
                         existingDevice.SoftwareInfo.OsVersion = device.SoftwareInfo.OsVersion ?? existingDevice.SoftwareInfo.OsVersion;
                         existingDevice.SoftwareInfo.OsArchitecture = device.SoftwareInfo.OsArchitecture ?? existingDevice.SoftwareInfo.OsArchitecture;
                         existingDevice.SoftwareInfo.RegisteredUser = device.SoftwareInfo.RegisteredUser ?? existingDevice.SoftwareInfo.RegisteredUser;
                         existingDevice.SoftwareInfo.SerialNumber = device.SoftwareInfo.SerialNumber ?? existingDevice.SoftwareInfo.SerialNumber;
                         existingDevice.SoftwareInfo.ActiveUser = device.SoftwareInfo.ActiveUser ?? existingDevice.SoftwareInfo.ActiveUser;
-                        
-                        // Update InstalledApps list based on provided data
-                        if (device.SoftwareInfo.InstalledApps != null && device.SoftwareInfo.InstalledApps.Any())
-                        {
-                            existingDevice.SoftwareInfo.InstalledApps = device.SoftwareInfo.InstalledApps;
-                        }
                     }
                 }
 
@@ -732,6 +761,7 @@ namespace Inventory.Api.Services
                 existingDevice.LastSeen = DateTime.UtcNow;
 
                 // Add change logs to the device
+                existingDevice.ChangeLogs ??= new List<ChangeLog>();
                 foreach (var changeLog in changes)
                 {
                     existingDevice.ChangeLogs.Add(changeLog);
@@ -740,6 +770,9 @@ namespace Inventory.Api.Services
                 // Add any new change logs provided in the device update request
                 if (device.ChangeLogs != null && device.ChangeLogs.Any())
                 {
+                    // Ensure ChangeLogs list exists
+                    existingDevice.ChangeLogs ??= new List<ChangeLog>();
+                    
                     foreach (var newChangeLog in device.ChangeLogs)
                     {
                         // Ensure the change log has the correct device ID
@@ -751,6 +784,23 @@ namespace Inventory.Api.Services
                         {
                             ProcessApplicationChangeLog(existingDevice.SoftwareInfo, newChangeLog);
                         }
+                    }
+                }
+
+                // After processing change logs, update InstalledApps if provided and no change logs modified it
+                if (device.SoftwareInfo?.InstalledApps != null && device.SoftwareInfo.InstalledApps.Any() && existingDevice.SoftwareInfo != null)
+                {
+                    // Only overwrite if no application change logs were processed
+                    bool hasAppChangeLogs = (device.ChangeLogs?.Any(cl => 
+                        cl.ChangeType == "Application Installed" || 
+                        cl.ChangeType == "Application Uninstalled" || 
+                        cl.ChangeType == "Application Updated" ||
+                        cl.ChangeType == "Software Version Changed" ||
+                        cl.ChangeType == "Application Version Updated") == true);
+                        
+                    if (!hasAppChangeLogs)
+                    {
+                        existingDevice.SoftwareInfo.InstalledApps = device.SoftwareInfo.InstalledApps;
                     }
                 }
 
@@ -814,7 +864,7 @@ namespace Inventory.Api.Services
                 case "Application Installed":
                     // Add new application if not already present
                     if (!string.IsNullOrEmpty(changeLog.NewValue) && 
-                        !softwareInfo.InstalledApps.Any(app => app.Equals(changeLog.NewValue, StringComparison.OrdinalIgnoreCase)))
+                        !softwareInfo.InstalledApps.Any(app => app.ToLower() == changeLog.NewValue.ToLower()))
                     {
                         softwareInfo.InstalledApps.Add(changeLog.NewValue);
                         _logger.LogDebug("Added application to InstalledApps: {Application}", changeLog.NewValue);
@@ -826,7 +876,7 @@ namespace Inventory.Api.Services
                     if (!string.IsNullOrEmpty(changeLog.OldValue))
                     {
                         var appToRemove = softwareInfo.InstalledApps.FirstOrDefault(app => 
-                            app.Equals(changeLog.OldValue, StringComparison.OrdinalIgnoreCase));
+                            app.ToLower() == changeLog.OldValue.ToLower());
                         
                         if (appToRemove != null)
                         {
@@ -841,14 +891,14 @@ namespace Inventory.Api.Services
                     if (!string.IsNullOrEmpty(changeLog.OldValue) && !string.IsNullOrEmpty(changeLog.NewValue))
                     {
                         var oldAppToRemove = softwareInfo.InstalledApps.FirstOrDefault(app => 
-                            app.Equals(changeLog.OldValue, StringComparison.OrdinalIgnoreCase));
+                            app.ToLower() == changeLog.OldValue.ToLower());
                         
                         if (oldAppToRemove != null)
                         {
                             softwareInfo.InstalledApps.Remove(oldAppToRemove);
                         }
                         
-                        if (!softwareInfo.InstalledApps.Any(app => app.Equals(changeLog.NewValue, StringComparison.OrdinalIgnoreCase)))
+                        if (!softwareInfo.InstalledApps.Any(app => app.ToLower() == changeLog.NewValue.ToLower()))
                         {
                             softwareInfo.InstalledApps.Add(changeLog.NewValue);
                         }
@@ -857,7 +907,68 @@ namespace Inventory.Api.Services
                             changeLog.OldValue, changeLog.NewValue);
                     }
                     break;
+
+                // Handle version updates that might come as different change types
+                case "Software Version Changed":
+                case "Application Version Updated":
+                    if (!string.IsNullOrEmpty(changeLog.OldValue) && !string.IsNullOrEmpty(changeLog.NewValue))
+                    {
+                        // Try to find the application by extracting the base name (without version)
+                        var oldApp = ExtractAppNameFromVersionString(changeLog.OldValue);
+                        var newApp = ExtractAppNameFromVersionString(changeLog.NewValue);
+                        
+                        // Remove the old version
+                        var existingApp = softwareInfo.InstalledApps.FirstOrDefault(app => 
+                            ExtractAppNameFromVersionString(app).ToLower() == oldApp.ToLower() ||
+                            app.ToLower() == changeLog.OldValue.ToLower());
+                            
+                        if (existingApp != null)
+                        {
+                            softwareInfo.InstalledApps.Remove(existingApp);
+                        }
+                        
+                        // Add the new version
+                        if (!softwareInfo.InstalledApps.Any(app => app.ToLower() == changeLog.NewValue.ToLower()))
+                        {
+                            softwareInfo.InstalledApps.Add(changeLog.NewValue);
+                        }
+                        
+                        _logger.LogDebug("Updated application version in InstalledApps: {OldApp} -> {NewApp}", 
+                            changeLog.OldValue, changeLog.NewValue);
+                    }
+                    break;
             }
+        }
+
+        /// <summary>
+        /// Extracts application name from a version string (e.g., "Microsoft Edge 109.0.1518.78" -> "Microsoft Edge")
+        /// </summary>
+        private string ExtractAppNameFromVersionString(string appWithVersion)
+        {
+            if (string.IsNullOrEmpty(appWithVersion))
+                return appWithVersion;
+
+            // Try to find version pattern and remove it
+            // Common patterns: "AppName 1.2.3", "AppName (1.2.3)", "AppName v1.2.3"
+            var patterns = new[]
+            {
+                @"\s+\d+(\.\d+)*(\.\d+)*(\.\d+)*$",  // "AppName 1.2.3.4"
+                @"\s+v\d+(\.\d+)*(\.\d+)*(\.\d+)*$", // "AppName v1.2.3.4"
+                @"\s+\(\d+(\.\d+)*(\.\d+)*(\.\d+)*\)$", // "AppName (1.2.3.4)"
+                @"\s+version\s+\d+(\.\d+)*(\.\d+)*(\.\d+)*$" // "AppName version 1.2.3.4"
+            };
+
+            foreach (var pattern in patterns)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(appWithVersion, pattern, 
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    return appWithVersion.Substring(0, match.Index).Trim();
+                }
+            }
+
+            return appWithVersion; // Return original if no version pattern found
         }
     }
 }
