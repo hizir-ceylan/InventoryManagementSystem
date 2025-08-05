@@ -1,7 +1,10 @@
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
+builder.Services.AddRazorPages();
 builder.Services.AddHttpClient();
+
+// Configure API settings
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
 
 var app = builder.Build();
@@ -13,14 +16,12 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// Remove HTTPS redirection for development and flexible deployment
-// app.UseHttpsRedirection();
-
-app.UseDefaultFiles();
+app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// Serve index.html for all non-API routes (SPA behavior)
-app.MapFallbackToFile("index.html");
+app.UseRouting();
+
+app.MapRazorPages();
 
 app.Run();
 
