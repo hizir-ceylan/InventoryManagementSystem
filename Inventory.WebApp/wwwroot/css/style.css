@@ -72,12 +72,14 @@ body {
     font-weight: 400;
     min-height: 100vh;
     overflow-x: hidden;
+    margin: 0;
+    padding: 0;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 15px; /* Reduced padding for more space */
 }
 
 /* Utility Classes */
@@ -240,7 +242,7 @@ body {
 
 /* Main Content */
 .main-content {
-    padding-top: 40px;
+    padding-top: 30px; /* Reduced top padding */
     min-height: calc(100vh - 80px);
 }
 
@@ -358,7 +360,7 @@ body {
 
 /* Statistics Section */
 .stats-section {
-    padding: 0 0 40px 0;
+    padding: 0 0 30px 0; /* Reduced bottom padding */
 }
 
 .stats-grid {
@@ -507,7 +509,7 @@ body {
 
 /* Pages Container */
 .pages-container {
-    padding-bottom: 40px;
+    padding-bottom: 30px; /* Reduced bottom padding */
 }
 
 .page {
@@ -544,7 +546,7 @@ body {
 
 .page-header {
     background: linear-gradient(135deg, var(--tea-cream), var(--white));
-    padding: 30px 40px;
+    padding: 25px 30px; /* Reduced padding */
     border-bottom: 1px solid rgba(45, 80, 22, 0.1);
     display: flex;
     justify-content: space-between;
@@ -667,7 +669,7 @@ body {
 
 /* Filters Section */
 .filters-section {
-    padding: 30px 40px;
+    padding: 25px 30px; /* Reduced padding */
     background: var(--white);
     border-bottom: 1px solid rgba(45, 80, 22, 0.1);
 }
@@ -745,14 +747,14 @@ body {
     overflow-y: hidden;
     box-shadow: 0 4px 8px rgba(0,0,0,0.05) inset;
     -webkit-overflow-scrolling: touch;
-    margin: 0 -20px; /* Extend beyond container margins for more width */
+    margin: 0 -40px; /* Extend further beyond container margins for full width */
 }
 
 .devices-table {
     width: 100%;
     border-collapse: collapse;
     background: var(--white);
-    min-width: 1000px; /* Increased minimum width for better layout */
+    min-width: 1200px; /* Increased minimum width for better layout */
 }
 
 .devices-table thead th {
@@ -1511,11 +1513,19 @@ body {
 
 /* Hardware and Software Info Styles */
 .hardware-item {
-    background: rgba(45, 80, 22, 0.05);
-    padding: 8px 12px;
+    background: rgba(45, 80, 22, 0.03); /* Lighter background */
+    padding: 12px 16px; /* Better padding */
     border-radius: var(--radius-md);
-    margin-bottom: 6px;
+    margin-bottom: 8px; /* Increased spacing */
     border-left: 3px solid var(--tea-green);
+    transition: var(--transition-fast);
+    border: 1px solid rgba(45, 80, 22, 0.08); /* Subtle border instead of shadow */
+}
+
+.hardware-item:hover {
+    background: rgba(45, 80, 22, 0.06);
+    transform: translateX(2px);
+    border-color: var(--tea-green-light);
 }
 
 .hardware-item:last-child {
@@ -1539,25 +1549,27 @@ body {
 }
 
 .software-list-container {
-    max-height: 400px;
+    max-height: 500px; /* Increased height */
     overflow-y: auto;
     border: 1px solid rgba(45, 80, 22, 0.1);
     border-radius: var(--radius-md);
     background: var(--white);
+    margin-top: 8px;
 }
 
 .software-list {
-    padding: 8px;
+    padding: 12px; /* Increased padding */
 }
 
 .software-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 12px; /* Increased gap */
+    padding: 10px 16px; /* Increased padding */
     border-radius: var(--radius-sm);
     transition: var(--transition-fast);
     border-bottom: 1px solid rgba(45, 80, 22, 0.05);
+    font-size: 0.9rem; /* Slightly larger font */
 }
 
 .software-item:hover {
@@ -1608,14 +1620,14 @@ body {
     overflow-y: hidden;
     box-shadow: 0 4px 8px rgba(0,0,0,0.05) inset;
     -webkit-overflow-scrolling: touch;
-    margin: 0 -20px; /* Extend beyond container margins for more width */
+    margin: 0 -40px; /* Extend further beyond container margins for full width */
 }
 
 .change-logs-table {
     width: 100%;
     border-collapse: collapse;
     background: var(--white);
-    min-width: 1000px; /* Ensure minimum width for proper display */
+    min-width: 1200px; /* Ensure minimum width for proper display */
 }
 
 .change-logs-table thead th {
@@ -1913,8 +1925,68 @@ body {
     }
 }
 
-/* Tablet responsive design */
+/* Navbar text overlap fix for medium screens */
+@media (min-width: 769px) and (max-width: 1200px) {
+    .navbar .container {
+        padding: 0 10px; /* Reduced container padding */
+    }
+    
+    .navbar-brand {
+        min-width: 240px;
+        gap: 8px;
+    }
+    
+    .logo {
+        font-size: 1.6rem; /* Slightly smaller logo */
+    }
+    
+    .subtitle {
+        font-size: 0.8rem;
+        max-width: 150px; /* Limit subtitle width */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .navbar-nav {
+        gap: 4px; /* Reduced gap between nav items */
+    }
+    
+    .nav-link {
+        padding: 10px 14px; /* Reduced padding */
+        font-size: 0.85rem;
+    }
+    
+    .nav-link span {
+        max-width: 80px; /* Limit nav text width */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .navbar-status {
+        font-size: 0.8rem;
+    }
+}
 @media (min-width: 769px) and (max-width: 1024px) {
+    .navbar-brand {
+        min-width: 250px; /* Reduced minimum width for tablets */
+        gap: 10px;
+    }
+    
+    .subtitle {
+        font-size: 0.85rem;
+    }
+    
+    .navbar-nav {
+        gap: 6px; /* Reduced gap between nav items */
+    }
+    
+    .nav-link {
+        padding: 10px 16px; /* Reduced padding */
+        font-size: 0.9rem;
+    }
+    
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 20px;
