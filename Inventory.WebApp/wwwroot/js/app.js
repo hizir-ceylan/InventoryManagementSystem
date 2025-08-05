@@ -71,8 +71,9 @@ class InventoryApp {
         try {
             await this.loadDevices();
         } catch (error) {
-            console.log('Initial data load failed, using mock data');
-            this.loadMockDevices();
+            console.warn('Initial data load failed, showing empty state:', error);
+            this.devices = [];
+            this.filteredDevices = [];
             this.renderDevices();
         }
         this.updateLastUpdateTime();
@@ -146,9 +147,11 @@ class InventoryApp {
                 this.updateStatistics(allDevices, agentDevices, networkDevices);
                 
             } catch (apiError) {
-                // If API fails, use mock data for demo purposes
-                console.log('API not available, using mock data for demo');
-                this.loadMockDevices();
+                // If API fails, show empty state instead of fake data
+                console.warn('API not available, showing empty state:', apiError.message);
+                this.devices = [];
+                this.filteredDevices = [];
+                this.updateStatistics([], [], []);
             }
             
             // Render devices
@@ -161,118 +164,14 @@ class InventoryApp {
             this.updateLastUpdateTime();
 
         } catch (error) {
-            // If all else fails, load mock data
-            console.log('Loading mock data as fallback');
-            this.loadMockDevices();
+            // If all else fails, show empty state
+            console.warn('All data loading failed, showing empty state:', error);
+            this.devices = [];
+            this.filteredDevices = [];
             this.renderDevices();
             this.hideLoading();
             this.updateLastUpdateTime();
         }
-    }
-
-    // Load mock devices for demo purposes
-    loadMockDevices() {
-        this.devices = [
-            {
-                id: 1,
-                name: 'DEV-LAPTOP-001',
-                ipAddress: '192.168.1.100',
-                macAddress: '00:1B:44:11:3A:B7',
-                deviceType: 1, // Laptop
-                status: 0,
-                model: 'Dell XPS 13',
-                location: 'IT Departmanı',
-                managementType: 1,
-                discoveryMethod: 4,
-                firstSeen: '2024-01-15T09:00:00Z',
-                lastSeen: '2024-08-04T12:00:00Z',
-                createdAt: '2024-01-15T09:00:00Z',
-                updatedAt: '2024-08-04T12:00:00Z',
-                hardwareInfo: [
-                    { componentType: 'CPU', componentName: 'Intel Core i7-11370H' },
-                    { componentType: 'RAM', componentName: '16 GB DDR4' },
-                    { componentType: 'Storage', componentName: '512 GB SSD' }
-                ],
-                softwareInfo: [
-                    { name: 'Windows 11 Pro', version: '22H2' },
-                    { name: 'Google Chrome', version: '119.0.6045.105' },
-                    { name: 'Microsoft Office', version: '2021' }
-                ]
-            },
-            {
-                id: 2,
-                name: 'SRV-DATABASE-01',
-                ipAddress: '192.168.1.10',
-                macAddress: '00:1B:44:11:3A:C8',
-                deviceType: 3, // Server
-                status: 0,
-                model: 'Dell PowerEdge R740',
-                location: 'Server Odası',
-                managementType: 1,
-                discoveryMethod: 4,
-                firstSeen: '2024-01-01T00:00:00Z',
-                lastSeen: '2024-08-04T12:00:00Z',
-                createdAt: '2024-01-01T00:00:00Z',
-                updatedAt: '2024-08-04T12:00:00Z',
-                hardwareInfo: [
-                    { componentType: 'CPU', componentName: 'Intel Xeon Silver 4214' },
-                    { componentType: 'RAM', componentName: '64 GB DDR4' },
-                    { componentType: 'Storage', componentName: '2 TB HDD RAID' }
-                ],
-                softwareInfo: [
-                    { name: 'Windows Server 2019', version: 'Standard' },
-                    { name: 'SQL Server 2019', version: 'Enterprise' }
-                ]
-            },
-            {
-                id: 3,
-                name: 'WRK-PC-005',
-                ipAddress: '192.168.1.105',
-                macAddress: '00:1B:44:11:3A:D9',
-                deviceType: 2, // Desktop
-                status: 0,
-                model: 'HP EliteDesk 800',
-                location: 'Muhasebe',
-                managementType: 0,
-                discoveryMethod: 1,
-                firstSeen: '2024-02-10T08:30:00Z',
-                lastSeen: '2024-08-04T11:45:00Z',
-                createdAt: '2024-02-10T08:30:00Z',
-                updatedAt: '2024-08-04T11:45:00Z',
-                hardwareInfo: [
-                    { componentType: 'CPU', componentName: 'Intel Core i5-10500' },
-                    { componentType: 'RAM', componentName: '8 GB DDR4' },
-                    { componentType: 'Storage', componentName: '256 GB SSD' }
-                ],
-                softwareInfo: [
-                    { name: 'Windows 10 Pro', version: '21H2' },
-                    { name: 'Microsoft Office', version: '2019' }
-                ]
-            },
-            {
-                id: 4,
-                name: 'PRINT-HP-001',
-                ipAddress: '192.168.1.200',
-                macAddress: '00:1B:44:11:3A:EA',
-                deviceType: 4, // Printer
-                status: 0,
-                model: 'HP LaserJet Pro M404dn',
-                location: 'Genel Ofis',
-                managementType: 0,
-                discoveryMethod: 2,
-                firstSeen: '2024-03-01T10:00:00Z',
-                lastSeen: '2024-08-04T12:00:00Z',
-                createdAt: '2024-03-01T10:00:00Z',
-                updatedAt: '2024-08-04T12:00:00Z',
-                hardwareInfo: [],
-                softwareInfo: []
-            }
-        ];
-        
-        this.filteredDevices = [...this.devices];
-        
-        // Update statistics with mock data
-        this.updateStatistics(this.devices, [this.devices[0], this.devices[1]], [this.devices[2], this.devices[3]]);
     }
 
     // Update statistics cards
@@ -765,34 +664,86 @@ class InventoryApp {
         startBtn.disabled = true;
         startBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Taranıyor...';
         
-        // Simulate network scan
-        const mockResults = [
-            { ip: '192.168.1.1', mac: '00:14:22:01:23:45', name: 'Router', status: 'Online', ports: '22,80,443' },
-            { ip: '192.168.1.10', mac: '00:1B:44:11:3A:C8', name: 'SRV-DATABASE-01', status: 'Online', ports: '22,1433,3389' },
-            { ip: '192.168.1.100', mac: '00:1B:44:11:3A:B7', name: 'DEV-LAPTOP-001', status: 'Online', ports: '135,445' },
-            { ip: '192.168.1.105', mac: '00:1B:44:11:3A:D9', name: 'WRK-PC-005', status: 'Online', ports: '135,445' },
-            { ip: '192.168.1.200', mac: '00:1B:44:11:3A:EA', name: 'PRINT-HP-001', status: 'Online', ports: '9100,80' }
-        ];
-        
-        let progress = 0;
-        const totalSteps = 254; // Simulating scanning 254 IPs
-        
-        const scanInterval = setInterval(() => {
-            progress += Math.random() * 10;
-            if (progress > 100) progress = 100;
-            
-            progressFill.style.width = progress + '%';
-            scanStatus.textContent = `Tarama devam ediyor... ${Math.round(progress)}%`;
-            
-            if (progress >= 100) {
-                clearInterval(scanInterval);
-                this.displayScanResults(mockResults);
-                scanStatus.textContent = 'Tarama tamamlandı!';
-                resultsTable.style.display = 'block';
-                startBtn.disabled = false;
-                startBtn.innerHTML = '<i class="bi bi-play-fill"></i> Taramayı Başlat';
+        // Use real network scan via API
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/NetworkScan/trigger-range`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    networkRange: networkRange,
+                    timeoutSeconds: parseInt(timeout)
+                })
+            });
+
+            if (response.ok) {
+                // Poll for scan results
+                await this.pollScanProgress(progressFill, scanStatus, startBtn, resultsTable);
+            } else {
+                throw new Error(`Network scan failed: ${response.status}`);
             }
-        }, 100);
+        } catch (error) {
+            console.error('Network scan error:', error);
+            scanStatus.textContent = `Tarama hatası: ${error.message}`;
+            this.resetScanButton(startBtn);
+        }
+    }
+
+    async pollScanProgress(progressFill, scanStatus, startBtn, resultsTable) {
+        let progress = 0;
+        
+        const pollInterval = setInterval(async () => {
+            try {
+                const statusResponse = await fetch(`${this.apiBaseUrl}/api/NetworkScan/status`);
+                if (statusResponse.ok) {
+                    const status = await statusResponse.json();
+                    
+                    if (status.isScanning) {
+                        progress = Math.min(progress + 10, 90); // Simulated progress
+                        progressFill.style.width = progress + '%';
+                        scanStatus.textContent = `Tarama devam ediyor... ${Math.round(progress)}%`;
+                    } else {
+                        // Scan completed, get results
+                        clearInterval(pollInterval);
+                        progressFill.style.width = '100%';
+                        scanStatus.textContent = 'Tarama tamamlandı!';
+                        
+                        // Get discovered devices
+                        const devicesResponse = await fetch(`${this.apiBaseUrl}/api/Device/network-discovered`);
+                        if (devicesResponse.ok) {
+                            const devices = await devicesResponse.json();
+                            this.displayScanResults(devices.map(device => ({
+                                ip: device.ipAddress,
+                                mac: device.macAddress,
+                                name: device.name || 'Unknown',
+                                status: 'Discovered',
+                                ports: 'N/A'
+                            })));
+                        }
+                        
+                        resultsTable.style.display = 'block';
+                        this.resetScanButton(startBtn);
+                    }
+                } else {
+                    // Fallback: assume scan completed after timeout
+                    clearInterval(pollInterval);
+                    progressFill.style.width = '100%';
+                    scanStatus.textContent = 'Tarama tamamlandı!';
+                    resultsTable.style.display = 'block';
+                    this.resetScanButton(startBtn);
+                }
+            } catch (error) {
+                clearInterval(pollInterval);
+                scanStatus.textContent = `Tarama hatası: ${error.message}`;
+                this.resetScanButton(startBtn);
+            }
+        }, 2000); // Poll every 2 seconds
+    }
+
+    resetScanButton(startBtn) {
+        startBtn.disabled = false;
+        startBtn.innerHTML = '<i class="bi bi-play-fill"></i> Taramayı Başlat';
     }
     
     displayScanResults(results) {
@@ -820,38 +771,29 @@ class InventoryApp {
 
     // Change Logs functionality
     async loadChangeLogs() {
-        // Mock change logs data
-        const mockChangeLogs = [
-            {
-                id: 1,
-                deviceName: 'DEV-LAPTOP-001',
-                changeDate: '2024-08-04T11:30:00Z',
-                changeType: 'Location',
-                oldValue: 'Geliştirme',
-                newValue: 'IT Departmanı',
-                changedBy: 'Agent'
-            },
-            {
-                id: 2,
-                deviceName: 'SRV-DATABASE-01',
-                changeDate: '2024-08-04T10:15:00Z',
-                changeType: 'Status',
-                oldValue: 'Bakım',
-                newValue: 'Aktif',
-                changedBy: 'Admin'
-            },
-            {
-                id: 3,
-                deviceName: 'WRK-PC-005',
-                changeDate: '2024-08-04T09:45:00Z',
-                changeType: 'RAM',
-                oldValue: '4 GB',
-                newValue: '8 GB',
-                changedBy: 'Agent'
+        try {
+            // Try to load real change logs from API
+            const response = await fetch(`${this.apiBaseUrl}/api/ChangeLog`);
+            if (response.ok) {
+                const changeLogs = await response.json();
+                this.changeLogs = changeLogs.map(log => ({
+                    id: log.id,
+                    deviceName: log.deviceId, // We might need device name lookup later
+                    changeDate: log.changeDate,
+                    changeType: log.changeType,
+                    oldValue: log.oldValue,
+                    newValue: log.newValue,
+                    changedBy: log.changedBy
+                }));
+            } else {
+                console.warn('Could not load change logs from API:', response.status);
+                this.changeLogs = [];
             }
-        ];
+        } catch (error) {
+            console.error('Error loading change logs:', error);
+            this.changeLogs = [];
+        }
         
-        this.changeLogs = mockChangeLogs;
         this.renderChangeLogs();
     }
     
