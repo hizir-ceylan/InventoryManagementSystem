@@ -10,8 +10,20 @@ namespace Inventory.Domain.Entities
         public string RegisteredUser { get; set; }
         public string SerialNumber { get; set; }
         public List<string> InstalledApps { get; set; }
+        public List<InstalledApplication> InstalledApplications { get; set; }
         public List<string> Updates { get; set; }
         public List<string> Users { get; set; }
         public string ActiveUser { get; set; }
+    }
+
+    public class InstalledApplication
+    {
+        public int Id { get; set; } // EF Core owned entity için gerekli anahtar
+        public string Name { get; set; } = string.Empty;
+        public string Version { get; set; } = string.Empty;
+        public string Publisher { get; set; } = string.Empty;
+        public DateTime? InstallDate { get; set; }
+        public DateTime? LastUpdated { get; set; }
+        public string InstallLocation { get; set; } = string.Empty;
     }
 }

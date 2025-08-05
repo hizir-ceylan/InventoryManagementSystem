@@ -1,0 +1,499 @@
+@page
+@model Inventory.WebApp.Pages.Devices.DetailsModel
+@{
+    ViewData["Title"] = Model.Device?.Name ?? "Cihaz Detayı";
+}
+
+<div class="container-fluid">
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> @Model.ErrorMessage
+        </div>
+    }
+
+    @if (Model.Device != null)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2><i class="fas fa-desktop"></i> @Model.Device.Name</h2>
+                    <div>
+                        <a asp-page="/Devices/Logs" asp-route-id="@Model.Device.Id" class="btn btn-info me-2">
+                            <i class="fas fa-list-alt"></i> Değişiklik Logları
+                        </a>
+                        <a asp-page="/Devices/Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Geri
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Genel Bilgiler -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> Genel Bilgiler</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-borderless mb-0">
+                            <tr>
+                                <td><strong>Cihaz Adı:</strong></td>
+                                <td>@Model.Device.Name</td>
+                            </tr>
+                            <tr>
+                                <td><strong>IP Adresi:</strong></td>
+                                <td><code>@Model.Device.IpAddress</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>MAC Adresi:</strong></td>
+                                <td><code>@Model.Device.MacAddress</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cihaz Tipi:</strong></td>
+                                <td><span class="badge bg-secondary">@Model.Device.DeviceType</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Model:</strong></td>
+                                <td>@Model.Device.Model</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Konum:</strong></td>
+                                <td>@Model.Device.Location</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cog"></i> Durum Bilgileri</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-borderless mb-0">
+                            <tr>
+                                <td><strong>Durum:</strong></td>
+                                <td>
+                                    @if (Model.Device.IsActive)
+                                    {
+                                        <span class="badge bg-success">@Model.Device.Status</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">@Model.Device.Status</span>
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Son Görülme:</strong></td>
+                                <td>@Model.Device.LastSeenFormatted</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Agent Durumu:</strong></td>
+                                <td>
+                                    @if (Model.Device.AgentInstalled)
+                                    {
+                                        <span class="badge bg-success"><i class="fas fa-robot"></i> Agent Kurulu</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning"><i class="fas fa-network-wired"></i> Ağ Keşfi</span>
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Yönetim Tipi:</strong></td>
+                                <td><span class="badge bg-info">@Model.Device.ManagementType</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Keşif Yöntemi:</strong></td>
+                                <td><span class="badge bg-secondary">@Model.Device.DiscoveryMethod</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Donanım Bilgileri -->
+        @if (Model.Device.HardwareInfo != null)
+        {
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-microchip"></i> Donanım Bilgileri</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- CPU Bilgileri -->
+                                <div class="col-md-6 mb-3">
+                                    <h6><i class="fas fa-microchip"></i> İşlemci (CPU)</h6>
+                                    <table class="table table-sm">
+                                        <tr><td><strong>İşlemci:</strong></td><td>@Model.Device.HardwareInfo.Cpu</td></tr>
+                                        <tr><td><strong>Çekirdek Sayısı:</strong></td><td>@Model.Device.HardwareInfo.CpuCores</td></tr>
+                                        <tr><td><strong>Mantıksal İşlemci:</strong></td><td>@Model.Device.HardwareInfo.CpuLogical</td></tr>
+                                        <tr><td><strong>Frekans:</strong></td><td>@Model.Device.HardwareInfo.CpuClockMHz MHz</td></tr>
+                                    </table>
+                                </div>
+
+                                <!-- RAM Bilgileri -->
+                                <div class="col-md-6 mb-3">
+                                    <h6><i class="fas fa-memory"></i> Bellek (RAM)</h6>
+                                    <table class="table table-sm">
+                                        <tr><td><strong>Toplam RAM:</strong></td><td>@Model.Device.HardwareInfo.RamGB GB</td></tr>
+                                    </table>
+                                    @if (Model.Device.HardwareInfo.RamModules?.Any() == true)
+                                    {
+                                        <div class="mt-2">
+                                            <small class="text-muted">RAM Modülleri:</small>
+                                            @foreach (var ram in Model.Device.HardwareInfo.RamModules)
+                                            {
+                                                <div class="small">
+                                                    <strong>@ram.Slot:</strong> @ram.CapacityGB GB @ram.SpeedMHz MHz (@ram.Manufacturer)
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Anakart Bilgileri -->
+                                <div class="col-md-6 mb-3">
+                                    <h6><i class="fas fa-memory"></i> Anakart</h6>
+                                    <table class="table table-sm">
+                                        <tr><td><strong>Anakart:</strong></td><td>@Model.Device.HardwareInfo.Motherboard</td></tr>
+                                        <tr><td><strong>Seri No:</strong></td><td><code>@Model.Device.HardwareInfo.MotherboardSerial</code></td></tr>
+                                        <tr><td><strong>BIOS:</strong></td><td>@Model.Device.HardwareInfo.BiosManufacturer @Model.Device.HardwareInfo.BiosVersion</td></tr>
+                                    </table>
+                                </div>
+
+                                <!-- Diskler -->
+                                <div class="col-md-6 mb-3">
+                                    <h6><i class="fas fa-hdd"></i> Diskler</h6>
+                                    <table class="table table-sm">
+                                        <tr><td><strong>Toplam Disk:</strong></td><td>@Model.Device.HardwareInfo.DiskGB GB</td></tr>
+                                    </table>
+                                    @if (Model.Device.HardwareInfo.Disks?.Any() == true)
+                                    {
+                                        <div class="mt-2">
+                                            <small class="text-muted">Disk Detayları:</small>
+                                            @foreach (var disk in Model.Device.HardwareInfo.Disks)
+                                            {
+                                                <div class="small">
+                                                    <strong>@disk.DeviceId:</strong> @disk.TotalGB GB (Boş: @disk.FreeGB GB)
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- GPU Bilgileri -->
+                            @if (Model.Device.HardwareInfo.Gpus?.Any() == true)
+                            {
+                                <div class="row">
+                                    <div class="col-12">
+                                        <h6><i class="fas fa-display"></i> Ekran Kartları</h6>
+                                        <div class="row">
+                                            @foreach (var gpu in Model.Device.HardwareInfo.Gpus)
+                                            {
+                                                <div class="col-md-6 mb-2">
+                                                    <div class="card card-body p-2">
+                                                        <strong>@gpu.Name</strong>
+                                                        @if (gpu.MemoryGB.HasValue)
+                                                        {
+                                                            <small class="text-muted">Bellek: @gpu.MemoryGB GB</small>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Ağ Adaptörleri -->
+                            @if (Model.Device.HardwareInfo.NetworkAdapters?.Any() == true)
+                            {
+                                <div class="row">
+                                    <div class="col-12">
+                                        <h6><i class="fas fa-network-wired"></i> Ağ Adaptörleri</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Açıklama</th>
+                                                        <th>MAC Adresi</th>
+                                                        <th>IP Adresi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var adapter in Model.Device.HardwareInfo.NetworkAdapters)
+                                                    {
+                                                        <tr>
+                                                            <td>@adapter.Description</td>
+                                                            <td><code>@adapter.MacAddress</code></td>
+                                                            <td><code>@adapter.IpAddress</code></td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Yazılım Bilgileri -->
+        @if (Model.Device.SoftwareInfo != null)
+        {
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-code"></i> Yazılım Bilgileri</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- İşletim Sistemi -->
+                                <div class="col-md-6 mb-3">
+                                    <h6><i class="fab fa-windows"></i> İşletim Sistemi</h6>
+                                    <table class="table table-sm">
+                                        <tr><td><strong>İşletim Sistemi:</strong></td><td>@Model.Device.SoftwareInfo.OperatingSystem</td></tr>
+                                        <tr><td><strong>Versiyon:</strong></td><td>@Model.Device.SoftwareInfo.OsVersion</td></tr>
+                                        <tr><td><strong>Mimari:</strong></td><td>@Model.Device.SoftwareInfo.OsArchitecture</td></tr>
+                                        <tr><td><strong>Kayıtlı Kullanıcı:</strong></td><td>@Model.Device.SoftwareInfo.RegisteredUser</td></tr>
+                                        <tr><td><strong>Aktif Kullanıcı:</strong></td><td>@Model.Device.SoftwareInfo.ActiveUser</td></tr>
+                                    </table>
+                                </div>
+
+                                <!-- Kullanıcılar -->
+                                <div class="col-md-6 mb-3">
+                                    <h6><i class="fas fa-users"></i> Kullanıcılar</h6>
+                                    @if (Model.Device.SoftwareInfo.Users?.Any() == true)
+                                    {
+                                        <div class="list-group list-group-flush">
+                                            @foreach (var user in Model.Device.SoftwareInfo.Users)
+                                            {
+                                                <div class="list-group-item p-2">
+                                                    <i class="fas fa-user"></i> @user
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">Kullanıcı bilgisi mevcut değil</p>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Yüklü Uygulamalar -->
+                            @if (Model.Device.SoftwareInfo.InstalledApplications?.Any() == true)
+                            {
+                                <div class="row">
+                                    <div class="col-12">
+                                        <h6><i class="fas fa-box"></i> Yüklü Uygulamalar (@Model.Device.SoftwareInfo.InstalledApplications.Count)</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Uygulama Adı</th>
+                                                        <th>Versiyon</th>
+                                                        <th>Yayımcı</th>
+                                                        <th>Son Güncelleme</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var app in Model.Device.SoftwareInfo.InstalledApplications.Take(20))
+                                                    {
+                                                        <tr>
+                                                            <td><i class="fas fa-cube"></i> @app.Name</td>
+                                                            <td><span class="badge bg-info">@app.Version</span></td>
+                                                            <td>@app.Publisher</td>
+                                                            <td>
+                                                                @if (app.LastUpdated.HasValue)
+                                                                {
+                                                                    <small class="text-muted">@Inventory.Shared.Helpers.TimezoneHelper.FormatInTurkeyTime(app.LastUpdated.Value)</small>
+                                                                }
+                                                                else if (app.InstallDate.HasValue)
+                                                                {
+                                                                    <small class="text-muted">@Inventory.Shared.Helpers.TimezoneHelper.FormatInTurkeyTime(app.InstallDate.Value)</small>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <small class="text-muted">-</small>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        @if (Model.Device.SoftwareInfo.InstalledApplications.Count > 20)
+                                        {
+                                            <div class="text-center mt-3">
+                                                <button class="btn btn-outline-primary btn-sm" onclick="showAllApps()">
+                                                    <i class="fas fa-ellipsis-h"></i> Tüm Uygulamaları Göster (@(Model.Device.SoftwareInfo.InstalledApplications.Count - 20) daha)
+                                                </button>
+                                                <div id="additionalApps" style="display: none;">
+                                                    <div class="table-responsive mt-3">
+                                                        <table class="table table-sm">
+                                                            <tbody>
+                                                                @foreach (var app in Model.Device.SoftwareInfo.InstalledApplications.Skip(20))
+                                                                {
+                                                                    <tr>
+                                                                        <td><i class="fas fa-cube"></i> @app.Name</td>
+                                                                        <td><span class="badge bg-info">@app.Version</span></td>
+                                                                        <td>@app.Publisher</td>
+                                                                        <td>
+                                                                            @if (app.LastUpdated.HasValue)
+                                                                            {
+                                                                                <small class="text-muted">@Inventory.Shared.Helpers.TimezoneHelper.FormatInTurkeyTime(app.LastUpdated.Value)</small>
+                                                                            }
+                                                                            else if (app.InstallDate.HasValue)
+                                                                            {
+                                                                                <small class="text-muted">@Inventory.Shared.Helpers.TimezoneHelper.FormatInTurkeyTime(app.InstallDate.Value)</small>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <small class="text-muted">-</small>
+                                                                            }
+                                                                        </td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            else if (Model.Device.SoftwareInfo.InstalledApps?.Any() == true)
+                            {
+                                <div class="row">
+                                    <div class="col-12">
+                                        <h6><i class="fas fa-box"></i> Yüklü Uygulamalar (@Model.Device.SoftwareInfo.InstalledApps.Count)</h6>
+                                        <div class="row">
+                                            @foreach (var app in Model.Device.SoftwareInfo.InstalledApps.Take(20))
+                                            {
+                                                <div class="col-md-6 col-lg-4 mb-2">
+                                                    <div class="card card-body p-2">
+                                                        <small><i class="fas fa-cube"></i> @app</small>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                        @if (Model.Device.SoftwareInfo.InstalledApps.Count > 20)
+                                        {
+                                            <div class="text-center mt-3">
+                                                <button class="btn btn-outline-primary btn-sm" onclick="showAllApps()">
+                                                    <i class="fas fa-ellipsis-h"></i> Tüm Uygulamaları Göster (@(Model.Device.SoftwareInfo.InstalledApps.Count - 20) daha)
+                                                </button>
+                                                <div id="additionalApps" style="display: none;">
+                                                    <div class="row mt-3">
+                                                        @foreach (var app in Model.Device.SoftwareInfo.InstalledApps.Skip(20))
+                                                        {
+                                                            <div class="col-md-6 col-lg-4 mb-2">
+                                                                <div class="card card-body p-2">
+                                                                    <small><i class="fas fa-cube"></i> @app</small>
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Güncellmeler -->
+                            @if (Model.Device.SoftwareInfo.Updates?.Any() == true)
+                            {
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <h6><i class="fas fa-download"></i> Sistem Güncellemeleri (@Model.Device.SoftwareInfo.Updates.Count)</h6>
+                                        <div class="list-group">
+                                            @foreach (var update in Model.Device.SoftwareInfo.Updates.Take(10))
+                                            {
+                                                <div class="list-group-item p-2">
+                                                    <small><i class="fas fa-download"></i> @update</small>
+                                                </div>
+                                            }
+                                        </div>
+                                        @if (Model.Device.SoftwareInfo.Updates.Count > 10)
+                                        {
+                                            <div class="text-center mt-2">
+                                                <small class="text-muted">ve @(Model.Device.SoftwareInfo.Updates.Count - 10) güncelleme daha...</small>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="text-center mt-5">
+            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+            <h5>Cihaz bulunamadı</h5>
+            <p class="text-muted">Belirtilen cihaz bulunamadı veya erişim izniniz yok.</p>
+            <a asp-page="/Devices/Index" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i> Cihazlar Listesine Dön
+            </a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function showAllApps() {
+            document.getElementById('additionalApps').style.display = 'block';
+            event.target.style.display = 'none';
+        }
+    </script>
+}
+
+@section Head {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .table td, .table th {
+            vertical-align: middle;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .badge {
+            font-size: 0.75em;
+        }
+        
+        code {
+            font-size: 0.875em;
+        }
+        
+        .list-group-item {
+            border: none;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .table-sm td {
+            padding: 0.25rem 0.5rem;
+        }
+    </style>
+}

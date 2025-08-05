@@ -119,6 +119,41 @@ namespace Inventory.Api.Controllers
             var schedule = _networkScanService.GetSchedule();
             return Ok(schedule);
         }
+
+        [HttpGet("local-ranges")]
+        [SwaggerOperation(Summary = "Yerel ağ aralıklarını getir", Description = "Tespit edilen yerel ağ aralıklarını döndürür")]
+        [SwaggerResponse(200, "Yerel ağ aralıklarını döndürür")]
+        public IActionResult GetLocalNetworkRanges()
+        {
+            var ranges = _networkScanService.GetLocalNetworkRanges();
+            return Ok(ranges);
+        }
+
+        [HttpPost("trigger-port-scan")]
+        [SwaggerOperation(Summary = "Port taraması başlat", Description = "Belirli port için cihaz taraması başlatır")]
+        [SwaggerResponse(200, "Port taraması başarıyla başlatıldı")]
+        [SwaggerResponse(400, "Port taraması başlatılamadı")]
+        public async Task<IActionResult> TriggerPortScan([FromBody] PortScanRequestDto request)
+        {
+            try
+            {
+                // For now, we'll treat port scan similar to regular scan with additional metadata
+                if (!string.IsNullOrEmpty(request.NetworkRange))
+                {
+                    await _networkScanService.TriggerManualScanAsync(request.NetworkRange);
+                }
+                else
+                {
+                    await _networkScanService.TriggerManualScanAsync();
+                }
+                
+                return Ok(new { message = $"Port {request.TargetPort} için ağ taraması başarıyla başlatıldı" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = $"Port taraması başlatılamadı: {ex.Message}" });
+            }
+        }
     }
 
     public class NetworkScanScheduleDto
@@ -131,5 +166,12 @@ namespace Inventory.Api.Controllers
     public class NetworkRangeDto
     {
         public string NetworkRange { get; set; } = string.Empty;
+    }
+
+    public class PortScanRequestDto
+    {
+        public string NetworkRange { get; set; } = string.Empty;
+        public int? TargetPort { get; set; }
+        public string ScanType { get; set; } = string.Empty;
     }
 }

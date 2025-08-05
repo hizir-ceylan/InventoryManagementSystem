@@ -30,6 +30,16 @@ namespace Inventory.Api.Controllers
             return Ok(devices);
         }
 
+        [HttpGet("status")]
+        [SwaggerOperation(Summary = "Cihaz durumları ile birlikte listele", Description = "Cihazları Türkiye saati ile durum bilgileri ile birlikte döndürür")]
+        [SwaggerResponse(200, "Durum bilgileri ile cihaz listesini döndürür", typeof(IEnumerable<DeviceStatusDto>))]
+        public async Task<ActionResult<IEnumerable<DeviceStatusDto>>> GetAllWithStatus()
+        {
+            var devices = await _deviceService.GetAllDevicesAsync();
+            var result = devices.Select(DeviceStatusDto.FromEntity).ToList();
+            return Ok(result);
+        }
+
         [HttpGet("agent-installed")]
         [SwaggerOperation(Summary = "Agent kurulu cihazları getir", Description = "Sadece agent kurulu cihazları döndürür")]
         [SwaggerResponse(200, "Agent kurulu cihaz listesini döndürür", typeof(IEnumerable<Device>))]

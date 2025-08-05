@@ -3,6 +3,7 @@ using Inventory.Domain.Entities;
 using Inventory.Data;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
+using Inventory.Api.DTOs;
 
 namespace Inventory.Api.Controllers
 {
@@ -22,20 +23,22 @@ namespace Inventory.Api.Controllers
 
         [HttpGet]
         [SwaggerOperation(Summary = "Get all change logs", Description = "Returns all change logs in the system")]
-        [SwaggerResponse(200, "Returns the list of change logs", typeof(IEnumerable<ChangeLog>))]
-        public async Task<ActionResult<IEnumerable<ChangeLog>>> GetAll()
+        [SwaggerResponse(200, "Returns the list of change logs", typeof(IEnumerable<ChangeLogDto>))]
+        public async Task<ActionResult<IEnumerable<ChangeLogDto>>> GetAll()
         {
             var changeLogs = await _context.ChangeLogs
                 .OrderByDescending(c => c.ChangeDate)
                 .ToListAsync();
-            return Ok(changeLogs);
+            
+            var result = changeLogs.Select(ChangeLogDto.FromEntity).ToList();
+            return Ok(result);
         }
 
         [HttpGet("device/{deviceId}")]
         [SwaggerOperation(Summary = "Get change logs for a specific device", Description = "Returns change logs for a specific device by device ID")]
-        [SwaggerResponse(200, "Returns the list of change logs for the device", typeof(IEnumerable<ChangeLog>))]
+        [SwaggerResponse(200, "Returns the list of change logs for the device", typeof(IEnumerable<ChangeLogDto>))]
         [SwaggerResponse(404, "Device not found")]
-        public async Task<ActionResult<IEnumerable<ChangeLog>>> GetByDeviceId(Guid deviceId)
+        public async Task<ActionResult<IEnumerable<ChangeLogDto>>> GetByDeviceId(Guid deviceId)
         {
             // Check if device exists
             var deviceExists = await _context.Devices.AnyAsync(d => d.Id == deviceId);
@@ -47,7 +50,8 @@ namespace Inventory.Api.Controllers
                 .OrderByDescending(c => c.ChangeDate)
                 .ToListAsync();
             
-            return Ok(changeLogs);
+            var result = changeLogs.Select(ChangeLogDto.FromEntity).ToList();
+            return Ok(result);
         }
 
         [HttpPost("device/{deviceId}")]

@@ -1,0 +1,155 @@
+@page
+@model Inventory.WebApp.Pages.Devices.IndexModel
+@{
+    ViewData["Title"] = "Cihazlar";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-desktop"></i> Cihazlar</h2>
+                <div>
+                    <a asp-page="/NetworkScan/Index" class="btn btn-primary me-2">
+                        <i class="fas fa-search"></i> Ağ Tarama
+                    </a>
+                    <button type="button" class="btn btn-success" onclick="refreshDevices()">
+                        <i class="fas fa-sync-alt"></i> Yenile
+                    </button>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i> @Model.ErrorMessage
+                </div>
+            }
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Tüm Cihazlar (@Model.Devices.Count)</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 15%;">Cihaz Adı</th>
+                                    <th style="width: 12%;">IP Adresi</th>
+                                    <th style="width: 10%;">Tip</th>
+                                    <th style="width: 15%;">Model</th>
+                                    <th style="width: 12%;">Konum</th>
+                                    <th style="width: 15%;">Son Görülme</th>
+                                    <th style="width: 8%;">Durum</th>
+                                    <th style="width: 8%;">Yönetim</th>
+                                    <th style="width: 15%;" class="text-center">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var device in Model.Devices)
+                                {
+                                    <tr class="@(device.IsActive ? "" : "table-secondary")">
+                                        <td>
+                                            <strong>@device.Name</strong>
+                                            @if (device.AgentInstalled)
+                                            {
+                                                <span class="badge bg-info ms-1" title="Agent kurulu">
+                                                    <i class="fas fa-robot"></i>
+                                                </span>
+                                            }
+                                        </td>
+                                        <td><code>@device.IpAddress</code></td>
+                                        <td>
+                                            <span class="badge bg-secondary">@device.DeviceType</span>
+                                        </td>
+                                        <td>@device.Model</td>
+                                        <td>@device.Location</td>
+                                        <td>
+                                            <small class="text-muted">@device.LastSeenFormatted</small>
+                                        </td>
+                                        <td>
+                                            @if (device.IsActive)
+                                            {
+                                                <span class="badge bg-success">Çalışıyor</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Kapalı</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">@device.ManagementType</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a asp-page="/Devices/Details" asp-route-id="@device.Id" 
+                                                   class="btn btn-outline-primary" title="Detaya Git">
+                                                    <i class="fas fa-eye"></i> Detaya Git
+                                                </a>
+                                                <a asp-page="/Devices/Logs" asp-route-id="@device.Id" 
+                                                   class="btn btn-outline-info" title="Logları Görüntüle">
+                                                    <i class="fas fa-list-alt"></i> Loglara Git
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.Devices.Count == 0 && string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="text-center mt-5">
+                    <i class="fas fa-desktop fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Henüz cihaz bulunamadı</h5>
+                    <p class="text-muted">Ağ taraması yaparak cihazları keşfedebilirsiniz.</p>
+                    <a asp-page="/NetworkScan/Index" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Ağ Tarama Başlat
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function refreshDevices() {
+            location.reload();
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(function() {
+            if (document.visibilityState === 'visible') {
+                refreshDevices();
+            }
+        }, 30000);
+    </script>
+}
+
+@section Head {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .table td, .table th {
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        
+        .btn-group-sm .btn {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        code {
+            font-size: 0.875em;
+        }
+        
+        .badge {
+            font-size: 0.75em;
+        }
+    </style>
+}

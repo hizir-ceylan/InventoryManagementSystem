@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Inventory.Agent.Windows.Models;
 using Inventory.Agent.Windows.Configuration;
+using Inventory.Shared.Helpers;
 
 public static class DeviceLogger
 {
@@ -25,11 +26,12 @@ public static class DeviceLogger
         Directory.CreateDirectory(LogFolder);
 
         // 1. Hourly log file names with proper 48-hour retention
-        string currentHour = DateTime.Now.ToString("yyyy-MM-dd-HH");
+        var turkeyTime = TimezoneHelper.GetTurkeyNow();
+        string currentHour = turkeyTime.ToString("yyyy-MM-dd-HH");
         string currentLogPath = Path.Combine(LogFolder, $"device-log-{currentHour}.json");
         
         // 2. Clean up logs older than 48 hours (proper 2-day retention including weekends)
-        var cutoffTime = DateTime.Now.AddHours(-48);
+        var cutoffTime = TimezoneHelper.GetTurkeyNow().AddHours(-48);
         foreach (var file in Directory.GetFiles(LogFolder, "device-log-*.json"))
         {
             var fileName = Path.GetFileNameWithoutExtension(file);
@@ -70,7 +72,7 @@ public static class DeviceLogger
                 FileName = Path.GetFileNameWithoutExtension(f),
                 DateTime = TryParseLogDateTime(Path.GetFileNameWithoutExtension(f))
             })
-            .Where(f => f.DateTime.HasValue && f.DateTime.Value < DateTime.Now)
+            .Where(f => f.DateTime.HasValue && f.DateTime.Value < TimezoneHelper.GetTurkeyNow())
             .OrderByDescending(f => f.DateTime.Value)
             .FirstOrDefault();
 
@@ -91,7 +93,7 @@ public static class DeviceLogger
         // 4. Log verisi oluştur
         var logObject = new
         {
-            Date = DateTime.Now,
+            Date = TimezoneHelper.GetTurkeyNow(),
             Device = deviceSnapshot,
             Diff = diff
         };
@@ -494,12 +496,13 @@ public static class DeviceLogger
             string changesFolder = Path.Combine(LogFolder, "Changes");
             Directory.CreateDirectory(changesFolder);
 
-            string timestamp = DateTime.Now.ToString("HH-mm-ss");
+            var turkeyTimeForFile = TimezoneHelper.GetTurkeyNow();
+            string timestamp = turkeyTimeForFile.ToString("HH-mm-ss");
             string changeFilePath = Path.Combine(changesFolder, $"device-changes-{dateTimeString}-{timestamp}.json");
 
             var changeLogObject = new
             {
-                DetectedAt = DateTime.Now,
+                DetectedAt = turkeyTimeForFile,
                 DeviceName = Environment.MachineName,
                 Changes = changes
             };
