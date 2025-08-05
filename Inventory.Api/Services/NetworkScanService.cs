@@ -11,6 +11,7 @@ namespace Inventory.Api.Services
     {
         Task TriggerManualScanAsync();
         Task TriggerManualScanAsync(string networkRange);
+        Task TriggerManualScanAsync(string networkRange, int timeoutSeconds, string portScanType);
         Task TriggerScanAllNetworksAsync();
         object GetScanStatus();
         object GetScanHistory();
@@ -62,6 +63,16 @@ namespace Inventory.Api.Services
             await TriggerScanAsync("Manual", networkRange);
         }
 
+        public async Task TriggerManualScanAsync(string networkRange, int timeoutSeconds, string portScanType)
+        {
+            if (_isScanning)
+            {
+                throw new InvalidOperationException("Tarama zaten devam ediyor.");
+            }
+
+            await TriggerScanAsync("Manual", networkRange, false, timeoutSeconds, portScanType);
+        }
+
         public async Task TriggerScanAllNetworksAsync()
         {
             if (_isScanning)
@@ -72,7 +83,7 @@ namespace Inventory.Api.Services
             await TriggerScanAsync("Manual-AllNetworks", null, true);
         }
 
-        private async Task TriggerScanAsync(string scanType, string? networkRange, bool scanAllNetworks = false)
+        private async Task TriggerScanAsync(string scanType, string? networkRange, bool scanAllNetworks = false, int timeoutSeconds = 5, string portScanType = "common")
         {
             _isScanning = true;
             _lastScanTime = DateTime.UtcNow;
@@ -93,7 +104,7 @@ namespace Inventory.Api.Services
                 }
                 else
                 {
-                    devices = await _networkScannerService.ScanNetworkAsync(networkRange);
+                    devices = await _networkScannerService.ScanNetworkAsync(networkRange, timeoutSeconds, portScanType);
                 }
 
                 devicesFound = devices.Count;

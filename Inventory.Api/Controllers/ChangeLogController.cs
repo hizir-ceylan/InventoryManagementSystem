@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Inventory.Domain.Entities;
 using Inventory.Data;
+using Inventory.Shared.Utils;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 

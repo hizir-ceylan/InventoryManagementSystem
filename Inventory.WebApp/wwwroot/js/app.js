@@ -277,8 +277,8 @@ class InventoryApp {
                     </span>
                 </td>
                 <td>
-                    <span class="badge ${this.getStatusBadgeClass(device.status)}">
-                        ${this.getStatusText(device.status)}
+                    <span class="badge ${this.getStatusBadgeClass(this.getComputedStatus(device))}">
+                        ${this.getStatusText(this.getComputedStatus(device))}
                     </span>
                 </td>
                 <td class="hide-mobile"><span class="text-truncate-mobile">${device.model || 'N/A'}</span></td>
@@ -291,12 +291,13 @@ class InventoryApp {
                 </td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn btn-outline-primary btn-sm" onclick="app.showDeviceDetail('${device.id}')" title="Detay Görüntüle">
-                            <i class="bi bi-eye"></i>
-                            <span class="d-none d-md-inline">Detay</span>
+                        <button class="btn btn-outline-primary btn-sm" onclick="app.showDeviceDetailPage('${device.id}')" title="Cihaz Detayına Git">
+                            <i class="bi bi-info-circle"></i>
+                            <span class="d-none d-lg-inline">Cihaz Detayı</span>
                         </button>
-                        <button class="btn btn-outline-success btn-sm" onclick="app.showDeviceDetailPage('${device.id}')" title="Detay Sayfasında Aç">
-                            <i class="bi bi-box-arrow-up-right"></i>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="app.showDeviceLogs('${device.id}')" title="Cihaz Loglarına Git">
+                            <i class="bi bi-clock-history"></i>
+                            <span class="d-none d-lg-inline">Loglar</span>
                         </button>
                     </div>
                 </td>
@@ -375,7 +376,7 @@ class InventoryApp {
                             <span class="badge ${this.getDeviceTypeBadgeClass(device.deviceType)}">${this.getDeviceTypeText(device.deviceType)}</span>
                         </div>
                         <div class="device-status">
-                            <span class="badge ${this.getStatusBadgeClass(device.status)}">${this.getStatusText(device.status)}</span>
+                            <span class="badge ${this.getStatusBadgeClass(this.getComputedStatus(device))}">${this.getStatusText(this.getComputedStatus(device))}</span>
                         </div>
                     </div>
                     <button class="btn-secondary" onclick="showPage('devices')">
@@ -392,6 +393,37 @@ class InventoryApp {
             this.hideLoading();
         } catch (error) {
             this.showError('Cihaz detayları yüklenirken hata oluştu: ' + error.message);
+        }
+    }
+
+    // Show device logs - navigate to change logs page with device filter
+    async showDeviceLogs(deviceId) {
+        try {
+            // Get device info first to display in the filter
+            let device = this.devices.find(d => d.id == deviceId);
+            if (!device) {
+                device = await this.apiCall(`device/${deviceId}`);
+            }
+            
+            // Navigate to change logs page
+            this.showPage('change-logs');
+            
+            // Set filter to show logs for this specific device
+            const deviceFilter = document.getElementById('filter-device');
+            if (deviceFilter) {
+                // Add device to filter options if not already there
+                const existingOption = Array.from(deviceFilter.options).find(option => option.value === deviceId);
+                if (!existingOption) {
+                    const option = new Option(device.name || 'Bilinmeyen Cihaz', deviceId);
+                    deviceFilter.add(option);
+                }
+                deviceFilter.value = deviceId;
+                
+                // Trigger change logs refresh with filter
+                this.refreshChangeLogs();
+            }
+        } catch (error) {
+            this.showError('Cihaz logları yüklenirken hata oluştu: ' + error.message);
         }
     }
 
@@ -423,8 +455,8 @@ class InventoryApp {
                 <div class="device-info-item">
                     <span class="device-info-label">Durum:</span>
                     <span class="device-info-value">
-                        <span class="badge ${this.getStatusBadgeClass(device.status)}">
-                            ${this.getStatusText(device.status)}
+                        <span class="badge ${this.getStatusBadgeClass(this.getComputedStatus(device))}">
+                            ${this.getStatusText(this.getComputedStatus(device))}
                         </span>
                     </span>
                 </div>
@@ -466,69 +498,237 @@ class InventoryApp {
                 </div>
             </div>
 
-            ${device.hardwareInfo && device.hardwareInfo.length > 0 ? `
+            ${this.renderHardwareInfo(device)}
+            ${this.renderSoftwareInfo(device)}
+        `;
+    }
+
+    // Render hardware information section
+    renderHardwareInfo(device) {
+        if (!device.hardwareInfo) {
+            return `
                 <div class="device-info-group">
                     <h6><i class="bi bi-cpu"></i> Donanım Bilgileri</h6>
-                    ${device.hardwareInfo.map(hw => `
-                        <div class="device-info-item">
-                            <span class="device-info-label">${hw.componentType || 'Bilinmeyen'}:</span>
-                            <span class="device-info-value">${hw.componentName || 'N/A'}</span>
-                        </div>
-                    `).join('')}
+                    <div class="device-info-item">
+                        <span class="device-info-value text-muted">Bu cihaz için donanım bilgisi bulunmuyor</span>
+                    </div>
                 </div>
-            ` : ''}
+            `;
+        }
 
-            ${device.softwareInfo && device.softwareInfo.length > 0 ? `
-                <div class="device-info-group">
-                    <h6><i class="bi bi-software-123"></i> Yazılım Bilgileri (${device.softwareInfo.length} adet)</h6>
-                    <div class="software-list-container">
-                        <div class="software-list" id="software-list-${device.id || 'modal'}">
-                            ${device.softwareInfo.slice(0, 20).map(sw => `
-                                <div class="software-item">
-                                    <div class="software-name">${sw.name || 'Bilinmeyen'}</div>
-                                    <div class="software-version">${sw.version || 'N/A'}</div>
+        const hw = device.hardwareInfo;
+        return `
+            <div class="device-info-group">
+                <h6><i class="bi bi-cpu"></i> Donanım Bilgileri</h6>
+                
+                ${hw.cpu ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">İşlemci:</span>
+                        <span class="device-info-value">${hw.cpu} ${hw.cpuCores ? `(${hw.cpuCores} çekirdek)` : ''} ${hw.cpuClockMHz ? `@ ${hw.cpuClockMHz}MHz` : ''}</span>
+                    </div>
+                ` : ''}
+                
+                ${hw.ramGB ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">Bellek:</span>
+                        <span class="device-info-value">${hw.ramGB} GB RAM</span>
+                    </div>
+                ` : ''}
+                
+                ${hw.ramModules && hw.ramModules.length > 0 ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">Bellek Modülleri:</span>
+                        <div class="device-info-value">
+                            ${hw.ramModules.map(ram => `
+                                <div class="hardware-item">
+                                    <strong>${ram.slot}:</strong> ${ram.capacityGB}GB ${ram.manufacturer || ''} ${ram.speedMHz ? `@ ${ram.speedMHz}MHz` : ''}
                                 </div>
                             `).join('')}
                         </div>
-                        ${device.softwareInfo.length > 20 ? `
-                            <div class="software-load-more">
-                                <button class="btn-load-more" onclick="app.loadMoreSoftware('${device.id || 'modal'}', '${encodeURIComponent(JSON.stringify(device.softwareInfo))}')">
-                                    <i class="bi bi-chevron-down"></i>
-                                    Daha fazla yazılım göster (${device.softwareInfo.length - 20} kalan)
-                                </button>
-                            </div>
-                        ` : ''}
+                    </div>
+                ` : ''}
+                
+                ${hw.diskGB ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">Depolama:</span>
+                        <span class="device-info-value">${hw.diskGB} GB</span>
+                    </div>
+                ` : ''}
+                
+                ${hw.disks && hw.disks.length > 0 ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">Disk Bilgileri:</span>
+                        <div class="device-info-value">
+                            ${hw.disks.map(disk => `
+                                <div class="hardware-item">
+                                    <strong>${disk.deviceId}:</strong> ${disk.totalGB}GB toplam, ${disk.freeGB}GB boş
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${hw.gpus && hw.gpus.length > 0 ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">Ekran Kartları:</span>
+                        <div class="device-info-value">
+                            ${hw.gpus.map(gpu => `
+                                <div class="hardware-item">
+                                    <strong>${gpu.name}</strong> ${gpu.memoryGB ? `(${gpu.memoryGB}GB)` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${hw.networkAdapters && hw.networkAdapters.length > 0 ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">Ağ Adaptörleri:</span>
+                        <div class="device-info-value">
+                            ${hw.networkAdapters.map(adapter => `
+                                <div class="hardware-item">
+                                    <strong>${adapter.description}</strong><br>
+                                    MAC: ${adapter.macAddress || 'N/A'}, IP: ${adapter.ipAddress || 'N/A'}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${hw.motherboard ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">Anakart:</span>
+                        <span class="device-info-value">${hw.motherboard} ${hw.motherboardSerial ? `(S/N: ${hw.motherboardSerial})` : ''}</span>
+                    </div>
+                ` : ''}
+                
+                ${hw.biosManufacturer ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">BIOS:</span>
+                        <span class="device-info-value">${hw.biosManufacturer} ${hw.biosVersion || ''}</span>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    // Render software information section with pagination
+    renderSoftwareInfo(device) {
+        if (!device.softwareInfo) {
+            return `
+                <div class="device-info-group">
+                    <h6><i class="bi bi-pc-display"></i> Yazılım Bilgileri</h6>
+                    <div class="device-info-item">
+                        <span class="device-info-value text-muted">Bu cihaz için yazılım bilgisi bulunmuyor</span>
                     </div>
                 </div>
-            ` : ''}
+            `;
+        }
+
+        const sw = device.softwareInfo;
+        const deviceId = device.id || 'modal';
+        
+        return `
+            <div class="device-info-group">
+                <h6><i class="bi bi-pc-display"></i> Yazılım Bilgileri</h6>
+                
+                ${sw.operatingSystem ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">İşletim Sistemi:</span>
+                        <span class="device-info-value">${sw.operatingSystem} ${sw.osVersion || ''} ${sw.osArchitecture ? `(${sw.osArchitecture})` : ''}</span>
+                    </div>
+                ` : ''}
+                
+                ${sw.registeredUser ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">Kayıtlı Kullanıcı:</span>
+                        <span class="device-info-value">${sw.registeredUser}</span>
+                    </div>
+                ` : ''}
+                
+                ${sw.activeUser ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">Aktif Kullanıcı:</span>
+                        <span class="device-info-value">${sw.activeUser}</span>
+                    </div>
+                ` : ''}
+                
+                ${sw.serialNumber ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">Seri Numarası:</span>
+                        <span class="device-info-value">${sw.serialNumber}</span>
+                    </div>
+                ` : ''}
+                
+                ${sw.users && sw.users.length > 0 ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">Kullanıcılar (${sw.users.length}):</span>
+                        <div class="device-info-value">
+                            <div class="users-list">
+                                ${sw.users.slice(0, 10).map(user => `<span class="user-badge">${user}</span>`).join('')}
+                                ${sw.users.length > 10 ? `<span class="text-muted">ve ${sw.users.length - 10} diğer...</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${sw.installedApps && sw.installedApps.length > 0 ? `
+                    <div class="device-info-item">
+                        <span class="device-info-label">Yüklü Yazılımlar (${sw.installedApps.length} adet):</span>
+                        <div class="device-info-value">
+                            <div class="software-list-container">
+                                <div class="software-list" id="software-list-${deviceId}">
+                                    ${sw.installedApps.slice(0, 20).map(app => `
+                                        <div class="software-item">
+                                            <i class="bi bi-app"></i>
+                                            <span class="software-name">${app}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                ${sw.installedApps.length > 20 ? `
+                                    <div class="software-load-more">
+                                        <button class="btn-load-more" onclick="app.loadMoreSoftware('${deviceId}', ${sw.installedApps.length})">
+                                            <i class="bi bi-chevron-down"></i>
+                                            Daha fazla yazılım göster (${sw.installedApps.length - 20} kalan)
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
         `;
     }
 
     // Load more software items for large software lists
-    loadMoreSoftware(deviceId, encodedSoftwareList) {
+    loadMoreSoftware(deviceId, totalCount) {
         try {
-            const softwareList = JSON.parse(decodeURIComponent(encodedSoftwareList));
+            // Get the device to access its software list
+            const device = this.devices.find(d => d.id === deviceId);
+            if (!device || !device.softwareInfo || !device.softwareInfo.installedApps) return;
+
             const container = document.getElementById(`software-list-${deviceId}`);
             const loadMoreBtn = container.parentElement.querySelector('.software-load-more');
             
             if (!container || !loadMoreBtn) return;
             
             const currentItems = container.children.length;
-            const nextBatch = softwareList.slice(currentItems, currentItems + 30); // Load 30 more items
+            const nextBatch = device.softwareInfo.installedApps.slice(currentItems, currentItems + 20);
             
             // Add new software items
-            nextBatch.forEach(sw => {
+            nextBatch.forEach(app => {
                 const softwareItem = document.createElement('div');
                 softwareItem.className = 'software-item';
                 softwareItem.innerHTML = `
-                    <div class="software-name">${sw.name || 'Bilinmeyen'}</div>
-                    <div class="software-version">${sw.version || 'N/A'}</div>
+                    <i class="bi bi-app"></i>
+                    <span class="software-name">${app}</span>
                 `;
                 container.appendChild(softwareItem);
             });
             
             // Update or remove the load more button
-            const remainingItems = softwareList.length - container.children.length;
+            const remainingItems = device.softwareInfo.installedApps.length - container.children.length;
             if (remainingItems > 0) {
                 loadMoreBtn.innerHTML = `
                     <i class="bi bi-chevron-down"></i>
@@ -678,20 +878,20 @@ class InventoryApp {
 
     getStatusBadgeClass(status) {
         const classes = {
-            0: 'status-active text-white',      // Active
-            1: 'status-inactive text-white',    // Inactive
-            2: 'status-maintenance text-dark',  // Maintenance
-            3: 'status-broken text-white'       // Broken
+            0: 'status-active text-white',      // Online (green)
+            1: 'status-inactive text-white',    // Offline (red)
+            2: 'status-maintenance text-dark',  // Maintenance (yellow)
+            3: 'status-broken text-white'       // Broken (dark red)
         };
         return classes[status] || classes[1];
     }
 
     getStatusText(status) {
         const statuses = {
-            0: 'Aktif',
-            1: 'Pasif',
-            2: 'Bakım',
-            3: 'Arızalı'
+            0: 'Çevrimiçi', // Online
+            1: 'Çevrimdışı', // Offline
+            2: 'Bakım',     // Maintenance
+            3: 'Arızalı'    // Broken
         };
         return statuses[status] || 'Bilinmiyor';
     }
@@ -705,6 +905,28 @@ class InventoryApp {
         const lastSeen = new Date(device.lastSeen);
         
         return lastSeen > twentyFourHoursAgo;
+    }
+
+    // Check if device is online (seen within 30 minutes)
+    isDeviceOnline(device) {
+        if (!device.lastSeen) return false;
+        
+        const now = new Date();
+        const thirtyMinutesAgo = new Date(now - 30 * 60 * 1000);
+        const lastSeen = new Date(device.lastSeen);
+        
+        return lastSeen > thirtyMinutesAgo;
+    }
+
+    // Get computed device status based on last seen time
+    getComputedStatus(device) {
+        // If device hasn't been seen in 30 minutes, it's offline (status 1)
+        if (!this.isDeviceOnline(device)) {
+            return 1; // Pasif/Offline
+        }
+        
+        // If device was seen recently, it's online (status 0)
+        return 0; // Aktif/Online
     }
 
     getManagementTypeText(managementType) {
@@ -729,7 +951,9 @@ class InventoryApp {
 
     formatDate(dateString) {
         const date = new Date(dateString);
-        return date.toLocaleDateString('tr-TR') + ' ' + date.toLocaleTimeString('tr-TR');
+        // Convert to Turkey timezone (UTC+3)
+        const turkeyTime = new Date(date.getTime() + (3 * 60 * 60 * 1000));
+        return turkeyTime.toLocaleDateString('tr-TR') + ' ' + turkeyTime.toLocaleTimeString('tr-TR');
     }
 
     // Network Scan functionality
@@ -760,7 +984,8 @@ class InventoryApp {
                 },
                 body: JSON.stringify({
                     networkRange: networkRange,
-                    timeoutSeconds: parseInt(timeout)
+                    timeoutSeconds: parseInt(timeout),
+                    portScanType: portScan
                 })
             });
 
@@ -805,7 +1030,7 @@ class InventoryApp {
                                 mac: device.macAddress,
                                 name: device.name || 'Unknown',
                                 status: 'Discovered',
-                                ports: 'N/A'
+                                ports: device.openPorts && device.openPorts.length > 0 ? device.openPorts.join(', ') : 'None'
                             })));
                         }
                         
@@ -898,11 +1123,21 @@ class InventoryApp {
         tbody.innerHTML = this.changeLogs.map(log => `
             <tr>
                 <td>${this.formatDate(log.changeDate)}</td>
-                <td>${log.deviceName}</td>
+                <td><strong>${log.deviceName || 'Bilinmeyen Cihaz'}</strong></td>
                 <td><span class="badge type-unknown">${log.changeType}</span></td>
-                <td>${log.oldValue}</td>
-                <td>${log.newValue}</td>
-                <td>${log.changedBy}</td>
+                <td class="hide-mobile">
+                    <span class="change-value ${log.oldValue ? '' : 'text-muted'}" title="${log.oldValue || 'Boş'}">
+                        ${log.oldValue || 'Boş'}
+                    </span>
+                </td>
+                <td class="hide-mobile">
+                    <span class="change-value ${log.newValue ? '' : 'text-muted'}" title="${log.newValue || 'Boş'}">
+                        ${log.newValue || 'Boş'}
+                    </span>
+                </td>
+                <td class="hide-mobile">
+                    <span class="badge badge-secondary">${log.changedBy || 'Sistem'}</span>
+                </td>
             </tr>
         `).join('');
     }

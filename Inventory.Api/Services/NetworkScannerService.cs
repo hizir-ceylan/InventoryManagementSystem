@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Linq;
 using Inventory.Api.Helpers;
 using Inventory.Api.Services;
 using Inventory.Shared.Utils;
@@ -10,7 +11,7 @@ namespace Inventory.Api.Services
 {
     public interface INetworkScannerService
     {
-        Task<List<NetworkDeviceResult>> ScanNetworkAsync(string? networkRange = null);
+        Task<List<NetworkDeviceResult>> ScanNetworkAsync(string? networkRange = null, int timeoutSeconds = 5, string portScanType = "common");
         Task<List<NetworkDeviceResult>> ScanAllLocalNetworksAsync();
         Task<string?> GetMacAddressAsync(IPAddress ipAddress);
         List<string> GetLocalNetworkRanges();
@@ -27,7 +28,7 @@ namespace Inventory.Api.Services
             _loggingService = loggingService;
         }
 
-        public async Task<List<NetworkDeviceResult>> ScanNetworkAsync(string? networkRange = null)
+        public async Task<List<NetworkDeviceResult>> ScanNetworkAsync(string? networkRange = null, int timeoutSeconds = 5, string portScanType = "common")
         {
             var devices = new List<NetworkDeviceResult>();
             var tasks = new List<Task<NetworkDeviceResult?>>();
@@ -37,8 +38,8 @@ namespace Inventory.Api.Services
                 // Use provided range or detect automatically
                 var rangeToScan = networkRange ?? NetworkRangeDetector.GetPrimaryNetworkRange();
                 
-                await _loggingService.LogInfoAsync("NetworkScanner", $"Starting network scan for range: {rangeToScan}");
-                _logger.LogInformation("Starting network scan for range: {NetworkRange}", rangeToScan);
+                await _loggingService.LogInfoAsync("NetworkScanner", $"Starting network scan for range: {rangeToScan} with {timeoutSeconds}s timeout and {portScanType} port scan");
+                _logger.LogInformation("Starting network scan for range: {NetworkRange} with {TimeoutSeconds}s timeout and {PortScanType} port scan", rangeToScan, timeoutSeconds, portScanType);
 
                 // Parse network range and create IP addresses to scan
                 var ipAddresses = GetIPAddressesFromRange(rangeToScan);
@@ -46,7 +47,7 @@ namespace Inventory.Api.Services
 
                 foreach (var ip in ipAddresses)
                 {
-                    tasks.Add(ScanHostAsync(ip));
+                    tasks.Add(ScanHostAsync(ip, timeoutSeconds, portScanType));
                 }
 
                 var results = await Task.WhenAll(tasks);
@@ -106,12 +107,13 @@ namespace Inventory.Api.Services
             return NetworkRangeDetector.GetLocalNetworkRanges();
         }
 
-        private async Task<NetworkDeviceResult?> ScanHostAsync(IPAddress ipAddress)
+        private async Task<NetworkDeviceResult?> ScanHostAsync(IPAddress ipAddress, int timeoutSeconds = 5, string portScanType = "common")
         {
             try
             {
                 var ping = new Ping();
-                var reply = await ping.SendPingAsync(ipAddress, 1000);
+                var timeoutMs = timeoutSeconds * 1000;
+                var reply = await ping.SendPingAsync(ipAddress, timeoutMs);
 
                 if (reply.Status == IPStatus.Success)
                 {
@@ -120,6 +122,9 @@ namespace Inventory.Api.Services
                     {
                         var manufacturer = OuiLookup.GetManufacturer(macAddress);
                         var deviceType = OuiLookup.GuessDeviceType(macAddress, manufacturer);
+
+                        // Perform port scanning based on the type
+                        var openPorts = await ScanPortsAsync(ipAddress, portScanType, timeoutMs);
 
                         var device = new NetworkDeviceResult
                         {
@@ -133,8 +138,9 @@ namespace Inventory.Api.Services
                             Location = "Network Discovery",
                             Model = "Unknown",
                             DiscoveryMethod = DiscoveryMethod.NetworkDiscovery,
-                            LastSeen = DateTime.UtcNow,
-                            ResponseTime = reply.RoundtripTime
+                            LastSeen = TimeZoneHelper.GetUtcNowForStorage(),
+                            ResponseTime = reply.RoundtripTime,
+                            OpenPorts = openPorts
                         };
 
                         await _loggingService.LogInfoAsync("NetworkScanner", $"Device discovered: {device.Name} ({device.IpAddress}) - {device.Manufacturer}");
@@ -240,6 +246,60 @@ namespace Inventory.Api.Services
 
             return ipAddresses;
         }
+
+        private async Task<List<int>> ScanPortsAsync(IPAddress ipAddress, string portScanType, int timeoutMs)
+        {
+            var openPorts = new List<int>();
+            
+            if (portScanType == "none")
+                return openPorts;
+
+            var portsToScan = GetPortsToScan(portScanType);
+            var tasks = new List<Task<int?>>();
+
+            foreach (var port in portsToScan)
+            {
+                tasks.Add(ScanPortAsync(ipAddress, port, Math.Min(timeoutMs, 3000))); // Max 3 seconds per port
+            }
+
+            var results = await Task.WhenAll(tasks);
+            openPorts.AddRange(results.Where(port => port.HasValue).Select(port => port!.Value));
+            
+            return openPorts;
+        }
+
+        private async Task<int?> ScanPortAsync(IPAddress ipAddress, int port, int timeoutMs)
+        {
+            try
+            {
+                using var client = new System.Net.Sockets.TcpClient();
+                var connectTask = client.ConnectAsync(ipAddress, port);
+                var timeoutTask = Task.Delay(timeoutMs);
+                
+                var completedTask = await Task.WhenAny(connectTask, timeoutTask);
+                
+                if (completedTask == connectTask && client.Connected)
+                {
+                    return port;
+                }
+            }
+            catch
+            {
+                // Port is closed or unreachable
+            }
+            
+            return null;
+        }
+
+        private static List<int> GetPortsToScan(string portScanType)
+        {
+            return portScanType.ToLower() switch
+            {
+                "common" => new List<int> { 21, 22, 23, 25, 53, 80, 110, 135, 139, 443, 445, 993, 995, 1723, 3389, 5900 },
+                "all" => Enumerable.Range(1, 1024).ToList(), // First 1024 ports
+                _ => new List<int>()
+            };
+        }
     }
 
     public class NetworkDeviceResult
@@ -256,5 +316,6 @@ namespace Inventory.Api.Services
         public DiscoveryMethod DiscoveryMethod { get; set; }
         public DateTime LastSeen { get; set; }
         public long ResponseTime { get; set; }
+        public List<int> OpenPorts { get; set; } = new List<int>();
     }
 }
