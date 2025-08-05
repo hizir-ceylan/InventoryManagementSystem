@@ -14,10 +14,12 @@
         <div class="col-md-4 mb-4">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <i class="fas fa-desktop fa-3x text-primary mb-3"></i>
+                    <i class="fas fa-desktop fa-3x mb-3"></i>
                     <h5 class="card-title">Cihaz Yönetimi</h5>
                     <p class="card-text">Ağdaki tüm cihazları görüntüleyin, durumlarını izleyin ve detaylarını inceleyin.</p>
-                    <a asp-page="/Devices/Index" class="btn btn-primary">Cihazları Görüntüle</a>
+                    <a asp-page="/Devices/Index" class="btn btn-primary">
+                        <i class="fas fa-eye"></i> Cihazları Görüntüle
+                    </a>
                 </div>
             </div>
         </div>
@@ -25,10 +27,12 @@
         <div class="col-md-4 mb-4">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <i class="fas fa-search fa-3x text-success mb-3"></i>
+                    <i class="fas fa-search fa-3x mb-3"></i>
                     <h5 class="card-title">Ağ Tarama</h5>
                     <p class="card-text">Otomatik ağ keşfi ile yeni cihazları bulun ve envantere ekleyin.</p>
-                    <a asp-page="/NetworkScan/Index" class="btn btn-success">Ağ Tarama Başlat</a>
+                    <a asp-page="/NetworkScan/Index" class="btn btn-success">
+                        <i class="fas fa-play"></i> Ağ Tarama Başlat
+                    </a>
                 </div>
             </div>
         </div>
@@ -36,10 +40,12 @@
         <div class="col-md-4 mb-4">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
+                    <i class="fas fa-chart-line fa-3x mb-3"></i>
                     <h5 class="card-title">İzleme & Raporlar</h5>
                     <p class="card-text">Cihaz değişikliklerini takip edin ve raporlar oluşturun.</p>
-                    <a href="#" class="btn btn-info">Raporları Görüntüle</a>
+                    <a href="#" class="btn btn-info">
+                        <i class="fas fa-chart-bar"></i> Raporları Görüntüle
+                    </a>
                 </div>
             </div>
         </div>
@@ -53,12 +59,12 @@
                 </div>
                 <div class="card-body">
                     <ul class="list-unstyled">
-                        <li><i class="fas fa-check text-success"></i> Otomatik cihaz keşfi</li>
-                        <li><i class="fas fa-check text-success"></i> Donanım ve yazılım bilgileri</li>
-                        <li><i class="fas fa-check text-success"></i> Değişiklik takibi</li>
-                        <li><i class="fas fa-check text-success"></i> Gerçek zamanlı durum izleme</li>
-                        <li><i class="fas fa-check text-success"></i> Port tarama desteği</li>
-                        <li><i class="fas fa-check text-success"></i> Agent ve ağ tabanlı yönetim</li>
+                        <li><i class="fas fa-check"></i> Otomatik cihaz keşfi</li>
+                        <li><i class="fas fa-check"></i> Donanım ve yazılım bilgileri</li>
+                        <li><i class="fas fa-check"></i> Değişiklik takibi</li>
+                        <li><i class="fas fa-check"></i> Gerçek zamanlı durum izleme</li>
+                        <li><i class="fas fa-check"></i> Port tarama desteği</li>
+                        <li><i class="fas fa-check"></i> Agent ve ağ tabanlı yönetim</li>
                     </ul>
                 </div>
             </div>
@@ -89,27 +95,3 @@
         </div>
     </div>
 </div>
-
-@section Head {
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .card {
-            border: 1px solid #dee2e6;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            transition: transform 0.15s ease-in-out;
-        }
-        
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        }
-        
-        .card-body {
-            padding: 1.5rem;
-        }
-        
-        .fa-3x {
-            font-size: 3em;
-        }
-    </style>
-}
