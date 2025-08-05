@@ -83,6 +83,7 @@ foreach ($folder in $foldersToClean) {
 
 $null = New-Item -ItemType Directory -Path "Published\Api" -Force
 $null = New-Item -ItemType Directory -Path "Published\Agent" -Force
+$null = New-Item -ItemType Directory -Path "Published\WebApp" -Force
 $null = New-Item -ItemType Directory -Path "Setup" -Force
 Write-Status "Created build directories" "SUCCESS"
 
@@ -154,6 +155,21 @@ try {
 }
 
 Write-Host ""
+Write-Host "Publishing WebApp..."
+try {
+    $webAppArgs = $publishArgs + @("..\Inventory.WebApp", "--output", "Published\WebApp")
+    & dotnet publish @webAppArgs
+    if ($LASTEXITCODE -eq 0) {
+        Write-Status "WebApp published successfully" "SUCCESS"
+    } else {
+        throw "WebApp publish failed with exit code $LASTEXITCODE"
+    }
+} catch {
+    Write-Status "Failed to publish WebApp: $_" "ERROR"
+    exit 1
+}
+
+Write-Host ""
 Write-Host "Creating configuration files..."
 
 $apiConfig = @{
@@ -184,6 +200,22 @@ $agentConfig = @{
 
 Set-Content -Path "Published\Agent\appsettings.json" -Value $agentConfig -Encoding UTF8
 
+$webAppConfig = @{
+    ApiSettings = @{
+        BaseUrl = "http://localhost:5093"
+    }
+    Logging = @{
+        LogLevel = @{
+            Default = "Information"
+            "Microsoft.AspNetCore" = "Warning"
+        }
+    }
+    AllowedHosts = "*"
+    Urls = "http://localhost:5094"
+} | ConvertTo-Json -Depth 4
+
+Set-Content -Path "Published\WebApp\appsettings.json" -Value $webAppConfig -Encoding UTF8
+
 Write-Status "Configuration files created" "SUCCESS"
 
 $setupExists = $false
@@ -212,12 +244,13 @@ Write-Host "====================================================="
 if ($setupExists) {
     Write-Host ""
     Write-Host "[OK] Setup file created: Setup\InventoryManagementSystem-Setup.exe"
-    Write-Host "[OK] Published files: Published\Api\ and Published\Agent\"
+    Write-Host "[OK] Published files: Published\Api\, Published\Agent\, and Published\WebApp\"
 } else {
     Write-Host ""
     Write-Host "[OK] Published files ready:"
     Write-Host " - API: Published\Api\"
     Write-Host " - Agent: Published\Agent\"
+    Write-Host " - WebApp: Published\WebApp\"
 
     if ($SkipInnoSetup) {
         Write-Host ""
@@ -235,7 +268,7 @@ Write-Host " - Administrator privileges required"
 if (-not $SelfContained) {
     Write-Host " - .NET 8 Runtime required (will be installed automatically if missing)"
 }
-Write-Host " - Port 5093 must be available"
+Write-Host " - Port 5093 (API) and Port 5094 (WebApp) must be available"
 
 Write-Host ""
 Write-Host "Press any key to exit..."
