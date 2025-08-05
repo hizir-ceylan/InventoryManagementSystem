@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  inventory-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5093:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Data Source=/app/Data/inventory.db
+    volumes:
+      - inventory_data:/app/Data
+    networks:
+      - inventory-network
+
+  inventory-webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile.webapp
+    ports:
+      - "5094:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - inventory-api
+    networks:
+      - inventory-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - inventory-api
+      - inventory-webapp
+    networks:
+      - inventory-network
+
+volumes:
+  inventory_data:
+
+networks:
+  inventory-network:
+    driver: bridge
