@@ -3,6 +3,7 @@ using Inventory.Domain.Entities;
 using Inventory.Api.Helpers;
 using Inventory.Api.DTOs;
 using Inventory.Api.Services;
+using Inventory.Shared.Utils;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Inventory.Api.Controllers
@@ -160,7 +161,7 @@ namespace Inventory.Api.Controllers
                 ManagementType = deviceDto.ManagementType,
                 AgentInstalled = deviceDto.AgentInstalled,
                 DiscoveryMethod = DiscoveryMethod.NetworkDiscovery,
-                LastSeen = DateTime.UtcNow,
+                LastSeen = TimeZoneHelper.GetUtcNowForStorage(),
                 Status = 1, // Active
                 ChangeLogs = new List<ChangeLog>()
             };
@@ -208,7 +209,7 @@ namespace Inventory.Api.Controllers
                 existingDevice.Location = deviceDto.Location ?? existingDevice.Location;
                 existingDevice.ManagementType = deviceDto.ManagementType != ManagementType.Unknown ? deviceDto.ManagementType : existingDevice.ManagementType;
                 existingDevice.AgentInstalled = deviceDto.AgentInstalled;
-                existingDevice.LastSeen = DateTime.UtcNow;
+                existingDevice.LastSeen = TimeZoneHelper.GetUtcNowForStorage();
 
                 // Güncellenen cihazı doğrula
                 var validationErrors = DeviceValidator.ValidateDevice(existingDevice);
@@ -347,7 +348,7 @@ namespace Inventory.Api.Controllers
                         DeviceType = deviceDto.DeviceType,
                         Model = deviceDto.Model,
                         Location = deviceDto.Location,
-                        LastSeen = DateTime.UtcNow,
+                        LastSeen = TimeZoneHelper.GetUtcNowForStorage(),
                         ManagementType = ManagementType.Agent,
                         DiscoveryMethod = DiscoveryMethod.Agent,
                         Status = 1, // Aktif
@@ -454,7 +455,7 @@ namespace Inventory.Api.Controllers
                 {
                     Id = Guid.NewGuid(),
                     DeviceId = deviceToUpdate.Id,
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                     ChangeType = "Name",
                     OldValue = deviceToUpdate.Name ?? "",
                     NewValue = newDevice.Name,
@@ -469,7 +470,7 @@ namespace Inventory.Api.Controllers
                 {
                     Id = Guid.NewGuid(),
                     DeviceId = deviceToUpdate.Id,
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                     ChangeType = "IpAddress",
                     OldValue = deviceToUpdate.IpAddress ?? "",
                     NewValue = newDevice.IpAddress,
@@ -484,7 +485,7 @@ namespace Inventory.Api.Controllers
                 {
                     Id = Guid.NewGuid(),
                     DeviceId = deviceToUpdate.Id,
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                     ChangeType = "Model",
                     OldValue = deviceToUpdate.Model ?? "",
                     NewValue = newDevice.Model,
@@ -499,7 +500,7 @@ namespace Inventory.Api.Controllers
                 {
                     Id = Guid.NewGuid(),
                     DeviceId = deviceToUpdate.Id,
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                     ChangeType = "Location",
                     OldValue = deviceToUpdate.Location ?? "",
                     NewValue = newDevice.Location,
@@ -514,7 +515,7 @@ namespace Inventory.Api.Controllers
                 {
                     Id = Guid.NewGuid(),
                     DeviceId = deviceToUpdate.Id,
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                     ChangeType = "DeviceType",
                     OldValue = deviceToUpdate.DeviceType.ToString(),
                     NewValue = newDevice.DeviceType.ToString(),
@@ -529,7 +530,7 @@ namespace Inventory.Api.Controllers
                 {
                     Id = Guid.NewGuid(),
                     DeviceId = deviceToUpdate.Id,
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                     ChangeType = "ManagementType",
                     OldValue = deviceToUpdate.ManagementType.ToString(),
                     NewValue = newDevice.ManagementType.ToString(),
@@ -544,7 +545,7 @@ namespace Inventory.Api.Controllers
                 {
                     Id = Guid.NewGuid(),
                     DeviceId = deviceToUpdate.Id,
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                     ChangeType = "Status",
                     OldValue = deviceToUpdate.Status.ToString(),
                     NewValue = newDevice.Status.ToString(),
@@ -562,7 +563,7 @@ namespace Inventory.Api.Controllers
                     {
                         Id = Guid.NewGuid(),
                         DeviceId = deviceToUpdate.Id,
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                         ChangeType = "HardwareInfo",
                         OldValue = "None",
                         NewValue = "Hardware information added",
@@ -580,7 +581,7 @@ namespace Inventory.Api.Controllers
                         {
                             Id = Guid.NewGuid(),
                             DeviceId = deviceToUpdate.Id,
-                            ChangeDate = DateTime.UtcNow,
+                            ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                             ChangeType = "CPU",
                             OldValue = deviceToUpdate.HardwareInfo.Cpu ?? "",
                             NewValue = newDevice.HardwareInfo.Cpu,
@@ -595,7 +596,7 @@ namespace Inventory.Api.Controllers
                         {
                             Id = Guid.NewGuid(),
                             DeviceId = deviceToUpdate.Id,
-                            ChangeDate = DateTime.UtcNow,
+                            ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                             ChangeType = "RAM",
                             OldValue = $"{deviceToUpdate.HardwareInfo.RamGB} GB",
                             NewValue = $"{newDevice.HardwareInfo.RamGB} GB",
@@ -627,7 +628,7 @@ namespace Inventory.Api.Controllers
                     {
                         Id = Guid.NewGuid(),
                         DeviceId = deviceToUpdate.Id,
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                         ChangeType = "SoftwareInfo",
                         OldValue = "None",
                         NewValue = "Software information added",
@@ -645,7 +646,7 @@ namespace Inventory.Api.Controllers
                         {
                             Id = Guid.NewGuid(),
                             DeviceId = deviceToUpdate.Id,
-                            ChangeDate = DateTime.UtcNow,
+                            ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                             ChangeType = "OperatingSystem",
                             OldValue = deviceToUpdate.SoftwareInfo.OperatingSystem ?? "",
                             NewValue = newDevice.SoftwareInfo.OperatingSystem,
@@ -661,7 +662,7 @@ namespace Inventory.Api.Controllers
                         {
                             Id = Guid.NewGuid(),
                             DeviceId = deviceToUpdate.Id,
-                            ChangeDate = DateTime.UtcNow,
+                            ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                             ChangeType = "OSVersion",
                             OldValue = deviceToUpdate.SoftwareInfo.OsVersion ?? "",
                             NewValue = newDevice.SoftwareInfo.OsVersion,
@@ -685,7 +686,7 @@ namespace Inventory.Api.Controllers
                 deviceToUpdate.DiscoveryMethod = newDevice.DiscoveryMethod;
             
             // LastSeen güncelle
-            deviceToUpdate.LastSeen = DateTime.UtcNow;
+            deviceToUpdate.LastSeen = TimeZoneHelper.GetUtcNowForStorage();
 
             // Yeni change log'ları ekle
             foreach (var changeLog in changes)
