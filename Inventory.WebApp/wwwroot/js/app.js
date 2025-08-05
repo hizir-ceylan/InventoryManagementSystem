@@ -984,7 +984,8 @@ class InventoryApp {
                 },
                 body: JSON.stringify({
                     networkRange: networkRange,
-                    timeoutSeconds: parseInt(timeout)
+                    timeoutSeconds: parseInt(timeout),
+                    portScanType: portScan
                 })
             });
 
@@ -1029,7 +1030,7 @@ class InventoryApp {
                                 mac: device.macAddress,
                                 name: device.name || 'Unknown',
                                 status: 'Discovered',
-                                ports: 'N/A'
+                                ports: device.openPorts && device.openPorts.length > 0 ? device.openPorts.join(', ') : 'None'
                             })));
                         }
                         

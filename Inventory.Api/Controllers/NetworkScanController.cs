@@ -37,11 +37,11 @@ namespace Inventory.Api.Controllers
         [SwaggerOperation(Summary = "Belirli aralık için manuel ağ taraması başlat", Description = "Belirli bir ağ aralığı için manuel ağ taraması başlatır")]
         [SwaggerResponse(200, "Ağ taraması başarıyla başlatıldı")]
         [SwaggerResponse(400, "Ağ taraması başlatılamadı")]
-        public async Task<IActionResult> TriggerNetworkScanForRange([FromBody] NetworkRangeDto request)
+        public async Task<IActionResult> TriggerNetworkScanForRange([FromBody] NetworkScanRequestDto request)
         {
             try
             {
-                await _networkScanService.TriggerManualScanAsync(request.NetworkRange);
+                await _networkScanService.TriggerManualScanAsync(request.NetworkRange, request.TimeoutSeconds, request.PortScanType);
                 return Ok(new { message = $"Ağ taraması {request.NetworkRange} aralığı için başarıyla başlatıldı" });
             }
             catch (Exception ex)
@@ -131,5 +131,12 @@ namespace Inventory.Api.Controllers
     public class NetworkRangeDto
     {
         public string NetworkRange { get; set; } = string.Empty;
+    }
+
+    public class NetworkScanRequestDto
+    {
+        public string NetworkRange { get; set; } = string.Empty;
+        public int TimeoutSeconds { get; set; } = 5;
+        public string PortScanType { get; set; } = "common"; // "none", "common", "all"
     }
 }
