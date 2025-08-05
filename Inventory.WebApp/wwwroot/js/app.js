@@ -1,7 +1,7 @@
 // Çaykur Envanter Yönetim Sistemi - Tea Theme
 class InventoryApp {
     constructor() {
-        this.apiBaseUrl = '';
+        this.apiBaseUrl = window.INVENTORY_CONFIG?.getApiUrl() || 'http://localhost:5093';
         this.devices = [];
         this.filteredDevices = [];
         this.currentPage = 'devices';
@@ -20,7 +20,7 @@ class InventoryApp {
             if (this.currentPage === 'devices') {
                 this.loadDevices(false); // Silent refresh
             }
-        }, 30000);
+        }, window.INVENTORY_CONFIG?.AUTO_REFRESH_INTERVAL || 30000);
     }
 
     // Setup mobile menu
@@ -364,12 +364,12 @@ class InventoryApp {
                     </small>
                 </td>
                 <td>
-                    <div class="btn-group">
-                        <button class="btn btn-outline-primary btn-sm" onclick="app.showDeviceDetail(${device.id})" title="Detay Görüntüle">
+                    <div class="action-buttons">
+                        <button class="btn btn-outline-primary btn-sm" onclick="app.showDeviceDetail('${device.id}')" title="Detay Görüntüle">
                             <i class="bi bi-eye"></i>
                             <span class="d-none d-md-inline">Detay</span>
                         </button>
-                        <button class="btn btn-outline-success btn-sm" onclick="app.showDeviceDetailPage(${device.id})" title="Detay Sayfasında Aç">
+                        <button class="btn btn-outline-success btn-sm" onclick="app.showDeviceDetailPage('${device.id}')" title="Detay Sayfasında Aç">
                             <i class="bi bi-box-arrow-up-right"></i>
                         </button>
                     </div>
