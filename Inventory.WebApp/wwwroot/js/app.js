@@ -177,7 +177,33 @@ class InventoryApp {
     // Update statistics cards
     updateStatistics(allDevices, agentDevices, networkDevices) {
         const totalDevices = allDevices?.length || 0;
-        const activeDevices = allDevices?.filter(d => d.status === 0).length || 0;
+        
+        // Improved active device detection: include devices that are:
+        // 1. Status 0 (Aktif) OR
+        // 2. Recently seen (within last 24 hours) regardless of status OR  
+        // 3. Status 2 (Bakım) - maintenance devices are often still working
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000);
+        
+        const activeDevices = allDevices?.filter(d => {
+            // Always consider status 0 as active
+            if (d.status === 0) return true;
+            
+            // Consider maintenance devices as active if recently seen
+            if (d.status === 2 && d.lastSeen) {
+                const lastSeen = new Date(d.lastSeen);
+                return lastSeen > twentyFourHoursAgo;
+            }
+            
+            // Consider any device as active if seen in last 24 hours, even if marked inactive
+            if (d.lastSeen) {
+                const lastSeen = new Date(d.lastSeen);
+                return lastSeen > twentyFourHoursAgo;
+            }
+            
+            return false;
+        }).length || 0;
+        
         const agentDevicesCount = agentDevices?.length || 0;
         const networkDevicesCount = networkDevices?.length || 0;
 
@@ -260,6 +286,7 @@ class InventoryApp {
                 <td class="hide-mobile">
                     <small class="text-muted">
                         ${device.lastSeen ? this.formatDate(device.lastSeen) : 'Bilinmiyor'}
+                        ${this.isRecentlyActive(device) ? '<span class="badge badge-success badge-sm ms-1" title="Son 24 saatte aktif">●</span>' : ''}
                     </small>
                 </td>
                 <td>
@@ -453,17 +480,66 @@ class InventoryApp {
 
             ${device.softwareInfo && device.softwareInfo.length > 0 ? `
                 <div class="device-info-group">
-                    <h6><i class="bi bi-software-123"></i> Yazılım Bilgileri</h6>
-                    ${device.softwareInfo.slice(0, 10).map(sw => `
-                        <div class="device-info-item">
-                            <span class="device-info-label">${sw.name || 'Bilinmeyen'}:</span>
-                            <span class="device-info-value">${sw.version || 'N/A'}</span>
+                    <h6><i class="bi bi-software-123"></i> Yazılım Bilgileri (${device.softwareInfo.length} adet)</h6>
+                    <div class="software-list-container">
+                        <div class="software-list" id="software-list-${device.id || 'modal'}">
+                            ${device.softwareInfo.slice(0, 20).map(sw => `
+                                <div class="software-item">
+                                    <div class="software-name">${sw.name || 'Bilinmeyen'}</div>
+                                    <div class="software-version">${sw.version || 'N/A'}</div>
+                                </div>
+                            `).join('')}
                         </div>
-                    `).join('')}
-                    ${device.softwareInfo.length > 10 ? `<p class="text-muted small mt-2">ve ${device.softwareInfo.length - 10} yazılım daha...</p>` : ''}
+                        ${device.softwareInfo.length > 20 ? `
+                            <div class="software-load-more">
+                                <button class="btn-load-more" onclick="app.loadMoreSoftware('${device.id || 'modal'}', '${encodeURIComponent(JSON.stringify(device.softwareInfo))}')">
+                                    <i class="bi bi-chevron-down"></i>
+                                    Daha fazla yazılım göster (${device.softwareInfo.length - 20} kalan)
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
             ` : ''}
         `;
+    }
+
+    // Load more software items for large software lists
+    loadMoreSoftware(deviceId, encodedSoftwareList) {
+        try {
+            const softwareList = JSON.parse(decodeURIComponent(encodedSoftwareList));
+            const container = document.getElementById(`software-list-${deviceId}`);
+            const loadMoreBtn = container.parentElement.querySelector('.software-load-more');
+            
+            if (!container || !loadMoreBtn) return;
+            
+            const currentItems = container.children.length;
+            const nextBatch = softwareList.slice(currentItems, currentItems + 30); // Load 30 more items
+            
+            // Add new software items
+            nextBatch.forEach(sw => {
+                const softwareItem = document.createElement('div');
+                softwareItem.className = 'software-item';
+                softwareItem.innerHTML = `
+                    <div class="software-name">${sw.name || 'Bilinmeyen'}</div>
+                    <div class="software-version">${sw.version || 'N/A'}</div>
+                `;
+                container.appendChild(softwareItem);
+            });
+            
+            // Update or remove the load more button
+            const remainingItems = softwareList.length - container.children.length;
+            if (remainingItems > 0) {
+                loadMoreBtn.innerHTML = `
+                    <i class="bi bi-chevron-down"></i>
+                    Daha fazla yazılım göster (${remainingItems} kalan)
+                `;
+            } else {
+                loadMoreBtn.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error loading more software:', error);
+        }
     }
 
     // Show different pages
@@ -618,6 +694,17 @@ class InventoryApp {
             3: 'Arızalı'
         };
         return statuses[status] || 'Bilinmiyor';
+    }
+
+    // Check if device is recently active (within 24 hours)
+    isRecentlyActive(device) {
+        if (!device.lastSeen) return false;
+        
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000);
+        const lastSeen = new Date(device.lastSeen);
+        
+        return lastSeen > twentyFourHoursAgo;
     }
 
     getManagementTypeText(managementType) {
