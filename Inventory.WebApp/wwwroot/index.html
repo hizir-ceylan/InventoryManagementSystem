@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Çaykur Envanter Yönetim Sistemi</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <div class="logo">
+                    <span>Çaykur</span>
+                </div>
+                <span class="subtitle">Envanter Yönetim Sistemi</span>
+            </div>
+            
+            <div class="navbar-toggle" id="navbar-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            
+            <div class="navbar-menu" id="navbar-menu">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="showPage('devices')">
+                            <i class="bi bi-laptop"></i>
+                            <span>Cihazlar</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('device-details')">
+                            <i class="bi bi-info-circle"></i>
+                            <span>Cihaz Detayları</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('network-scan')">
+                            <i class="bi bi-wifi"></i>
+                            <span>Ağ Taraması</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('change-logs')">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Değişiklik Logları</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link external" href="/swagger" target="_blank">
+                            <i class="bi bi-code-square"></i>
+                            <span>API Dökümanları</span>
+                        </a>
+                    </li>
+                </ul>
+                <div class="navbar-status">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span id="last-update">Son güncelleme: --</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Loading Indicator -->
+        <div id="loading" class="loading-container d-none">
+            <div class="tea-loader">
+                <div class="tea-cup">
+                    <div class="tea-steam"></div>
+                    <div class="tea-steam"></div>
+                    <div class="tea-steam"></div>
+                </div>
+            </div>
+            <p class="loading-text">Veriler yükleniyor...</p>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="error-alert" class="error-alert d-none">
+            <div class="error-content">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span id="error-message">Bir hata oluştu.</span>
+                <button type="button" class="error-close" onclick="hideError()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div id="stats-cards" class="stats-section">
+            <div class="container">
+                <div class="stats-grid">
+                    <div class="stat-card primary-card">
+                        <div class="stat-content">
+                            <div class="stat-info">
+                                <h3 class="stat-title">Toplam Cihaz</h3>
+                                <h2 class="stat-number" id="total-devices">-</h2>
+                                <p class="stat-description">Kayıtlı cihazlar</p>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-laptop"></i>
+                                <div class="icon-bg"></div>
+                            </div>
+                        </div>
+                        <div class="stat-waves">
+                            <div class="wave wave1"></div>
+                            <div class="wave wave2"></div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card success-card">
+                        <div class="stat-content">
+                            <div class="stat-info">
+                                <h3 class="stat-title">Aktif Cihazlar</h3>
+                                <h2 class="stat-number" id="active-devices">-</h2>
+                                <p class="stat-description">Çalışır durumda</p>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-check-circle"></i>
+                                <div class="icon-bg"></div>
+                            </div>
+                        </div>
+                        <div class="stat-waves">
+                            <div class="wave wave1"></div>
+                            <div class="wave wave2"></div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card warning-card">
+                        <div class="stat-content">
+                            <div class="stat-info">
+                                <h3 class="stat-title">Agent Kurulu</h3>
+                                <h2 class="stat-number" id="agent-devices">-</h2>
+                                <p class="stat-description">Yönetilen cihazlar</p>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-download"></i>
+                                <div class="icon-bg"></div>
+                            </div>
+                        </div>
+                        <div class="stat-waves">
+                            <div class="wave wave1"></div>
+                            <div class="wave wave2"></div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card info-card">
+                        <div class="stat-content">
+                            <div class="stat-info">
+                                <h3 class="stat-title">Ağ Keşfi</h3>
+                                <h2 class="stat-number" id="network-devices">-</h2>
+                                <p class="stat-description">Keşfedilen cihazlar</p>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-wifi"></i>
+                                <div class="icon-bg"></div>
+                            </div>
+                        </div>
+                        <div class="stat-waves">
+                            <div class="wave wave1"></div>
+                            <div class="wave wave2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pages Container -->
+        <div class="pages-container">
+            <div class="container">
+                <!-- Devices Page -->
+                <div id="devices-page" class="page active">
+                    <div class="page-card">
+                        <div class="page-header">
+                            <div class="page-title">
+                                <h2>
+                                    <i class="bi bi-laptop"></i>
+                                    Cihaz Listesi
+                                </h2>
+                                <p>Sistemdeki tüm cihazları görüntüleyin ve yönetin</p>
+                            </div>
+                            <button class="btn-refresh" onclick="refreshDevices()">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                <span>Yenile</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Search and Filter -->
+                        <div class="filters-section">
+                            <div class="filter-row">
+                                <div class="search-box">
+                                    <i class="bi bi-search"></i>
+                                    <input type="text" id="search-devices" placeholder="Cihaz adı, IP, MAC adresi ile arama...">
+                                </div>
+                                <div class="filter-group">
+                                    <select id="filter-status" class="filter-select">
+                                        <option value="">Tüm Durumlar</option>
+                                        <option value="0">Aktif</option>
+                                        <option value="1">Pasif</option>
+                                        <option value="2">Bakım</option>
+                                        <option value="3">Arızalı</option>
+                                    </select>
+                                    <select id="filter-type" class="filter-select">
+                                        <option value="">Tüm Türler</option>
+                                        <option value="0">PC</option>
+                                        <option value="1">Laptop</option>
+                                        <option value="2">Server</option>
+                                        <option value="3">Printer</option>
+                                        <option value="4">Network Device</option>
+                                        <option value="5">Mobile Device</option>
+                                        <option value="6">Unknown</option>
+                                    </select>
+                                    <button class="btn-clear" onclick="clearFilters()">
+                                        <i class="bi bi-x-circle"></i>
+                                        <span>Temizle</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Devices Table -->
+                        <div class="table-container">
+                            <table class="devices-table">
+                                <thead>
+                                    <tr>
+                                        <th>Cihaz Adı</th>
+                                        <th>IP Adresi</th>
+                                        <th class="hide-mobile">MAC Adresi</th>
+                                        <th>Tür</th>
+                                        <th>Durum</th>
+                                        <th class="hide-mobile">Model</th>
+                                        <th class="hide-mobile">Konum</th>
+                                        <th class="hide-mobile">Son Görülme</th>
+                                        <th>İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="devices-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- No data message -->
+                        <div id="no-devices" class="no-data d-none">
+                            <div class="no-data-content">
+                                <i class="bi bi-inbox"></i>
+                                <h3>Henüz hiç cihaz bulunmuyor</h3>
+                                <p>Cihazlarınızı keşfetmek için ağ taraması başlatın veya agent kurun.</p>
+                                <button class="btn-primary" onclick="showPage('network-scan')">
+                                    <i class="bi bi-wifi"></i>
+                                    Ağ Taraması Başlat
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network Scan Page -->
+                <div id="network-scan-page" class="page d-none">
+                    <div class="page-card">
+                        <div class="page-header">
+                            <div class="page-title">
+                                <h2>
+                                    <i class="bi bi-wifi"></i>
+                                    Ağ Taraması
+                                </h2>
+                                <p>Ağınızdaki cihazları keşfedin ve envantere ekleyin</p>
+                            </div>
+                        </div>
+                        
+                        <div class="network-scan-content">
+                            <div class="scan-config">
+                                <h5><i class="bi bi-gear"></i> Tarama Ayarları</h5>
+                                <div class="config-form">
+                                    <div class="form-group">
+                                        <label for="network-range">Ağ Aralığı:</label>
+                                        <input type="text" id="network-range" class="form-control" value="192.168.1.0/24" placeholder="192.168.1.0/24">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="scan-timeout">Zaman Aşımı (saniye):</label>
+                                        <input type="number" id="scan-timeout" class="form-control" value="5" min="1" max="30">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="port-scan">Port Taraması:</label>
+                                        <select id="port-scan" class="form-control">
+                                            <option value="common">Yaygın Portlar</option>
+                                            <option value="all">Tüm Portlar</option>
+                                            <option value="none">Port Taraması Yok</option>
+                                        </select>
+                                    </div>
+                                    <button class="btn-primary" onclick="app.startNetworkScan()" id="start-scan-btn">
+                                        <i class="bi bi-play-fill"></i>
+                                        Taramayı Başlat
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="scan-results" id="scan-results" style="display: none;">
+                                <h5><i class="bi bi-search"></i> Tarama Sonuçları</h5>
+                                <div class="scan-progress" id="scan-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="progress-fill"></div>
+                                    </div>
+                                    <p id="scan-status">Tarama başlatılıyor...</p>
+                                </div>
+                                <div class="results-table" id="results-table" style="display: none;">
+                                    <table class="scan-results-table">
+                                        <thead>
+                                            <tr>
+                                                <th>IP Adresi</th>
+                                                <th>MAC Adresi</th>
+                                                <th>Cihaz Adı</th>
+                                                <th>Durum</th>
+                                                <th>Açık Portlar</th>
+                                                <th>İşlem</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="scan-results-body">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Change Logs Page -->
+                <div id="change-logs-page" class="page d-none">
+                    <div class="page-card">
+                        <div class="page-header">
+                            <div class="page-title">
+                                <h2>
+                                    <i class="bi bi-clock-history"></i>
+                                    Değişiklik Logları
+                                </h2>
+                                <p>Sistemdeki değişiklikleri takip edin</p>
+                            </div>
+                            <button class="btn-refresh" onclick="app.refreshChangeLogs()">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                <span>Yenile</span>
+                            </button>
+                        </div>
+                        
+                        <div class="change-logs-content">
+                            <div class="filters-section">
+                                <div class="filter-row">
+                                    <div class="filter-group">
+                                        <select id="filter-change-type" class="filter-select">
+                                            <option value="">Tüm Değişiklik Türleri</option>
+                                            <option value="Name">Cihaz Adı</option>
+                                            <option value="IpAddress">IP Adresi</option>
+                                            <option value="Status">Durum</option>
+                                            <option value="Location">Konum</option>
+                                            <option value="HardwareInfo">Donanım</option>
+                                            <option value="SoftwareInfo">Yazılım</option>
+                                        </select>
+                                        <select id="filter-device" class="filter-select">
+                                            <option value="">Tüm Cihazlar</option>
+                                        </select>
+                                        <input type="date" id="filter-date-from" class="filter-select" title="Başlangıç Tarihi">
+                                        <input type="date" id="filter-date-to" class="filter-select" title="Bitiş Tarihi">
+                                        <button class="btn-clear" onclick="app.clearChangeLogFilters()">
+                                            <i class="bi bi-x-circle"></i>
+                                            <span>Temizle</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="change-logs-table" id="change-logs-table">
+                                <table class="devices-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Tarih/Saat</th>
+                                            <th>Cihaz</th>
+                                            <th>Değişiklik Türü</th>
+                                            <th>Eski Değer</th>
+                                            <th>Yeni Değer</th>
+                                            <th>Değiştiren</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="change-logs-body">
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div id="no-change-logs" class="no-data d-none">
+                                <div class="no-data-content">
+                                    <i class="bi bi-journal-text"></i>
+                                    <h3>Henüz değişiklik logu bulunmuyor</h3>
+                                    <p>Cihaz değişiklikleri burada görüntülenecek.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device Details Page -->
+                <div id="device-details-page" class="page d-none">
+                    <div class="page-card">
+                        <div class="page-header">
+                            <div class="page-title">
+                                <h2>
+                                    <i class="bi bi-info-circle"></i>
+                                    Cihaz Detayları
+                                </h2>
+                                <p>Seçili cihazın detaylı bilgilerini görüntüleyin</p>
+                            </div>
+                        </div>
+                        
+                        <div id="device-details-content">
+                            <div class="device-details-placeholder">
+                                <div class="placeholder-content">
+                                    <i class="bi bi-laptop"></i>
+                                    <h3>Cihaz Seçiniz</h3>
+                                    <p>Detaylarını görüntülemek için cihazlar listesinden bir cihaz seçin.</p>
+                                    <button class="btn-primary" onclick="showPage('devices')">
+                                        <i class="bi bi-list-ul"></i>
+                                        Cihazlar Listesine Git
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Device Detail Modal -->
+    <div class="modal-overlay" id="deviceDetailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Cihaz Detayları</h3>
+                <button type="button" class="modal-close" onclick="closeModal()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="device-detail-content">
+                <!-- Device details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModal()">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration -->
+    <script src="js/config.js"></script>
+    <!-- Custom JS -->
+    <script src="js/app.js"></script>
+</body>
+</html>
