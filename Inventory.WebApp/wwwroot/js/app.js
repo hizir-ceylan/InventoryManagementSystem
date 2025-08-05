@@ -916,6 +916,12 @@ function showDeviceDetailPage(deviceId) {
     app.showDeviceDetailPage(deviceId);
 }
 
+function openApiDocumentation() {
+    const apiUrl = window.INVENTORY_CONFIG?.getApiUrl() || 'http://localhost:5093';
+    // Swagger UI is now served at the root of the API server
+    window.open(apiUrl, '_blank');
+}
+
 // Initialize the application when the page loads
 let app;
 document.addEventListener('DOMContentLoaded', function() {
