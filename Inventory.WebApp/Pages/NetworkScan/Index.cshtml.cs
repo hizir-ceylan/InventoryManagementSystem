@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text.Json;
 using System.Text;
+using Microsoft.Extensions.Options;
 
 namespace Inventory.WebApp.Pages.NetworkScan
 {
@@ -9,6 +10,7 @@ namespace Inventory.WebApp.Pages.NetworkScan
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<IndexModel> _logger;
+        private readonly ApiSettings _apiSettings;
 
         [BindProperty]
         public NetworkScanRequest ScanRequest { get; set; } = new();
@@ -19,10 +21,11 @@ namespace Inventory.WebApp.Pages.NetworkScan
         public List<string> LocalNetworkRanges { get; set; } = new();
         public List<object> ScanHistory { get; set; } = new();
 
-        public IndexModel(IHttpClientFactory httpClientFactory, ILogger<IndexModel> logger)
+        public IndexModel(IHttpClientFactory httpClientFactory, ILogger<IndexModel> logger, IOptions<ApiSettings> apiSettings)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
+            _apiSettings = apiSettings.Value;
         }
 
         public async Task OnGetAsync()
@@ -35,7 +38,7 @@ namespace Inventory.WebApp.Pages.NetworkScan
             try
             {
                 using var client = _httpClientFactory.CreateClient();
-                client.BaseAddress = new Uri("http://localhost:5093");
+                client.BaseAddress = new Uri(_apiSettings.BaseUrl);
 
                 HttpResponseMessage response;
                 
@@ -89,7 +92,7 @@ namespace Inventory.WebApp.Pages.NetworkScan
             try
             {
                 using var client = _httpClientFactory.CreateClient();
-                client.BaseAddress = new Uri("http://localhost:5093");
+                client.BaseAddress = new Uri(_apiSettings.BaseUrl);
 
                 var requestBody = new 
                 { 
@@ -128,7 +131,7 @@ namespace Inventory.WebApp.Pages.NetworkScan
             try
             {
                 using var client = _httpClientFactory.CreateClient();
-                client.BaseAddress = new Uri("http://localhost:5093");
+                client.BaseAddress = new Uri(_apiSettings.BaseUrl);
 
                 // Get scan status
                 try
