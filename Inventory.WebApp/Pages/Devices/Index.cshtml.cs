@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Inventory.Domain.Entities;
 using Inventory.Shared.Helpers;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 namespace Inventory.WebApp.Pages.Devices
 {
@@ -9,14 +10,16 @@ namespace Inventory.WebApp.Pages.Devices
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<IndexModel> _logger;
+        private readonly ApiSettings _apiSettings;
 
         public List<DeviceListItem> Devices { get; set; } = new();
         public string? ErrorMessage { get; set; }
 
-        public IndexModel(IHttpClientFactory httpClientFactory, ILogger<IndexModel> logger)
+        public IndexModel(IHttpClientFactory httpClientFactory, ILogger<IndexModel> logger, IOptions<ApiSettings> apiSettings)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
+            _apiSettings = apiSettings.Value;
         }
 
         public async Task OnGetAsync()
@@ -24,7 +27,7 @@ namespace Inventory.WebApp.Pages.Devices
             try
             {
                 using var client = _httpClientFactory.CreateClient();
-                client.BaseAddress = new Uri("http://localhost:5093");
+                client.BaseAddress = new Uri(_apiSettings.BaseUrl);
 
                 var response = await client.GetAsync("/api/device/status");
                 if (response.IsSuccessStatusCode)
@@ -56,8 +59,14 @@ namespace Inventory.WebApp.Pages.Devices
                 }
                 else
                 {
-                    ErrorMessage = $"API'den veri alınamadı: {response.StatusCode}";
+                    ErrorMessage = $"API'den veri alınamadı: {response.StatusCode} (API URL: {_apiSettings.BaseUrl})";
+                    _logger.LogWarning($"API request failed: {response.StatusCode} - URL: {_apiSettings.BaseUrl}/api/device/status");
                 }
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "API bağlantısı başarısız - API URL: {ApiUrl}", _apiSettings.BaseUrl);
+                ErrorMessage = $"API'ye bağlanılamadı ({_apiSettings.BaseUrl}). Lütfen API servisinin çalıştığından emin olun.";
             }
             catch (Exception ex)
             {

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Inventory.Domain.Entities;
 using Inventory.Shared.Helpers;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 namespace Inventory.WebApp.Pages.Devices
 {
@@ -10,6 +11,7 @@ namespace Inventory.WebApp.Pages.Devices
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<LogsModel> _logger;
+        private readonly ApiSettings _apiSettings;
 
         [BindProperty(SupportsGet = true)]
         public Guid Id { get; set; }
@@ -18,10 +20,11 @@ namespace Inventory.WebApp.Pages.Devices
         public List<ChangeLogItem> ChangeLogs { get; set; } = new();
         public string? ErrorMessage { get; set; }
 
-        public LogsModel(IHttpClientFactory httpClientFactory, ILogger<LogsModel> logger)
+        public LogsModel(IHttpClientFactory httpClientFactory, ILogger<LogsModel> logger, IOptions<ApiSettings> apiSettings)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
+            _apiSettings = apiSettings.Value;
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -34,7 +37,7 @@ namespace Inventory.WebApp.Pages.Devices
             try
             {
                 using var client = _httpClientFactory.CreateClient();
-                client.BaseAddress = new Uri("http://localhost:5093");
+                client.BaseAddress = new Uri(_apiSettings.BaseUrl);
 
                 // First, get device info to show device name
                 var deviceResponse = await client.GetAsync($"/api/device/{Id}");

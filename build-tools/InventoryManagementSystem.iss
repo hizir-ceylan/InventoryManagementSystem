@@ -7,6 +7,7 @@
 #define MyAppURL "https://github.com/hizir-ceylan/InventoryManagementSystem"
 #define MyAppExeName "Inventory.Api.exe"
 #define MyAgentExeName "Inventory.Agent.Windows.exe"
+#define MyWebAppExeName "Inventory.WebApp.exe"
 ; Note: On Windows, these will have .exe extension, on Linux they won't
 
 [Setup]
@@ -49,9 +50,12 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 Source: "Published\Api\*"; DestDir: "{app}\Api"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Agent Files  
 Source: "Published\Agent\*"; DestDir: "{app}\Agent"; Flags: ignoreversion recursesubdirs createallsubdirs
+; WebApp Files
+Source: "Published\WebApp\*"; DestDir: "{app}\WebApp"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Configuration files
 Source: "Published\Api\appsettings.json"; DestDir: "{app}\Api"; Flags: ignoreversion
 Source: "Published\Agent\appsettings.json"; DestDir: "{app}\Agent"; Flags: ignoreversion; AfterInstall: CreateAgentConfig
+Source: "Published\WebApp\appsettings.json"; DestDir: "{app}\WebApp"; Flags: ignoreversion; AfterInstall: CreateWebAppConfig
 ; Documentation
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
@@ -65,32 +69,37 @@ Name: "{commonappdata}\Inventory Management System\Logs"
 Name: "{commonappdata}\Inventory Management System\OfflineStorage"
 
 [Icons]
-Name: "{group}\{#MyAppName} API (Swagger)"; Filename: "http://localhost:5093/swagger"; IconFilename: "{sys}\shell32.dll"; IconIndex: 14
+Name: "{group}\{#MyAppName} - Web Interface"; Filename: "http://localhost:5094"; IconFilename: "{sys}\shell32.dll"; IconIndex: 14; Comment: "Ana Web Arayüzü"
+Name: "{group}\{#MyAppName} API (Swagger)"; Filename: "http://localhost:5093/swagger"; IconFilename: "{sys}\shell32.dll"; IconIndex: 14; Comment: "API Dokümantasyonu"
 Name: "{group}\{#MyAppName} Folder"; Filename: "{app}"; IconFilename: "{sys}\shell32.dll"; IconIndex: 3
 Name: "{group}\Servis Yönetimi"; Filename: "{app}\ServiceManagement.bat"; IconFilename: "{sys}\shell32.dll"; IconIndex: 15; WorkingDir: "{app}"; Comment: "Servisleri yönetici yetkisi ile yönet"
 Name: "{group}\Services Manager"; Filename: "services.msc"; IconFilename: "{sys}\shell32.dll"; IconIndex: 15
 Name: "{group}\Event Viewer"; Filename: "eventvwr.msc"; IconFilename: "{sys}\shell32.dll"; IconIndex: 15
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "http://localhost:5093/swagger"; Tasks: desktopicon; IconFilename: "{sys}\shell32.dll"; IconIndex: 14
-Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "http://localhost:5093/swagger"; Tasks: quicklaunchicon; IconFilename: "{sys}\shell32.dll"; IconIndex: 14
+Name: "{autodesktop}\{#MyAppName}"; Filename: "http://localhost:5094"; Tasks: desktopicon; IconFilename: "{sys}\shell32.dll"; IconIndex: 14; Comment: "Envanter Yönetim Sistemi"
+Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "http://localhost:5094"; Tasks: quicklaunchicon; IconFilename: "{sys}\shell32.dll"; IconIndex: 14
 
 [Run]
-; Start services after installation with improved timing
+; Start services after installation with improved timing and dependency handling
 Filename: "{sys}\sc.exe"; Parameters: "start InventoryManagementApi"; Flags: runhidden; StatusMsg: "Starting API service..."
 Filename: "{sys}\timeout.exe"; Parameters: "/t 15 /nobreak"; Flags: runhidden; StatusMsg: "Waiting for API to initialize..."
+Filename: "{sys}\sc.exe"; Parameters: "start InventoryManagementWebApp"; Flags: runhidden; StatusMsg: "Starting WebApp service..."
+Filename: "{sys}\timeout.exe"; Parameters: "/t 10 /nobreak"; Flags: runhidden; StatusMsg: "Waiting for WebApp to initialize..."
 Filename: "{sys}\sc.exe"; Parameters: "start InventoryManagementAgent"; Flags: runhidden; StatusMsg: "Starting Agent service..."
 Filename: "{sys}\timeout.exe"; Parameters: "/t 5 /nobreak"; Flags: runhidden; StatusMsg: "Waiting for Agent to initialize..."
-; Open swagger in browser
-Filename: "http://localhost:5093/swagger"; Description: "{cm:LaunchProgram,API Documentation (Swagger)}"; Flags: nowait postinstall skipifsilent shellexec
+; Open web interface in browser
+Filename: "http://localhost:5094"; Description: "{cm:LaunchProgram,Web Interface}"; Flags: nowait postinstall skipifsilent shellexec
 ; Service management aracını yönetici olarak çalıştır
 Filename: "{app}\ServiceManagement.bat"; Description: "Servis Yönetim Aracını Aç (Yönetici Yetkisi ile)"; Flags: nowait postinstall skipifsilent runascurrentuser shellexec; Verb: "runas"
 
 [UninstallRun]
 ; Stop and remove services before uninstall
 Filename: "{sys}\sc.exe"; Parameters: "stop InventoryManagementAgent"; Flags: runhidden
+Filename: "{sys}\sc.exe"; Parameters: "stop InventoryManagementWebApp"; Flags: runhidden
 Filename: "{sys}\sc.exe"; Parameters: "stop InventoryManagementApi"; Flags: runhidden
 Filename: "{sys}\timeout.exe"; Parameters: "/t 5 /nobreak"; Flags: runhidden
 Filename: "{sys}\sc.exe"; Parameters: "delete InventoryManagementAgent"; Flags: runhidden
+Filename: "{sys}\sc.exe"; Parameters: "delete InventoryManagementWebApp"; Flags: runhidden
 Filename: "{sys}\sc.exe"; Parameters: "delete InventoryManagementApi"; Flags: runhidden
 
 [Code]
@@ -182,6 +191,30 @@ begin
   SaveStringToFile(ConfigFile, ConfigContent, False);
 end;
 
+procedure CreateWebAppConfig();
+var
+  ConfigContent: String;
+  ConfigFile: String;
+begin
+  ConfigFile := ExpandConstant('{app}\WebApp\appsettings.json');
+  
+  ConfigContent := '{' + #13#10 +
+    '  "ApiSettings": {' + #13#10 +
+    '    "BaseUrl": "http://localhost:5093"' + #13#10 +
+    '  },' + #13#10 +
+    '  "Logging": {' + #13#10 +
+    '    "LogLevel": {' + #13#10 +
+    '      "Default": "Information",' + #13#10 +
+    '      "Microsoft.AspNetCore": "Warning"' + #13#10 +
+    '    }' + #13#10 +
+    '  },' + #13#10 +
+    '  "AllowedHosts": "*",' + #13#10 +
+    '  "Urls": "http://localhost:5094"' + #13#10 +
+    '}';
+    
+  SaveStringToFile(ConfigFile, ConfigContent, False);
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;
@@ -193,15 +226,17 @@ begin
     
     // Stop existing services if they exist
     Exec('sc', 'stop InventoryManagementAgent', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec('sc', 'stop InventoryManagementWebApp', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('sc', 'stop InventoryManagementApi', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
     // Wait a moment for services to fully stop
-    Exec('timeout', '/t 3 /nobreak', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec('timeout', '/t 5 /nobreak', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
     Exec('sc', 'delete InventoryManagementAgent', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec('sc', 'delete InventoryManagementWebApp', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('sc', 'delete InventoryManagementApi', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
-    // Create API Service with better configuration
+    // Create API Service with better configuration (no dependencies)
     ServiceCreated := Exec('sc', 'create InventoryManagementApi binPath= "' + ExpandConstant('{app}\Api\{#MyAppExeName}') + '" start= auto DisplayName= "Inventory Management API" obj= LocalSystem', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
     if ServiceCreated and (ResultCode = 0) then
@@ -209,14 +244,29 @@ begin
       // Configure API service for reliability
       Exec('sc', 'config InventoryManagementApi start= auto', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
       Exec('sc', 'failure InventoryManagementApi reset= 86400 actions= restart/5000/restart/5000/restart/5000', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-      Exec('sc', 'config InventoryManagementApi depend= ', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      Exec('sc', 'description InventoryManagementApi "Inventory Management System API - Web API for inventory management"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     end
     else
     begin
       MsgBox('Failed to create API service. Error code: ' + IntToStr(ResultCode) + '. You may need to create it manually.', mbError, MB_OK);
     end;
     
-    // Create Agent Service with dependency on API and improved settings
+    // Create WebApp Service with dependency on API
+    ServiceCreated := Exec('sc', 'create InventoryManagementWebApp binPath= "' + ExpandConstant('{app}\WebApp\{#MyWebAppExeName}') + '" start= auto DisplayName= "Inventory Management WebApp" obj= LocalSystem depend= InventoryManagementApi', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    
+    if ServiceCreated and (ResultCode = 0) then
+    begin
+      // Configure WebApp service for reliability and delayed start
+      Exec('sc', 'config InventoryManagementWebApp start= delayed-auto', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      Exec('sc', 'failure InventoryManagementWebApp reset= 86400 actions= restart/10000/restart/10000/restart/10000', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      Exec('sc', 'description InventoryManagementWebApp "Inventory Management System Web Interface - User interface for inventory management"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    end
+    else
+    begin
+      MsgBox('Failed to create WebApp service. Error code: ' + IntToStr(ResultCode) + '. You may need to create it manually.', mbError, MB_OK);
+    end;
+    
+    // Create Agent Service with dependency on API (not WebApp to avoid circular dependencies)
     ServiceCreated := Exec('sc', 'create InventoryManagementAgent binPath= "' + ExpandConstant('{app}\Agent\{#MyAgentExeName}') + ' --service" start= auto DisplayName= "Inventory Management Agent" obj= LocalSystem depend= InventoryManagementApi', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
     if ServiceCreated and (ResultCode = 0) then
@@ -224,10 +274,7 @@ begin
       // Configure Agent service for reliability and delayed start
       Exec('sc', 'config InventoryManagementAgent start= delayed-auto', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
       Exec('sc', 'failure InventoryManagementAgent reset= 86400 actions= restart/10000/restart/10000/restart/10000', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-      
-      // Set service description
       Exec('sc', 'description InventoryManagementAgent "Inventory Management System Agent - Collects and reports system inventory data"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-      Exec('sc', 'description InventoryManagementApi "Inventory Management System API - Web API for inventory management"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     end
     else
     begin
@@ -237,10 +284,13 @@ begin
     // Create Event Log sources (ignore errors if they already exist)
     Exec('reg', 'add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\InventoryManagementAgent" /v "EventMessageFile" /t REG_EXPAND_SZ /d "%SystemRoot%\System32\EventLogMessages.dll" /f', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('reg', 'add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\InventoryManagementApi" /v "EventMessageFile" /t REG_EXPAND_SZ /d "%SystemRoot%\System32\EventLogMessages.dll" /f', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec('reg', 'add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\InventoryManagementWebApp" /v "EventMessageFile" /t REG_EXPAND_SZ /d "%SystemRoot%\System32\EventLogMessages.dll" /f', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
-    // Configure firewall rule for API
+    // Configure firewall rules for API and WebApp
     Exec('netsh', 'advfirewall firewall delete rule name="Inventory Management API"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('netsh', 'advfirewall firewall add rule name="Inventory Management API" dir=in action=allow protocol=TCP localport=5093', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec('netsh', 'advfirewall firewall delete rule name="Inventory Management WebApp"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec('netsh', 'advfirewall firewall add rule name="Inventory Management WebApp" dir=in action=allow protocol=TCP localport=5094', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
     // Set environment variables for persistent storage
     Exec('setx', 'ApiSettings__BaseUrl "http://localhost:5093" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
@@ -292,26 +342,40 @@ begin
       'echo Servisler başlatılıyor...' + #13#10 +
       'net start InventoryManagementApi' + #13#10 +
       'timeout /t 5 /nobreak >nul' + #13#10 +
+      'net start InventoryManagementWebApp' + #13#10 +
+      'timeout /t 5 /nobreak >nul' + #13#10 +
       'net start InventoryManagementAgent' + #13#10 +
+      'echo.' + #13#10 +
+      'echo API: http://localhost:5093/swagger' + #13#10 +
+      'echo WebApp: http://localhost:5094' + #13#10 +
       'goto end' + #13#10 +
       ':stop' + #13#10 +
       'echo Servisler durduruluyor...' + #13#10 +
       'net stop InventoryManagementAgent' + #13#10 +
+      'net stop InventoryManagementWebApp' + #13#10 +
       'net stop InventoryManagementApi' + #13#10 +
       'goto end' + #13#10 +
       ':restart' + #13#10 +
       'echo Servisler yeniden başlatılıyor...' + #13#10 +
       'net stop InventoryManagementAgent' + #13#10 +
+      'net stop InventoryManagementWebApp' + #13#10 +
       'net stop InventoryManagementApi' + #13#10 +
-      'timeout /t 3 /nobreak >nul' + #13#10 +
+      'timeout /t 5 /nobreak >nul' + #13#10 +
       'net start InventoryManagementApi' + #13#10 +
       'timeout /t 5 /nobreak >nul' + #13#10 +
+      'net start InventoryManagementWebApp' + #13#10 +
+      'timeout /t 5 /nobreak >nul' + #13#10 +
       'net start InventoryManagementAgent' + #13#10 +
+      'echo.' + #13#10 +
+      'echo API: http://localhost:5093/swagger' + #13#10 +
+      'echo WebApp: http://localhost:5094' + #13#10 +
       'goto end' + #13#10 +
       ':status' + #13#10 +
       'echo Servis Durumu:' + #13#10 +
       'echo ===============' + #13#10 +
       'sc query InventoryManagementApi' + #13#10 +
+      'echo.' + #13#10 +
+      'sc query InventoryManagementWebApp' + #13#10 +
       'echo.' + #13#10 +
       'sc query InventoryManagementAgent' + #13#10 +
       'goto end' + #13#10 +
