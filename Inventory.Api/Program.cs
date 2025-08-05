@@ -139,7 +139,7 @@ namespace Inventory.Api
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Inventory Management System API v1");
-                c.RoutePrefix = ""; // Swagger UI'ı kök dizinde (/) kullanılabilir yapar
+                c.RoutePrefix = "swagger"; // Swagger UI'ı /swagger dizininde kullanılabilir yapar
             });
 
             // Static files'ı etkinleştir (sadece vendor files için)
@@ -158,13 +158,13 @@ namespace Inventory.Api
 
             app.MapControllers();
 
-            // API info endpoint - moved to /api/info since root now serves Swagger UI
-            app.MapGet("/api/info", () => new
+            // API Root endpoint - Web GUI'yi artık ayrı uygulamada sunuyoruz
+            app.MapGet("/", () => new
             {
                 Message = "Inventory Management System API",
                 Version = "v1.0",
                 WebInterface = "Web arayüzü artık ayrı bir uygulamada çalışıyor. Inventory.WebApp projesini başlatın.",
-                Swagger = "/",
+                Swagger = "/swagger",
                 Status = "Running"
             });
 

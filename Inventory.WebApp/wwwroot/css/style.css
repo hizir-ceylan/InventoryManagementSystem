@@ -99,7 +99,6 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: relative;
 }
 
 .navbar-brand {
@@ -142,10 +141,6 @@ body {
     flex-direction: column;
     cursor: pointer;
     gap: 4px;
-    padding: 8px;
-    border: none;
-    background: transparent;
-    z-index: 1001;
 }
 
 .navbar-toggle span {
@@ -942,113 +937,6 @@ body {
     }
 }
 
-/* Software List Styling */
-.software-list-container {
-    margin-top: 16px;
-}
-
-.software-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 12px;
-    max-height: 400px;
-    overflow-y: auto;
-    padding: 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(45, 80, 22, 0.1);
-}
-
-.software-item {
-    background: var(--white);
-    padding: 12px;
-    border-radius: var(--radius-sm);
-    border: 1px solid rgba(45, 80, 22, 0.1);
-    transition: var(--transition-normal);
-    box-shadow: var(--shadow-sm);
-}
-
-.software-item:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    border-color: var(--tea-green-light);
-}
-
-.software-name {
-    font-weight: 600;
-    color: var(--tea-green);
-    margin-bottom: 4px;
-    font-size: 0.9rem;
-    line-height: 1.3;
-}
-
-.software-version {
-    font-size: 0.8rem;
-    color: var(--gray);
-    font-family: 'Courier New', monospace;
-}
-
-.software-load-more {
-    text-align: center;
-    margin-top: 16px;
-}
-
-.btn-load-more {
-    background: var(--tea-green);
-    color: var(--white);
-    border: none;
-    padding: 12px 24px;
-    border-radius: var(--radius-md);
-    font-weight: 500;
-    cursor: pointer;
-    transition: var(--transition-normal);
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.btn-load-more:hover {
-    background: var(--tea-green-light);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.btn-load-more i {
-    font-size: 1.1rem;
-}
-
-/* Responsive software list */
-@media (max-width: 768px) {
-    .software-list {
-        grid-template-columns: 1fr;
-        max-height: 300px;
-        padding: 12px;
-    }
-    
-    .software-item {
-        padding: 10px;
-    }
-    
-    .software-name {
-        font-size: 0.85rem;
-    }
-    
-    .software-version {
-        font-size: 0.75rem;
-    }
-}
-
-/* Recently active badge */
-.badge-success {
-    background-color: var(--success);
-    color: white;
-}
-
-.badge-sm {
-    font-size: 0.7rem;
-    padding: 2px 4px;
-}
-
 .text-muted {
     color: var(--gray) !important;
 }
@@ -1535,21 +1423,15 @@ body {
     .navbar-brand {
         min-width: auto;
         flex: 1;
-        gap: 12px;
-    }
-    
-    .subtitle {
-        font-size: 0.8rem;
     }
     
     .navbar-toggle {
-        display: flex !important;
-        order: 3;
+        display: flex;
     }
     
     .navbar-menu {
         position: fixed;
-        top: 80px;
+        top: 100%;
         left: 0;
         right: 0;
         background: var(--tea-green);
@@ -1561,7 +1443,6 @@ body {
         opacity: 0;
         visibility: hidden;
         z-index: 1000;
-        box-shadow: var(--shadow-lg);
     }
     
     .navbar-menu.show {
