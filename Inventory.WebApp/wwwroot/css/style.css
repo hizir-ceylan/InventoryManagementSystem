@@ -2449,3 +2449,90 @@ body {
   min-width: 0;         /* grid hücresi taşmasın */
   word-break: break-word;
 }
+@media (max-width: 768px) {
+  .change-logs-table-container {
+    overflow-x: auto;               /* Yatay scroll’u aç */
+    -webkit-overflow-scrolling: touch;
+  }
+  .change-logs-table {
+    width: auto;                    /* İçeriğin genişliğine izin ver */
+    min-width: 600px;               /* Toplam sütun genişliği kadar bir min genişlik ayarla */
+  }
+}
+@media (max-width: 768px) {
+  /* 1) Container yatayda scroll’lu */
+  .change-logs-table-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 2) Tablo satırı bloğa çevir ve content genişliğini koru */
+  .change-logs-table {
+    display: block !important;
+    width: auto !important;           /* otomatik genişlik */
+    min-width: max-content !important; /* içeriğin tam genişliği kadar */
+    table-layout: auto !important;     /* hücreleri sığdırma moduna al */
+  }
+}
+/* ========= Change Logs Mobil’de Tam Kaydırılabilirlik ========= */
+@media (max-width: 768px) {
+  /* 1) Genel container’ın overflow-hidden kuralını iptal et */
+  .container {
+    overflow-x: visible !important;
+  }
+
+  /* 2) Change Logs konteyneri mutlaka yatay scroll’lu olsun */
+  .change-logs-table-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 3) Tablo, içeriğe göre genişlesin; satırlar sıkışmasın */
+  .change-logs-table {
+    display: inline-block !important;
+    width: auto !important;
+    min-width: 600px !important;      /* Sütun sayınıza göre ayarlayın */
+    table-layout: auto !important;
+  }
+}
+@media (max-width: 768px) {
+  /* Change Logs tablosunda mobilde gizlenen tüm sütunları tekrar göster */
+  .change-logs-table .hide-mobile {
+    display: table-cell !important;
+  }
+}
+/* ========== Change Logs Tablosu: Tüm Hücreleri Gerçekten Ortala ========== */
+.change-logs-table th,
+.change-logs-table td {
+  /* Yatay ve dikey ortalama */
+  text-align: center !important;
+  vertical-align: middle !important;
+  
+  /* Hücre içi boşlukları eşitle */
+  padding: 12px 8px !important;
+}
+
+/* Özellikle “Değiştiren” sütununu da garanti ortala */
+.change-logs-table th:nth-child(6),
+.change-logs-table td:nth-child(6) {
+  text-align: center !important;
+}
+
+/* Eğer hücre içindeki span’ler flex veya inline-block ise, onları da ortala */
+.change-logs-table td .badge,
+.change-logs-table td .change-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+/* style.css’in en altında */
+
+/* 1) Negatif margin’i iptal et, padding ile yerine boşluk koy */
+.change-logs-table-container {
+  margin: 0 !important;        /* 0 - negatif margin’i kaldır */
+  border-radius: 0 0 var(--radius-md) var(--radius-md) !important;
+  overflow-x: auto;            /* eskisi gibi yatay scroll */
+  box-sizing: border-box;
+}
+

@@ -1143,21 +1143,11 @@ class InventoryApp {
         tbody.innerHTML = this.changeLogs.map(log => `
             <tr>
                 <td>${this.formatDate(log.changeDate)}</td>
-                <td><strong>${log.deviceName || 'Bilinmeyen Cihaz'}</strong></td>
+                <td><strong>${log.deviceName||'Bilinmeyen Cihaz'}</strong></td>
                 <td><span class="badge type-unknown">${log.changeType}</span></td>
-                <td class="hide-mobile">
-                    <span class="change-value ${log.oldValue ? '' : 'text-muted'}" title="${log.oldValue || 'Boş'}">
-                        ${log.oldValue || 'Boş'}
-                    </span>
-                </td>
-                <td class="hide-mobile">
-                    <span class="change-value ${log.newValue ? '' : 'text-muted'}" title="${log.newValue || 'Boş'}">
-                        ${log.newValue || 'Boş'}
-                    </span>
-                </td>
-                <td class="hide-mobile">
-                    <span class="badge badge-secondary">${log.changedBy || 'Sistem'}</span>
-                </td>
+                <td class="hide-mobile"><span class="change-value ${log.oldValue?'':'text-muted'}" title="${log.oldValue||'Boş'}">${log.oldValue||'Boş'}</span></td>
+                <td class="hide-mobile"><span class="change-value ${log.newValue?'':'text-muted'}" title="${log.newValue||'Boş'}">${log.newValue||'Boş'}</span></td>
+                <td class="hide-mobile"><span class="badge badge-secondary">${log.changedBy||'Sistem'}</span></td>
             </tr>
         `).join('');
     }
