@@ -106,11 +106,12 @@ body {
 
 .navbar-brand {
     display: flex;
-    align-items: center;
-    gap: 20px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
     color: var(--white);
     text-decoration: none;
-    min-width: 280px;
+    min-width: 180px;
 }
 
 .logo {
@@ -133,10 +134,11 @@ body {
 }
 
 .subtitle {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 400;
     opacity: 0.9;
     white-space: nowrap;
+    line-height: 1;
 }
 
 .navbar-toggle {
@@ -221,10 +223,12 @@ body {
     align-items: center;
     gap: 8px;
     background: rgba(255, 255, 255, 0.1);
-    padding: 8px 16px;
+    padding: 8px 12px;
     border-radius: var(--radius-lg);
     color: var(--white);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    min-width: 180px;
 }
 
 .status-dot {
@@ -1932,8 +1936,8 @@ body {
     }
     
     .navbar-brand {
-        min-width: 240px;
-        gap: 8px;
+        min-width: 160px;
+        gap: 2px;
     }
     
     .logo {
@@ -1942,10 +1946,6 @@ body {
     
     .subtitle {
         font-size: 0.8rem;
-        max-width: 150px; /* Limit subtitle width */
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
     
     .navbar-nav {
@@ -1964,27 +1964,43 @@ body {
         white-space: nowrap;
     }
     
-    .navbar-status {
-        font-size: 0.8rem;
+    .status-indicator {
+        font-size: 0.75rem;
+        padding: 6px 10px;
+        min-width: 160px;
     }
 }
 @media (min-width: 769px) and (max-width: 1024px) {
     .navbar-brand {
-        min-width: 250px; /* Reduced minimum width for tablets */
-        gap: 10px;
+        min-width: 140px; /* Even more reduced minimum width for tablets */
+        gap: 2px;
+    }
+    
+    .logo {
+        font-size: 1.5rem;
     }
     
     .subtitle {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
     }
     
     .navbar-nav {
-        gap: 6px; /* Reduced gap between nav items */
+        gap: 2px; /* Further reduced gap between nav items */
     }
     
     .nav-link {
-        padding: 10px 16px; /* Reduced padding */
-        font-size: 0.9rem;
+        padding: 8px 12px; /* Further reduced padding */
+        font-size: 0.8rem;
+    }
+    
+    .nav-link span {
+        max-width: 70px; /* Further limit nav text width */
+    }
+    
+    .status-indicator {
+        font-size: 0.7rem;
+        padding: 6px 8px;
+        min-width: 140px;
     }
     
     .stats-grid {
