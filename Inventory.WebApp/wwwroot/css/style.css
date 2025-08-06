@@ -788,7 +788,7 @@ body {
     background: var(--primary-gradient);
     color: var(--white);
     padding: 20px 16px;
-    text-align: left;
+    text-align: center;
     font-weight: 600;
     font-size: 0.85rem;
     text-transform: uppercase;
@@ -824,6 +824,7 @@ body {
     max-width: 200px; /* Prevent excessively wide columns */
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: center;
 }
 
 /* Mobile responsive table styles */
@@ -1689,8 +1690,8 @@ body {
 .change-logs-table thead th {
     background: var(--primary-gradient);
     color: var(--white);
-    padding: 20px 16px;
-    text-align: left;
+    padding: 16px 12px;
+    text-align: center;
     font-weight: 600;
     font-size: 0.85rem;
     text-transform: uppercase;
@@ -1718,14 +1719,15 @@ body {
 }
 
 .change-logs-table td {
-    padding: 18px 16px;
-    vertical-align: top;
+    padding: 14px 12px;
+    vertical-align: middle;
     font-size: 0.9rem;
     border: none;
     max-width: 200px;
     word-wrap: break-word;
     white-space: pre-wrap;
     overflow-wrap: break-word;
+    text-align: center;
 }
 
 .change-logs-table td:first-child {
@@ -1792,14 +1794,21 @@ body {
         padding: 0 16px;
     }
     
+    .navbar .container {
+        justify-content: center; /* Center the entire navbar content */
+        position: relative;
+    }
+    
     .navbar-left {
         flex: 1;
         gap: 12px;
+        justify-content: center; /* Center the brand in mobile */
     }
     
     .navbar-brand {
         min-width: auto;
-        flex: 1;
+        flex: none; /* Don't flex, just center */
+        text-align: center;
     }
     
     .subtitle {
@@ -1808,11 +1817,15 @@ body {
     
     .navbar-toggle {
         display: flex !important;
-        order: 3;
+        position: absolute; /* Position absolutely to move to right */
+        right: 16px; /* Move to right side */
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1001;
     }
     
     .navbar-right {
-        order: 4;
+        display: none; /* Hide the status indicator on mobile */
     }
     
     .navbar-menu {
@@ -1849,9 +1862,23 @@ body {
         padding: 16px 20px;
     }
     
-    .navbar-status {
+    /* Show status in mobile menu at the bottom */
+    .navbar-menu .navbar-status {
         width: 100%;
         justify-content: center;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .navbar-menu .status-indicator {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 12px 16px;
+        border-radius: var(--radius-lg);
+        color: var(--white);
+        font-size: 0.85rem;
+        min-width: auto;
+        text-align: center;
     }
     
     .stats-grid {

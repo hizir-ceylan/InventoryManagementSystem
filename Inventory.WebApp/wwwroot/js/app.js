@@ -802,7 +802,18 @@ class InventoryApp {
     // Update last update time
     updateLastUpdateTime() {
         const now = new Date();
-        document.getElementById('last-update').textContent = `Son güncelleme: ${this.formatDate(now)}`;
+        const updateText = `Son güncelleme: ${this.formatDate(now)}`;
+        
+        // Update both desktop and mobile status indicators
+        const desktopElement = document.getElementById('last-update');
+        const mobileElement = document.getElementById('last-update-mobile');
+        
+        if (desktopElement) {
+            desktopElement.textContent = updateText;
+        }
+        if (mobileElement) {
+            mobileElement.textContent = updateText;
+        }
     }
 
     // Utility functions
