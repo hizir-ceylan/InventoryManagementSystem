@@ -104,22 +104,39 @@ body {
     position: relative;
 }
 
+/* Left side of navbar - Brand + Navigation */
+.navbar-left {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    flex: 1;
+}
+
+/* Right side of navbar - Status */
+.navbar-right {
+    display: flex;
+    align-items: center;
+}
+
 .navbar-brand {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center; /* Center align the brand text */
     gap: 4px;
     color: var(--white);
     text-decoration: none;
-    min-width: 180px;
+    min-width: 200px; /* Increased for better spacing */
 }
 
 .logo {
     display: flex;
     align-items: center;
+    justify-content: center; /* Center the Çaykur text */
     gap: 8px;
     font-size: 1.8rem;
     font-weight: 700;
+    width: 100%; /* Take full width for proper centering */
 }
 
 .logo i {
@@ -139,6 +156,7 @@ body {
     opacity: 0.9;
     white-space: nowrap;
     line-height: 1;
+    text-align: center; /* Center align the subtitle */
 }
 
 .navbar-toggle {
@@ -163,7 +181,6 @@ body {
 .navbar-menu {
     display: flex;
     align-items: center;
-    gap: 30px;
 }
 
 .navbar-nav {
@@ -751,7 +768,7 @@ body {
     overflow-y: hidden;
     box-shadow: 0 4px 8px rgba(0,0,0,0.05) inset;
     -webkit-overflow-scrolling: touch;
-    margin: 0 -40px; /* Extend further beyond container margins for full width */
+    margin: 0 -15px; /* Match container padding for proper fit */
 }
 
 .devices-table {
@@ -1624,7 +1641,7 @@ body {
     overflow-y: hidden;
     box-shadow: 0 4px 8px rgba(0,0,0,0.05) inset;
     -webkit-overflow-scrolling: touch;
-    margin: 0 -40px; /* Extend further beyond container margins for full width */
+    margin: 0 -15px; /* Match container padding for proper fit */
 }
 
 .change-logs-table {
@@ -1738,10 +1755,14 @@ body {
         padding: 0 16px;
     }
     
+    .navbar-left {
+        flex: 1;
+        gap: 12px;
+    }
+    
     .navbar-brand {
         min-width: auto;
         flex: 1;
-        gap: 12px;
     }
     
     .subtitle {
@@ -1751,6 +1772,10 @@ body {
     .navbar-toggle {
         display: flex !important;
         order: 3;
+    }
+    
+    .navbar-right {
+        order: 4;
     }
     
     .navbar-menu {
@@ -1851,6 +1876,17 @@ body {
         -webkit-overflow-scrolling: touch;
         border-radius: var(--radius-md);
         border: 1px solid rgba(45, 80, 22, 0.1);
+        margin: 0 -16px; /* Match mobile container padding */
+        padding: 0 16px; /* Add internal padding to ensure content visibility */
+    }
+    
+    .change-logs-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: var(--radius-md);
+        border: 1px solid rgba(45, 80, 22, 0.1);
+        margin: 0 -16px; /* Match mobile container padding */
+        padding: 0 16px; /* Add internal padding to ensure content visibility */
     }
     
     .devices-table {
@@ -1858,9 +1894,20 @@ body {
         min-width: 600px; /* Ensure minimum width for proper display */
     }
     
-    .devices-table td {
+    .change-logs-table {
+        font-size: 0.8rem;
+        min-width: 600px; /* Ensure minimum width for proper display */
+    }
+    
+    .devices-table td,
+    .change-logs-table td {
         padding: 12px 8px;
         white-space: nowrap;
+    }
+    
+    .devices-table td:first-child,
+    .change-logs-table td:first-child {
+        padding-left: 16px; /* Ensure first column has proper left spacing */
     }
     
     /* Improved action buttons for mobile */

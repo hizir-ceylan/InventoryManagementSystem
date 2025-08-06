@@ -16,52 +16,59 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="container">
-            <div class="navbar-brand">
-                <div class="logo">
-                    <span>Çaykur</span>
+            <!-- Left side: Brand + Navigation -->
+            <div class="navbar-left">
+                <div class="navbar-brand">
+                    <div class="logo">
+                        <span>Çaykur</span>
+                    </div>
+                    <span class="subtitle">Envanter Yönetim Sistemi</span>
                 </div>
-                <span class="subtitle">Envanter Yönetim Sistemi</span>
+                
+                <div class="navbar-toggle" id="navbar-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                
+                <div class="navbar-menu" id="navbar-menu">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" onclick="showPage('devices')">
+                                <i class="bi bi-laptop"></i>
+                                <span>Cihazlar</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showPage('device-details')">
+                                <i class="bi bi-info-circle"></i>
+                                <span>Cihaz Detayları</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showPage('network-scan')">
+                                <i class="bi bi-wifi"></i>
+                                <span>Ağ Taraması</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showPage('change-logs')">
+                                <i class="bi bi-clock-history"></i>
+                                <span>Değişiklik Logları</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link external" href="#" onclick="openApiDocumentation()" target="_blank">
+                                <i class="bi bi-code-square"></i>
+                                <span>API Dökümanları</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
             
-            <div class="navbar-toggle" id="navbar-toggle">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-            
-            <div class="navbar-menu" id="navbar-menu">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#" onclick="showPage('devices')">
-                            <i class="bi bi-laptop"></i>
-                            <span>Cihazlar</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showPage('device-details')">
-                            <i class="bi bi-info-circle"></i>
-                            <span>Cihaz Detayları</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showPage('network-scan')">
-                            <i class="bi bi-wifi"></i>
-                            <span>Ağ Taraması</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showPage('change-logs')">
-                            <i class="bi bi-clock-history"></i>
-                            <span>Değişiklik Logları</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link external" href="#" onclick="openApiDocumentation()" target="_blank">
-                            <i class="bi bi-code-square"></i>
-                            <span>API Dökümanları</span>
-                        </a>
-                    </li>
-                </ul>
+            <!-- Right side: Status -->
+            <div class="navbar-right">
                 <div class="navbar-status">
                     <div class="status-indicator">
                         <div class="status-dot"></div>
