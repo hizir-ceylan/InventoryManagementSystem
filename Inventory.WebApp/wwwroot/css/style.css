@@ -2411,3 +2411,41 @@ body {
     display: flex;
   }
 }
+/* 1) Yazılım bölümü flex-wrap ile satır sarma: 
+   parent flex olsa bile child’lar bir satıra sıkışmasın */
+.device-info-item:has(.software-list-container) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+}
+
+/* 2) İç value, ilk satırda tam genişlik alsın — buton/sayaç alt satıra geçsin */
+.device-info-item:has(.software-list-container) .device-info-value {
+  flex: 1 1 100% !important;
+  min-width: 0;           /* flex item küçülebilsin */
+}
+
+/* 3) Konteyner hep tam genişlik, dış scroll kapalı */
+.software-list-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;  /* dış scroll’u tamamen kaldır */
+  box-sizing: border-box;
+}
+
+/* 4) Asıl liste: grid + yalnızca dikey scroll */
+.software-list {
+  width: 100%;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 8px 16px;
+  max-height: 300px;    /* istediğin yüksekliği ver */
+  overflow-y: auto;     /* sadece dikey scroll */
+  overflow-x: hidden;   /* yatay scroll kesinlikle kapalı */
+}
+
+/* 5) Kart içi satır kırma */
+.software-item {
+  min-width: 0;         /* grid hücresi taşmasın */
+  word-break: break-word;
+}

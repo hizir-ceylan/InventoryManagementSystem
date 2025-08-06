@@ -5,7 +5,7 @@ class InventoryApp {
         this.devices = [];
         this.filteredDevices = [];
         this.currentPage = 'devices';
-        
+
         this.init();
     }
 
@@ -14,7 +14,7 @@ class InventoryApp {
         this.setupEventListeners();
         this.loadInitialData();
         this.setupMobileMenu();
-        
+
         // Set up auto-refresh every 30 seconds
         setInterval(() => {
             if (this.currentPage === 'devices') {
@@ -27,19 +27,19 @@ class InventoryApp {
     setupMobileMenu() {
         const toggle = document.getElementById('navbar-toggle');
         const menu = document.getElementById('navbar-menu');
-        
+
         if (toggle && menu) {
             toggle.addEventListener('click', () => {
                 menu.classList.toggle('show');
             });
-            
+
             // Close menu when clicking on links
             menu.addEventListener('click', (e) => {
                 if (e.target.classList.contains('nav-link')) {
                     menu.classList.remove('show');
                 }
             });
-            
+
             // Close menu when clicking outside
             document.addEventListener('click', (e) => {
                 if (!toggle.contains(e.target) && !menu.contains(e.target)) {
@@ -145,7 +145,7 @@ class InventoryApp {
 
                 // Update statistics
                 this.updateStatistics(allDevices, agentDevices, networkDevices);
-                
+
             } catch (apiError) {
                 // If API fails, use mock data for testing UI improvements
                 console.warn('API not available, using mock data for testing:', apiError.message);
@@ -153,14 +153,14 @@ class InventoryApp {
                 this.filteredDevices = [...this.devices];
                 this.updateStatistics(this.devices, this.devices.filter(d => d.managementType === 1), this.devices.filter(d => d.managementType === 2));
             }
-            
+
             // Render devices
             this.renderDevices();
-            
+
             if (showLoading) {
                 this.hideLoading();
             }
-            
+
             this.updateLastUpdateTime();
 
         } catch (error) {
@@ -177,33 +177,33 @@ class InventoryApp {
     // Update statistics cards
     updateStatistics(allDevices, agentDevices, networkDevices) {
         const totalDevices = allDevices?.length || 0;
-        
+
         // Improved active device detection: include devices that are:
         // 1. Status 0 (Aktif) OR
         // 2. Recently seen (within last 24 hours) regardless of status OR  
         // 3. Status 2 (Bakım) - maintenance devices are often still working
         const now = new Date();
         const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000);
-        
+
         const activeDevices = allDevices?.filter(d => {
             // Always consider status 0 as active
             if (d.status === 0) return true;
-            
+
             // Consider maintenance devices as active if recently seen
             if (d.status === 2 && d.lastSeen) {
                 const lastSeen = new Date(d.lastSeen);
                 return lastSeen > twentyFourHoursAgo;
             }
-            
+
             // Consider any device as active if seen in last 24 hours, even if marked inactive
             if (d.lastSeen) {
                 const lastSeen = new Date(d.lastSeen);
                 return lastSeen > twentyFourHoursAgo;
             }
-            
+
             return false;
         }).length || 0;
-        
+
         const agentDevicesCount = agentDevices?.length || 0;
         const networkDevicesCount = networkDevices?.length || 0;
 
@@ -221,7 +221,7 @@ class InventoryApp {
 
         this.filteredDevices = this.devices.filter(device => {
             // Search filter
-            const matchesSearch = !searchTerm || 
+            const matchesSearch = !searchTerm ||
                 device.name?.toLowerCase().includes(searchTerm) ||
                 device.ipAddress?.toLowerCase().includes(searchTerm) ||
                 device.macAddress?.toLowerCase().includes(searchTerm) ||
@@ -308,7 +308,7 @@ class InventoryApp {
     async showDeviceDetail(deviceId) {
         try {
             this.showLoading();
-            
+
             // Try to get device details from API first, fallback to mock data
             let device;
             try {
@@ -320,13 +320,13 @@ class InventoryApp {
                     throw new Error('Cihaz bulunamadı');
                 }
             }
-            
+
             const modalContent = document.getElementById('device-detail-content');
             modalContent.innerHTML = this.renderDeviceDetail(device);
-            
+
             // Show modal
             this.showModal();
-            
+
             this.hideLoading();
         } catch (error) {
             this.showError('Cihaz detayları yüklenirken hata oluştu: ' + error.message);
@@ -351,7 +351,7 @@ class InventoryApp {
     async showDeviceDetailPage(deviceId) {
         try {
             this.showLoading();
-            
+
             // Try to get device details from API first, fallback to mock data
             let device;
             try {
@@ -363,7 +363,7 @@ class InventoryApp {
                     throw new Error('Cihaz bulunamadı');
                 }
             }
-            
+
             // Update device details page content
             const detailsContent = document.getElementById('device-details-content');
             detailsContent.innerHTML = `
@@ -385,10 +385,10 @@ class InventoryApp {
                 </div>
                 ${this.renderDeviceDetail(device)}
             `;
-            
+
             // Show device details page
             this.showPage('device-details');
-            
+
             this.hideLoading();
         } catch (error) {
             this.showError('Cihaz detayları yüklenirken hata oluştu: ' + error.message);
@@ -403,10 +403,10 @@ class InventoryApp {
             if (!device) {
                 device = await this.apiCall(`device/${deviceId}`);
             }
-            
+
             // Navigate to change logs page
             this.showPage('change-logs');
-            
+
             // Set filter to show logs for this specific device
             const deviceFilter = document.getElementById('filter-device');
             if (deviceFilter) {
@@ -417,7 +417,7 @@ class InventoryApp {
                     deviceFilter.add(option);
                 }
                 deviceFilter.value = deviceId;
-                
+
                 // Trigger change logs refresh with filter
                 this.refreshChangeLogs();
             }
@@ -626,7 +626,7 @@ class InventoryApp {
 
         const sw = device.softwareInfo;
         const deviceId = device.id || 'modal';
-        
+
         return `
             <div class="device-info-group">
                 <h6><i class="bi bi-pc-display"></i> Yazılım Bilgileri</h6>
@@ -673,9 +673,9 @@ class InventoryApp {
                 
                 ${sw.installedApps && sw.installedApps.length > 0 ? `
                     <div class="device-info-item">
-                        <span class="device-info-label">Yüklü Yazılımlar (${sw.installedApps.length} adet):</span>
                         <div class="device-info-value">
                             <div class="software-list-container">
+                                <!-- Asıl liste -->
                                 <div class="software-list" id="software-list-${deviceId}">
                                     ${sw.installedApps.slice(0, 20).map(app => `
                                         <div class="software-item">
@@ -684,6 +684,13 @@ class InventoryApp {
                                         </div>
                                     `).join('')}
                                 </div>
+
+                                <!-- Toplam sayı, listenin hemen altında -->
+                                <div class="software-count">
+                                    Toplam yüklü yazılımlar: ${sw.installedApps.length}
+                                </div>
+
+                                <!-- “Daha fazla göster” butonu -->
                                 ${sw.installedApps.length > 20 ? `
                                     <div class="software-load-more">
                                         <button class="btn-load-more" onclick="app.loadMoreSoftware('${deviceId}', ${sw.installedApps.length})">
@@ -710,12 +717,12 @@ class InventoryApp {
             const container = document.getElementById(`software-list-${deviceId}`);
             const loadMoreContainer = container?.parentElement.querySelector('.software-load-more');
             const loadMoreBtn = loadMoreContainer?.querySelector('.btn-load-more');
-            
+
             if (!container || !loadMoreBtn) return;
-            
+
             const currentItems = container.children.length;
             const nextBatch = device.softwareInfo.installedApps.slice(currentItems, currentItems + 20);
-            
+
             // Add new software items
             nextBatch.forEach(app => {
                 const softwareItem = document.createElement('div');
@@ -726,7 +733,7 @@ class InventoryApp {
                 `;
                 container.appendChild(softwareItem);
             });
-            
+
             // Update or remove the load more button
             const remainingItems = device.softwareInfo.installedApps.length - container.children.length;
             if (remainingItems > 0) {
@@ -765,7 +772,7 @@ class InventoryApp {
         document.querySelectorAll('.nav-link').forEach(link => {
             link.classList.remove('active');
         });
-        
+
         // Find the nav link that corresponds to this page and make it active
         const navMapping = {
             'devices': 'Cihazlar',
@@ -773,7 +780,7 @@ class InventoryApp {
             'network-scan': 'Ağ Taraması',
             'change-logs': 'Değişiklik Logları'
         };
-        
+
         if (navMapping[pageId]) {
             const navLinks = document.querySelectorAll('.nav-link');
             navLinks.forEach(link => {
@@ -803,11 +810,11 @@ class InventoryApp {
     updateLastUpdateTime() {
         const now = new Date();
         const updateText = `Son güncelleme: ${this.formatDate(now)}`;
-        
+
         // Update both desktop and mobile status indicators
         const desktopElement = document.getElementById('last-update');
         const mobileElement = document.getElementById('last-update-mobile');
-        
+
         if (desktopElement) {
             desktopElement.textContent = updateText;
         }
@@ -912,22 +919,22 @@ class InventoryApp {
     // Check if device is recently active (within 24 hours)
     isRecentlyActive(device) {
         if (!device.lastSeen) return false;
-        
+
         const now = new Date();
         const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000);
         const lastSeen = new Date(device.lastSeen);
-        
+
         return lastSeen > twentyFourHoursAgo;
     }
 
     // Check if device is online (seen within 30 minutes)
     isDeviceOnline(device) {
         if (!device.lastSeen) return false;
-        
+
         const now = new Date();
         const thirtyMinutesAgo = new Date(now - 30 * 60 * 1000);
         const lastSeen = new Date(device.lastSeen);
-        
+
         return lastSeen > thirtyMinutesAgo;
     }
 
@@ -937,7 +944,7 @@ class InventoryApp {
         if (!this.isDeviceOnline(device)) {
             return 1; // Pasif/Offline
         }
-        
+
         // If device was seen recently, it's online (status 0)
         return 0; // Aktif/Online
     }
@@ -974,20 +981,20 @@ class InventoryApp {
         const networkRange = document.getElementById('network-range').value;
         const timeout = document.getElementById('scan-timeout').value;
         const portScan = document.getElementById('port-scan').value;
-        
+
         const scanResults = document.getElementById('scan-results');
         const scanProgress = document.getElementById('scan-progress');
         const resultsTable = document.getElementById('results-table');
         const progressFill = document.getElementById('progress-fill');
         const scanStatus = document.getElementById('scan-status');
         const startBtn = document.getElementById('start-scan-btn');
-        
+
         // Show results section
         scanResults.style.display = 'block';
         resultsTable.style.display = 'none';
         startBtn.disabled = true;
         startBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Taranıyor...';
-        
+
         // Use real network scan via API
         try {
             const response = await fetch(`${this.apiBaseUrl}/api/NetworkScan/trigger-range`, {
@@ -1017,13 +1024,13 @@ class InventoryApp {
 
     async pollScanProgress(progressFill, scanStatus, startBtn, resultsTable) {
         let progress = 0;
-        
+
         const pollInterval = setInterval(async () => {
             try {
                 const statusResponse = await fetch(`${this.apiBaseUrl}/api/NetworkScan/status`);
                 if (statusResponse.ok) {
                     const status = await statusResponse.json();
-                    
+
                     if (status.isScanning) {
                         progress = Math.min(progress + 10, 90); // Simulated progress
                         progressFill.style.width = progress + '%';
@@ -1033,7 +1040,7 @@ class InventoryApp {
                         clearInterval(pollInterval);
                         progressFill.style.width = '100%';
                         scanStatus.textContent = 'Tarama tamamlandı!';
-                        
+
                         // Get discovered devices
                         const devicesResponse = await fetch(`${this.apiBaseUrl}/api/Device/network-discovered`);
                         if (devicesResponse.ok) {
@@ -1046,7 +1053,7 @@ class InventoryApp {
                                 ports: device.openPorts && device.openPorts.length > 0 ? device.openPorts.join(', ') : 'None'
                             })));
                         }
-                        
+
                         resultsTable.style.display = 'block';
                         this.resetScanButton(startBtn);
                     }
@@ -1070,7 +1077,7 @@ class InventoryApp {
         startBtn.disabled = false;
         startBtn.innerHTML = '<i class="bi bi-play-fill"></i> Taramayı Başlat';
     }
-    
+
     displayScanResults(results) {
         const tbody = document.getElementById('scan-results-body');
         tbody.innerHTML = results.map(result => `
@@ -1088,7 +1095,7 @@ class InventoryApp {
             </tr>
         `).join('');
     }
-    
+
     async addToInventory(ip, mac, name) {
         alert(`${name} (${ip}) envantere eklendi!`);
         // Here you would make an API call to add the device
@@ -1118,20 +1125,20 @@ class InventoryApp {
             console.error('Error loading change logs:', error);
             this.changeLogs = [];
         }
-        
+
         this.renderChangeLogs();
     }
-    
+
     renderChangeLogs() {
         const tbody = document.getElementById('change-logs-body');
         const noDataDiv = document.getElementById('no-change-logs');
-        
+
         if (!this.changeLogs || this.changeLogs.length === 0) {
             tbody.innerHTML = '';
             noDataDiv.classList.remove('d-none');
             return;
         }
-        
+
         noDataDiv.classList.add('d-none');
         tbody.innerHTML = this.changeLogs.map(log => `
             <tr>
@@ -1154,11 +1161,11 @@ class InventoryApp {
             </tr>
         `).join('');
     }
-    
+
     refreshChangeLogs() {
         this.loadChangeLogs();
     }
-    
+
     clearChangeLogFilters() {
         document.getElementById('filter-change-type').value = '';
         document.getElementById('filter-device').value = '';
@@ -1200,7 +1207,7 @@ function openApiDocumentation() {
 }
 
 // Add mock data function to prototype
-InventoryApp.prototype.getMockDevices = function() {
+InventoryApp.prototype.getMockDevices = function () {
     return [
         {
             id: '1',
@@ -1321,6 +1328,6 @@ InventoryApp.prototype.getMockDevices = function() {
 
 // Initialize the application when the page loads
 let app;
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     app = new InventoryApp();
 });
