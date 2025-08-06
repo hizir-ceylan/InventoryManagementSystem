@@ -2355,3 +2355,59 @@ body {
     background: var(--success);
     color: var(--white);
 }
+
+/* ========== NAVBAR & TABLO OVERFLOW AYARLARI ========== */
+
+/* Masaüstünde container taşmaları göster */
+@media (min-width: 769px) {
+  .container {
+    overflow-x: visible;
+  }
+}
+/* Mobilde eskisi gibi gizle */
+@media (max-width: 768px) {
+  .container {
+    overflow-x: hidden;
+  }
+}
+
+/* Navbar’daki container taşma durumunda görünür olsun */
+.navbar .container {
+  overflow-x: visible;
+  padding-right: 30px; /* Opsiyonel ekstra boşluk */
+}
+/* Daralan masaüstü ekranlarda alt satıra kayma */
+@media (max-width: 1200px) {
+  .navbar .container {
+    flex-wrap: wrap;
+  }
+  .navbar-right {
+    margin-left: auto;
+    margin-top: 8px;
+  }
+}
+
+/* Tablo konteynerindeki negatif margin’i mobilde tut, masaüstünde kaldır */
+@media (max-width: 768px) {
+  .table-container {
+    margin: 0 -15px;
+  }
+}
+@media (min-width: 769px) {
+  .table-container {
+    margin: 0;
+  }
+}
+/* Masaüstünde mobil menü içindeki güncelleme göstergesini gizle */
+@media (min-width: 769px) {
+  .navbar-menu .navbar-status {
+    display: none !important;
+  }
+}
+
+/* (İsteğe bağlı) mobilde hâlâ görünmesini isterseniz: */
+@media (max-width: 768px) {
+  .navbar-menu .navbar-status {
+    display: flex;
+  }
+}
