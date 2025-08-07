@@ -67,7 +67,7 @@ namespace Inventory.Agent.Windows
                     if (!string.IsNullOrEmpty(macAddress))
                     {
                         var manufacturer = OuiLookup.GetManufacturer(macAddress);
-                        var deviceType = OuiLookup.GuessDeviceType(macAddress, manufacturer);
+                        var deviceType = OuiLookup.GuessDeviceType(macAddress, manufacturer, false); // No agent for network discovered devices
 
                         var device = new DeviceDto
                         {

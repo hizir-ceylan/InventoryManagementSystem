@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Inventory.Agent.Windows.Models;
 using Inventory.Agent.Windows.Configuration;
+using Inventory.Shared.Utils;
 
 public static class DeviceLogger
 {
@@ -91,7 +92,7 @@ public static class DeviceLogger
         // 4. Log verisi oluştur
         var logObject = new
         {
-            Date = DateTime.Now,
+            Date = TimeZoneHelper.GetTurkeyTime(),
             Device = deviceSnapshot,
             Diff = diff
         };
@@ -499,7 +500,7 @@ public static class DeviceLogger
 
             var changeLogObject = new
             {
-                DetectedAt = DateTime.Now,
+                DetectedAt = TimeZoneHelper.GetTurkeyTime(),
                 DeviceName = Environment.MachineName,
                 Changes = changes
             };

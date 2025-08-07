@@ -984,11 +984,17 @@ class InventoryApp {
     }
 
     // Check if device is online (seen within 30 minutes)
+    // Server sends Turkey time (+3), we need to compare with Turkey time
     isDeviceOnline(device) {
         if (!device.lastSeen) return false;
 
+        // Get current time in Turkey (UTC+3)
         const now = new Date();
-        const thirtyMinutesAgo = new Date(now - 30 * 60 * 1000);
+        const turkeyOffset = 3 * 60; // Turkey is UTC+3
+        const localOffset = now.getTimezoneOffset(); // Local offset in minutes from UTC
+        const turkeyTime = new Date(now.getTime() + (localOffset * 60 * 1000) + (turkeyOffset * 60 * 1000));
+        
+        const thirtyMinutesAgo = new Date(turkeyTime - 30 * 60 * 1000);
         const lastSeen = new Date(device.lastSeen);
 
         return lastSeen > thirtyMinutesAgo;

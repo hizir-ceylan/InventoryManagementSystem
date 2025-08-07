@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Inventory.Agent.Windows.Models;
+using Inventory.Shared.Utils;
 
 namespace Inventory.Agent.Windows.Services
 {
@@ -109,7 +110,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "Device Name",
                     OldValue = previous.Name ?? "",
                     NewValue = current.Name ?? "",
@@ -122,7 +123,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "IP Address",
                     OldValue = previous.IpAddress ?? "",
                     NewValue = current.IpAddress ?? "",
@@ -135,7 +136,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "MAC Address",
                     OldValue = previous.MacAddress ?? "",
                     NewValue = current.MacAddress ?? "",
@@ -148,7 +149,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "Model",
                     OldValue = previous.Model ?? "",
                     NewValue = current.Model ?? "",
@@ -161,7 +162,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "Location",
                     OldValue = previous.Location ?? "",
                     NewValue = current.Location ?? "",
@@ -178,7 +179,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "Hardware Info",
                     OldValue = previous == null ? "None" : "Present",
                     NewValue = current == null ? "None" : "Present",
@@ -193,7 +194,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "CPU",
                     OldValue = previous.Cpu ?? "",
                     NewValue = current.Cpu ?? "",
@@ -207,7 +208,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "RAM (GB)",
                     OldValue = previous.RamGB.ToString(),
                     NewValue = current.RamGB.ToString(),
@@ -221,7 +222,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "Disk (GB)",
                     OldValue = previous.DiskGB.ToString(),
                     NewValue = current.DiskGB.ToString(),
@@ -235,7 +236,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "Motherboard",
                     OldValue = previous.Motherboard ?? "",
                     NewValue = current.Motherboard ?? "",
@@ -249,7 +250,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "BIOS Version",
                     OldValue = previous.BiosVersion ?? "",
                     NewValue = current.BiosVersion ?? "",
@@ -278,7 +279,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "Software Info",
                     OldValue = previous == null ? "None" : "Present",
                     NewValue = current == null ? "None" : "Present",
@@ -293,7 +294,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "Operating System",
                     OldValue = previous.OperatingSystem ?? "",
                     NewValue = current.OperatingSystem ?? "",
@@ -307,7 +308,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "OS Version",
                     OldValue = previous.OsVersion ?? "",
                     NewValue = current.OsVersion ?? "",
@@ -321,7 +322,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "Active User",
                     OldValue = previous.ActiveUser ?? "",
                     NewValue = current.ActiveUser ?? "",
@@ -351,7 +352,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = $"{changeTypePrefix} Installed",
                     OldValue = "",
                     NewValue = newItem,
@@ -366,7 +367,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = $"{changeTypePrefix} Uninstalled",
                     OldValue = removedItem,
                     NewValue = "",
@@ -383,7 +384,7 @@ namespace Inventory.Agent.Windows.Services
                 changes.Add(new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = $"{changeTypePrefix} Count",
                     OldValue = previousCount.ToString(),
                     NewValue = currentCount.ToString(),
@@ -454,7 +455,7 @@ namespace Inventory.Agent.Windows.Services
                     changes.Add(new ChangeLogDto
                     {
                         Id = Guid.NewGuid(),
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                         ChangeType = "Hardware Change",
                         OldValue = $"GPU {i}: {oldGpu.Name}",
                         NewValue = "Removed",
@@ -474,7 +475,7 @@ namespace Inventory.Agent.Windows.Services
                     changes.Add(new ChangeLogDto
                     {
                         Id = Guid.NewGuid(),
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                         ChangeType = "Hardware Change",
                         OldValue = "None",
                         NewValue = $"GPU {i}: {newGpu.Name}",
@@ -496,7 +497,7 @@ namespace Inventory.Agent.Windows.Services
                     changes.Add(new ChangeLogDto
                     {
                         Id = Guid.NewGuid(),
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                         ChangeType = "GPU Memory",
                         OldValue = $"{currentGpu.Name}: {previousGpu.MemoryGB?.ToString("F1") ?? "Unknown"} GB",
                         NewValue = $"{currentGpu.Name}: {currentGpu.MemoryGB?.ToString("F1") ?? "Unknown"} GB",
@@ -520,7 +521,7 @@ namespace Inventory.Agent.Windows.Services
                     changes.Add(new ChangeLogDto
                     {
                         Id = Guid.NewGuid(),
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                         ChangeType = "Network Adapter",
                         OldValue = $"{oldAdapter.Description} ({oldAdapter.MacAddress})",
                         NewValue = "Removed",
@@ -538,7 +539,7 @@ namespace Inventory.Agent.Windows.Services
                     changes.Add(new ChangeLogDto
                     {
                         Id = Guid.NewGuid(),
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                         ChangeType = "Network Adapter",
                         OldValue = "None",
                         NewValue = $"{newAdapter.Description} ({newAdapter.MacAddress})",
@@ -562,7 +563,7 @@ namespace Inventory.Agent.Windows.Services
                     changes.Add(new ChangeLogDto
                     {
                         Id = Guid.NewGuid(),
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                         ChangeType = "RAM Module",
                         OldValue = $"{oldRam.Slot}: {oldRam.CapacityGB}GB {oldRam.Manufacturer}",
                         NewValue = "Removed",
@@ -580,7 +581,7 @@ namespace Inventory.Agent.Windows.Services
                     changes.Add(new ChangeLogDto
                     {
                         Id = Guid.NewGuid(),
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                         ChangeType = "RAM Module",
                         OldValue = "None",
                         NewValue = $"{newRam.Slot}: {newRam.CapacityGB}GB {newRam.Manufacturer}",
@@ -604,7 +605,7 @@ namespace Inventory.Agent.Windows.Services
                     changes.Add(new ChangeLogDto
                     {
                         Id = Guid.NewGuid(),
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                         ChangeType = "Storage Device",
                         OldValue = $"{oldDisk.DeviceId}: {oldDisk.TotalGB}GB",
                         NewValue = "Removed",
@@ -622,7 +623,7 @@ namespace Inventory.Agent.Windows.Services
                     changes.Add(new ChangeLogDto
                     {
                         Id = Guid.NewGuid(),
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                         ChangeType = "Storage Device",
                         OldValue = "None",
                         NewValue = $"{newDisk.DeviceId}: {newDisk.TotalGB}GB",
@@ -643,7 +644,7 @@ namespace Inventory.Agent.Windows.Services
                         changes.Add(new ChangeLogDto
                         {
                             Id = Guid.NewGuid(),
-                            ChangeDate = DateTime.UtcNow,
+                            ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                             ChangeType = "Storage Capacity",
                             OldValue = $"{currentDisk.DeviceId}: {previousDisk.TotalGB}GB",
                             NewValue = $"{currentDisk.DeviceId}: {currentDisk.TotalGB}GB",

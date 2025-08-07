@@ -71,30 +71,32 @@ namespace Inventory.Shared.Utils
         /// <summary>
         /// Checks if a device is considered offline based on last seen time
         /// Device is offline if not seen for more than 30 minutes
+        /// Since we now store Turkey time, we need to compare with Turkey time
         /// </summary>
-        /// <param name="lastSeenUtc">Last seen time in UTC</param>
+        /// <param name="lastSeenTurkey">Last seen time in Turkey timezone</param>
         /// <param name="thresholdMinutes">Threshold in minutes (default: 30)</param>
         /// <returns>True if device is offline</returns>
-        public static bool IsDeviceOffline(DateTime? lastSeenUtc, int thresholdMinutes = 30)
+        public static bool IsDeviceOffline(DateTime? lastSeenTurkey, int thresholdMinutes = 30)
         {
-            if (!lastSeenUtc.HasValue)
+            if (!lastSeenTurkey.HasValue)
                 return true;
                 
-            var timeDifference = DateTime.UtcNow - lastSeenUtc.Value;
+            var currentTurkeyTime = GetTurkeyTime();
+            var timeDifference = currentTurkeyTime - lastSeenTurkey.Value;
             return timeDifference.TotalMinutes > thresholdMinutes;
         }
         
         /// <summary>
         /// Gets device status based on last seen time
         /// </summary>
-        /// <param name="lastSeenUtc">Last seen time in UTC</param>
+        /// <param name="lastSeenTurkey">Last seen time in Turkey timezone</param>
         /// <param name="currentStatus">Current device status</param>
         /// <param name="thresholdMinutes">Threshold in minutes (default: 30)</param>
         /// <returns>Calculated device status (0 = Active/Online, 1 = Inactive/Offline)</returns>
-        public static int GetDeviceStatus(DateTime? lastSeenUtc, int currentStatus, int thresholdMinutes = 30)
+        public static int GetDeviceStatus(DateTime? lastSeenTurkey, int currentStatus, int thresholdMinutes = 30)
         {
             // If device is offline (not seen for 30+ minutes), return status 1 (inactive)
-            if (IsDeviceOffline(lastSeenUtc, thresholdMinutes))
+            if (IsDeviceOffline(lastSeenTurkey, thresholdMinutes))
                 return 1;
             
             // If device was seen recently, return status 0 (active)
