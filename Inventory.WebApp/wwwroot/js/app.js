@@ -299,8 +299,8 @@ class InventoryApp {
                         <span class="text-truncate-mobile">${device.name || 'N/A'}</span>
                     </div>
                 </td>
-                <td><span class="text-truncate-mobile">${device.ipAddress || 'N/A'}</span></td>
-                <td class="hide-mobile"><small>${device.macAddress || 'N/A'}</small></td>
+                <td><span class="text-truncate-mobile">${device.ipAddress || 'Bilinmiyor'}</span></td>
+                <td class="hide-mobile"><small>${device.macAddress || 'Bilinmiyor'}</small></td>
                 <td>
                     <span class="badge ${this.getDeviceTypeBadgeClass(device.deviceType)}">
                         ${this.getDeviceTypeText(device.deviceType)}
@@ -311,8 +311,8 @@ class InventoryApp {
                         ${this.getStatusText(this.getComputedStatus(device))}
                     </span>
                 </td>
-                <td class="hide-mobile"><span class="text-truncate-mobile">${device.model || 'N/A'}</span></td>
-                <td class="hide-mobile"><span class="text-truncate-mobile">${device.location || 'N/A'}</span></td>
+                <td class="hide-mobile"><span class="text-truncate-mobile">${device.model || 'Bilinmiyor'}</span></td>
+                <td class="hide-mobile"><span class="text-truncate-mobile">${device.location || 'Bilinmiyor'}</span></td>
                 <td class="hide-mobile">
                     <span class="badge ${this.getDiscoveryTypeBadgeClass(device)}">
                         ${this.getDiscoveryTypeText(device)}
@@ -408,10 +408,16 @@ class InventoryApp {
                             <span class="badge ${this.getStatusBadgeClass(this.getComputedStatus(device))}">${this.getStatusText(this.getComputedStatus(device))}</span>
                         </div>
                     </div>
-                    <button class="btn-secondary" onclick="showPage('devices')">
-                        <i class="bi bi-arrow-left"></i>
-                        Cihazlar Listesine Dön
-                    </button>
+                    <div class="device-actions">
+                        <button class="btn-danger" onclick="app.confirmDeleteDevice('${device.id}', '${device.name || 'Bilinmeyen Cihaz'}')">
+                            <i class="bi bi-trash"></i>
+                            Cihazı Sil
+                        </button>
+                        <button class="btn-secondary" onclick="showPage('devices')">
+                            <i class="bi bi-arrow-left"></i>
+                            Cihazlar Listesine Dön
+                        </button>
+                    </div>
                 </div>
                 ${this.renderDeviceDetail(device)}
             `;
@@ -463,15 +469,15 @@ class InventoryApp {
                 <h6><i class="bi bi-info-circle"></i> Genel Bilgiler</h6>
                 <div class="device-info-item">
                     <span class="device-info-label">Cihaz Adı:</span>
-                    <span class="device-info-value">${device.name || 'N/A'}</span>
+                    <span class="device-info-value">${device.name || 'Bilinmiyor'}</span>
                 </div>
                 <div class="device-info-item">
                     <span class="device-info-label">IP Adresi:</span>
-                    <span class="device-info-value">${device.ipAddress || 'N/A'}</span>
+                    <span class="device-info-value">${device.ipAddress || 'Bilinmiyor'}</span>
                 </div>
                 <div class="device-info-item">
                     <span class="device-info-label">MAC Adresi:</span>
-                    <span class="device-info-value">${device.macAddress || 'N/A'}</span>
+                    <span class="device-info-value">${device.macAddress || 'Bilinmiyor'}</span>
                 </div>
                 <div class="device-info-item">
                     <span class="device-info-label">Cihaz Türü:</span>
@@ -491,11 +497,11 @@ class InventoryApp {
                 </div>
                 <div class="device-info-item">
                     <span class="device-info-label">Model:</span>
-                    <span class="device-info-value">${device.model || 'N/A'}</span>
+                    <span class="device-info-value">${device.model || 'Bilinmiyor'}</span>
                 </div>
                 <div class="device-info-item">
                     <span class="device-info-label">Konum:</span>
-                    <span class="device-info-value">${device.location || 'N/A'}</span>
+                    <span class="device-info-value">${device.location || 'Bilinmiyor'}</span>
                 </div>
                 <div class="device-info-item">
                     <span class="device-info-label">Yönetim Türü:</span>
@@ -1287,6 +1293,96 @@ class InventoryApp {
         document.getElementById('filter-date-to').value = '';
         this.filteredChangeLogs = [...this.changeLogs];
         this.renderChangeLogs();
+    }
+
+    // Device deletion functions
+    confirmDeleteDevice(deviceId, deviceName) {
+        const confirmation = confirm(`Cihazı silmek istediğinize emin misiniz?\n\nCihaz: ${deviceName}\n\nBu işlem geri alınamaz ve cihazın tüm bilgileri veritabanından silinecektir.`);
+        
+        if (confirmation) {
+            this.deleteDevice(deviceId, deviceName);
+        }
+    }
+
+    async deleteDevice(deviceId, deviceName) {
+        try {
+            this.showLoading();
+            
+            // Call the API to delete the device
+            const response = await fetch(`${this.apiBaseUrl}/api/device/${deviceId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                this.showSuccess(`Cihaz "${deviceName}" başarıyla silindi.`);
+                
+                // Remove the device from the local array
+                this.devices = this.devices.filter(device => device.id !== deviceId);
+                this.filteredDevices = this.filteredDevices.filter(device => device.id !== deviceId);
+                
+                // Update statistics
+                this.updateStatistics();
+                
+                // Navigate back to devices list
+                this.showPage('devices');
+                
+                // Re-render the device table
+                this.renderDevices();
+            } else {
+                const errorData = await response.text();
+                throw new Error(errorData || 'Cihaz silinirken bir hata oluştu');
+            }
+        } catch (error) {
+            this.showError('Cihaz silinirken hata oluştu: ' + error.message);
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    // Success message display
+    showSuccess(message) {
+        // Create or update success alert
+        let successAlert = document.getElementById('success-alert');
+        if (!successAlert) {
+            successAlert = document.createElement('div');
+            successAlert.id = 'success-alert';
+            successAlert.className = 'success-alert';
+            successAlert.innerHTML = `
+                <div class="success-content">
+                    <i class="bi bi-check-circle"></i>
+                    <span id="success-message"></span>
+                    <button type="button" class="success-close" onclick="app.hideSuccess()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+            
+            // Insert after the error alert
+            const errorAlert = document.getElementById('error-alert');
+            if (errorAlert && errorAlert.parentNode) {
+                errorAlert.parentNode.insertBefore(successAlert, errorAlert.nextSibling);
+            } else {
+                document.querySelector('.main-content').prepend(successAlert);
+            }
+        }
+
+        document.getElementById('success-message').textContent = message;
+        successAlert.classList.remove('d-none');
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            this.hideSuccess();
+        }, 5000);
+    }
+
+    hideSuccess() {
+        const successAlert = document.getElementById('success-alert');
+        if (successAlert) {
+            successAlert.classList.add('d-none');
+        }
     }
 }
 

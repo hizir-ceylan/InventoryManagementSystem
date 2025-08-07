@@ -11,6 +11,7 @@ using Inventory.Domain.Entities;
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.Win32;
+using Inventory.Shared.Utils;
 
 namespace Inventory.Agent.Windows
 {
@@ -318,7 +319,7 @@ namespace Inventory.Agent.Windows
                 new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "InitialRegistration",
                     OldValue = "",
                     NewValue = "Kaydedildi",
@@ -478,7 +479,7 @@ namespace Inventory.Agent.Windows
                     new ChangeLogDto
                     {
                         Id = Guid.NewGuid(),
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                         ChangeType = "InitialRegistration",
                         OldValue = "",
                         NewValue = "Kaydedildi",
@@ -1022,7 +1023,7 @@ namespace Inventory.Agent.Windows
                 }
                 
                 // Generate a unique identifier based on hostname
-                return $"LINUX-{Environment.MachineName}-{DateTime.UtcNow:yyyyMM}";
+                return $"LINUX-{Environment.MachineName}-{TimeZoneHelper.GetTurkeyTime():yyyyMM}";
             }
             catch
             {
@@ -3069,7 +3070,7 @@ namespace Inventory.Agent.Windows
                 new ChangeLogDto
                 {
                     Id = Guid.NewGuid(),
-                    ChangeDate = DateTime.UtcNow,
+                    ChangeDate = TimeZoneHelper.GetTurkeyTime(),
                     ChangeType = "InitialRegistration",
                     OldValue = "",
                     NewValue = "Kaydedildi",

@@ -9,9 +9,26 @@ namespace Inventory.Api.Helpers
         {
             var errors = new List<string>();
 
-            // Temel doğrulama
-            if (string.IsNullOrWhiteSpace(device.Name))
-                errors.Add("Device name is required");
+            // Temel doğrulama - Network Discovery cihazları için daha esnek
+            if (device.DiscoveryMethod == DiscoveryMethod.NetworkDiscovery)
+            {
+                // Network discovery cihazları için minimal doğrulama
+                // En az IP veya MAC adresinden birinin olması yeterli
+                if (string.IsNullOrWhiteSpace(device.IpAddress) && string.IsNullOrWhiteSpace(device.MacAddress))
+                    errors.Add("Network discovered devices must have at least IP or MAC address");
+                
+                // İsim yoksa IP veya MAC'den varsayılan isim oluştur
+                if (string.IsNullOrWhiteSpace(device.Name))
+                {
+                    device.Name = device.IpAddress ?? device.MacAddress ?? "Unknown Device";
+                }
+            }
+            else
+            {
+                // Agent ve manuel cihazlar için normal doğrulama
+                if (string.IsNullOrWhiteSpace(device.Name))
+                    errors.Add("Device name is required");
+            }
 
             // IP adresi doğrulaması
             if (!string.IsNullOrWhiteSpace(device.IpAddress) && !IsValidIpAddress(device.IpAddress))
@@ -21,8 +38,11 @@ namespace Inventory.Api.Helpers
             if (!string.IsNullOrWhiteSpace(device.MacAddress) && !IsValidMacAddress(device.MacAddress))
                 errors.Add("Invalid MAC address format");
 
-            // Cihaz tipine özel doğrulama
-            errors.AddRange(ValidateByDeviceType(device));
+            // Cihaz tipine özel doğrulama - sadece agent cihazları için
+            if (device.DiscoveryMethod != DiscoveryMethod.NetworkDiscovery)
+            {
+                errors.AddRange(ValidateByDeviceType(device));
+            }
 
             return errors;
         }
