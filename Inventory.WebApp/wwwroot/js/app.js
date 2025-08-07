@@ -1280,7 +1280,6 @@ class InventoryApp {
             </tr>
         `).join('');
     }
-    }
 
     refreshChangeLogs() {
         this.loadChangeLogs();
@@ -1545,5 +1544,4 @@ InventoryApp.prototype.getMockDevices = function () {
 let app;
 document.addEventListener('DOMContentLoaded', function () {
     app = new InventoryApp();
-});
 });
