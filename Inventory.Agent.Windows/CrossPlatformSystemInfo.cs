@@ -361,16 +361,20 @@ namespace Inventory.Agent.Windows
             };
 
             // Device object oluştur - Agent kurulan cihaz olarak işaretle
+            var manufacturer = OuiLookup.GetManufacturer(macAddress);
+            var deviceType = OuiLookup.GuessDeviceType(macAddress, manufacturer, true); // Agent installed = true
+            
             var device = new DeviceDto
             {
                 Name = Environment.MachineName,
                 MacAddress = macAddress,
                 IpAddress = ipAddress,
-                DeviceType = DeviceType.Desktop,
+                DeviceType = deviceType,
                 Model = motherboardModel,
-                Location = "Ev",
+                Location = LocationHelper.GetLocationByIpAddress(ipAddress, "Ev"),
                 Status = 1,
                 AgentInstalled = true, // Bu cihazda agent yüklü
+                Manufacturer = manufacturer,
                 ChangeLogs = changeLogs,
                 HardwareInfo = hardwareInfo,
                 SoftwareInfo = softwareInfoDto
@@ -3112,16 +3116,20 @@ namespace Inventory.Agent.Windows
             };
 
             // DeviceDto nesnesini hazırla - Agent kurulan cihaz olarak işaretle
+            var manufacturer = OuiLookup.GetManufacturer(macAddress);
+            var deviceType = OuiLookup.GuessDeviceType(macAddress, manufacturer, true); // Agent installed = true
+            
             var device = new DeviceDto
             {
                 Name = Environment.MachineName,
                 MacAddress = macAddress,
                 IpAddress = ipAddress,
-                DeviceType = DeviceType.Desktop,
+                DeviceType = deviceType,
                 Model = motherboardModel,
-                Location = "Ev",
+                Location = LocationHelper.GetLocationByIpAddress(ipAddress, "Ev"),
                 Status = 1,
                 AgentInstalled = true, // Bu cihazda agent yüklü
+                Manufacturer = manufacturer,
                 ChangeLogs = changeLogs,
                 HardwareInfo = hardwareInfo,
                 SoftwareInfo = softwareInfoDto

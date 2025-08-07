@@ -87,7 +87,7 @@ namespace Inventory.Api.Services
         private async Task TriggerScanAsync(string scanType, string? networkRange, bool scanAllNetworks = false, int timeoutSeconds = 5, string portScanType = "common")
         {
             _isScanning = true;
-            _lastScanTime = DateTime.UtcNow;
+            _lastScanTime = TimeZoneHelper.GetUtcNowForStorage();
             int devicesFound = 0;
             string? error = null;
 
@@ -273,7 +273,7 @@ namespace Inventory.Api.Services
                         if (existingDevice != null)
                         {
                             // Update existing device
-                            existingDevice.LastSeen = DateTime.UtcNow;
+                            existingDevice.LastSeen = TimeZoneHelper.GetUtcNowForStorage();
                             existingDevice.Status = (int)networkDevice.Status;
                             
                             // Update IP address if it has changed (for DHCP devices)
@@ -288,7 +288,7 @@ namespace Inventory.Api.Services
                                 {
                                     Id = Guid.NewGuid(),
                                     DeviceId = existingDevice.Id,
-                                    ChangeDate = DateTime.UtcNow,
+                                    ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                                     ChangeType = "IpAddress",
                                     OldValue = existingDevice.IpAddress ?? "",
                                     NewValue = networkDevice.IpAddress,
@@ -321,7 +321,7 @@ namespace Inventory.Api.Services
                                 AgentInstalled = false, // Network discovered devices don't have agent
                                 ManagementType = ManagementType.NetworkDiscovery,
                                 DiscoveryMethod = DiscoveryMethod.NetworkDiscovery,
-                                LastSeen = DateTime.UtcNow,
+                                LastSeen = TimeZoneHelper.GetUtcNowForStorage(),
                                 ChangeLogs = new List<ChangeLog>()
                             };
 
@@ -470,7 +470,7 @@ namespace Inventory.Api.Services
             if (device.DiscoveryMethod == DiscoveryMethod.Unknown)
                 device.DiscoveryMethod = DiscoveryMethod.Manual;
             
-            device.LastSeen = DateTime.UtcNow;
+            device.LastSeen = TimeZoneHelper.GetUtcNowForStorage();
             
             try
             {
@@ -611,7 +611,7 @@ namespace Inventory.Api.Services
 
         public async Task<Device> UpdateDeviceAsync(Device device)
         {
-            device.LastSeen = DateTime.UtcNow;
+            device.LastSeen = TimeZoneHelper.GetUtcNowForStorage();
             
             // Clear any existing tracking to avoid conflicts
             _context.ChangeTracker.Clear();
@@ -658,7 +658,7 @@ namespace Inventory.Api.Services
                     {
                         Id = Guid.NewGuid(),
                         DeviceId = existingDevice.Id,
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                         ChangeType = "Name",
                         OldValue = existingDevice.Name ?? "",
                         NewValue = device.Name,
@@ -673,7 +673,7 @@ namespace Inventory.Api.Services
                     {
                         Id = Guid.NewGuid(),
                         DeviceId = existingDevice.Id,
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                         ChangeType = "IpAddress",
                         OldValue = existingDevice.IpAddress ?? "",
                         NewValue = device.IpAddress,
@@ -688,7 +688,7 @@ namespace Inventory.Api.Services
                     {
                         Id = Guid.NewGuid(),
                         DeviceId = existingDevice.Id,
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                         ChangeType = "Model",
                         OldValue = existingDevice.Model ?? "",
                         NewValue = device.Model,
@@ -703,7 +703,7 @@ namespace Inventory.Api.Services
                     {
                         Id = Guid.NewGuid(),
                         DeviceId = existingDevice.Id,
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                         ChangeType = "Location",
                         OldValue = existingDevice.Location ?? "",
                         NewValue = device.Location,
@@ -718,7 +718,7 @@ namespace Inventory.Api.Services
                     {
                         Id = Guid.NewGuid(),
                         DeviceId = existingDevice.Id,
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                         ChangeType = "DeviceType",
                         OldValue = existingDevice.DeviceType.ToString(),
                         NewValue = device.DeviceType.ToString(),
@@ -733,7 +733,7 @@ namespace Inventory.Api.Services
                     {
                         Id = Guid.NewGuid(),
                         DeviceId = existingDevice.Id,
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                         ChangeType = "ManagementType",
                         OldValue = existingDevice.ManagementType.ToString(),
                         NewValue = device.ManagementType.ToString(),
@@ -748,7 +748,7 @@ namespace Inventory.Api.Services
                     {
                         Id = Guid.NewGuid(),
                         DeviceId = existingDevice.Id,
-                        ChangeDate = DateTime.UtcNow,
+                        ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                         ChangeType = "Status",
                         OldValue = existingDevice.Status.ToString(),
                         NewValue = device.Status.ToString(),
@@ -766,7 +766,7 @@ namespace Inventory.Api.Services
                         {
                             Id = Guid.NewGuid(),
                             DeviceId = existingDevice.Id,
-                            ChangeDate = DateTime.UtcNow,
+                            ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                             ChangeType = "HardwareInfo",
                             OldValue = "None",
                             NewValue = "Hardware information added",
@@ -784,7 +784,7 @@ namespace Inventory.Api.Services
                             {
                                 Id = Guid.NewGuid(),
                                 DeviceId = existingDevice.Id,
-                                ChangeDate = DateTime.UtcNow,
+                                ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                                 ChangeType = "CPU",
                                 OldValue = existingDevice.HardwareInfo.Cpu ?? "",
                                 NewValue = device.HardwareInfo.Cpu,
@@ -798,7 +798,7 @@ namespace Inventory.Api.Services
                             {
                                 Id = Guid.NewGuid(),
                                 DeviceId = existingDevice.Id,
-                                ChangeDate = DateTime.UtcNow,
+                                ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                                 ChangeType = "RAM",
                                 OldValue = $"{existingDevice.HardwareInfo.RamGB} GB",
                                 NewValue = $"{device.HardwareInfo.RamGB} GB",
@@ -830,7 +830,7 @@ namespace Inventory.Api.Services
                         {
                             Id = Guid.NewGuid(),
                             DeviceId = existingDevice.Id,
-                            ChangeDate = DateTime.UtcNow,
+                            ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                             ChangeType = "SoftwareInfo",
                             OldValue = "None",
                             NewValue = "Software information added",
@@ -848,7 +848,7 @@ namespace Inventory.Api.Services
                             {
                                 Id = Guid.NewGuid(),
                                 DeviceId = existingDevice.Id,
-                                ChangeDate = DateTime.UtcNow,
+                                ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                                 ChangeType = "OperatingSystem",
                                 OldValue = existingDevice.SoftwareInfo.OperatingSystem ?? "",
                                 NewValue = device.SoftwareInfo.OperatingSystem,
@@ -863,7 +863,7 @@ namespace Inventory.Api.Services
                             {
                                 Id = Guid.NewGuid(),
                                 DeviceId = existingDevice.Id,
-                                ChangeDate = DateTime.UtcNow,
+                                ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
                                 ChangeType = "OSVersion",
                                 OldValue = existingDevice.SoftwareInfo.OsVersion ?? "",
                                 NewValue = device.SoftwareInfo.OsVersion,
@@ -885,7 +885,7 @@ namespace Inventory.Api.Services
                 existingDevice.AgentInstalled = device.AgentInstalled;
                 if (device.DiscoveryMethod != DiscoveryMethod.Unknown)
                     existingDevice.DiscoveryMethod = device.DiscoveryMethod;
-                existingDevice.LastSeen = DateTime.UtcNow;
+                existingDevice.LastSeen = TimeZoneHelper.GetUtcNowForStorage();
 
                 // Add change logs to the device
                 existingDevice.ChangeLogs ??= new List<ChangeLog>();

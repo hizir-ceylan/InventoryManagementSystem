@@ -387,7 +387,103 @@ namespace Inventory.Shared.Utils
             {"AA:00:04", "DEC"},
             {"00:00:F8", "DEC"},
             {"00:05:02", "DEC"},
-            {"00:20:AF", "3Com"}
+            {"00:20:AF", "3Com"},
+            // Intel Corporate OUI entries
+            {"00:03:47", "Intel Corporate"},
+            {"00:07:E9", "Intel Corporate"},
+            {"00:0E:0C", "Intel Corporate"},
+            {"00:13:02", "Intel Corporate"},
+            {"00:13:20", "Intel Corporate"},
+            {"00:15:17", "Intel Corporate"},
+            {"00:16:76", "Intel Corporate"},
+            {"00:19:D1", "Intel Corporate"},
+            {"00:1B:21", "Intel Corporate"},
+            {"00:1E:67", "Intel Corporate"},
+            {"00:21:6A", "Intel Corporate"},
+            {"00:22:FB", "Intel Corporate"},
+            {"00:24:D7", "Intel Corporate"},
+            {"00:26:C6", "Intel Corporate"},
+            {"00:27:0E", "Intel Corporate"},
+            {"3C:97:0E", "Intel Corporate"},
+            {"40:A8:F0", "Intel Corporate"},
+            {"44:85:00", "Intel Corporate"},
+            {"4C:79:6E", "Intel Corporate"},
+            {"68:05:CA", "Intel Corporate"},
+            {"7C:7A:91", "Intel Corporate"},
+            {"84:A9:3E", "Intel Corporate"},
+            {"A0:A8:CD", "Intel Corporate"},
+            {"B4:96:91", "Intel Corporate"},
+            {"D0:50:99", "Intel Corporate"},
+            {"E4:A4:71", "Intel Corporate"},
+            {"F0:92:1C", "Intel Corporate"},
+            {"F4:8E:38", "Intel Corporate"},
+            // ASUSTek COMPUTER INC. OUI entries
+            {"00:0E:A6", "ASUSTek COMPUTER INC."},
+            {"00:11:2F", "ASUSTek COMPUTER INC."},
+            {"00:13:D4", "ASUSTek COMPUTER INC."},
+            {"00:15:F2", "ASUSTek COMPUTER INC."},
+            {"00:17:31", "ASUSTek COMPUTER INC."},
+            {"00:18:F3", "ASUSTek COMPUTER INC."},
+            {"00:1A:92", "ASUSTek COMPUTER INC."},
+            {"00:1B:FC", "ASUSTek COMPUTER INC."},
+            {"00:1D:60", "ASUSTek COMPUTER INC."},
+            {"00:1E:8C", "ASUSTek COMPUTER INC."},
+            {"00:22:15", "ASUSTek COMPUTER INC."},
+            {"00:23:54", "ASUSTek COMPUTER INC."},
+            {"00:24:8C", "ASUSTek COMPUTER INC."},
+            {"00:26:18", "ASUSTek COMPUTER INC."},
+            {"04:92:26", "ASUSTek COMPUTER INC."},
+            {"08:60:6E", "ASUSTek COMPUTER INC."},
+            {"0C:9D:92", "ASUSTek COMPUTER INC."},
+            {"10:7B:44", "ASUSTek COMPUTER INC."},
+            {"14:DD:A9", "ASUSTek COMPUTER INC."},
+            {"1C:87:2C", "ASUSTek COMPUTER INC."},
+            {"20:CF:30", "ASUSTek COMPUTER INC."},
+            {"2C:56:DC", "ASUSTek COMPUTER INC."},
+            {"30:5A:3A", "ASUSTek COMPUTER INC."},
+            {"38:D5:47", "ASUSTek COMPUTER INC."},
+            {"40:16:7E", "ASUSTek COMPUTER INC."},
+            {"50:46:5D", "ASUSTek COMPUTER INC."},
+            {"54:04:A6", "ASUSTek COMPUTER INC."},
+            {"60:45:CB", "ASUSTek COMPUTER INC."},
+            {"6C:62:6D", "ASUSTek COMPUTER INC."},
+            {"70:4D:7B", "ASUSTek COMPUTER INC."},
+            {"74:D0:2B", "ASUSTek COMPUTER INC."},
+            {"88:D7:F6", "ASUSTek COMPUTER INC."},
+            {"9C:5A:44", "ASUSTek COMPUTER INC."},
+            {"AC:22:0B", "ASUSTek COMPUTER INC."},
+            {"B0:6E:BF", "ASUSTek COMPUTER INC."},
+            {"BC:EE:7B", "ASUSTek COMPUTER INC."},
+            {"C8:60:00", "ASUSTek COMPUTER INC."},
+            {"D0:17:C2", "ASUSTek COMPUTER INC."},
+            {"E0:3F:49", "ASUSTek COMPUTER INC."},
+            {"F4:6D:04", "ASUSTek COMPUTER INC."},
+            // Fortinet, Inc. OUI entries
+            {"00:09:0F", "Fortinet, Inc."},
+            {"00:26:0B", "Fortinet, Inc."},
+            {"04:BD:88", "Fortinet, Inc."},
+            {"08:5B:0E", "Fortinet, Inc."},
+            {"0C:A4:02", "Fortinet, Inc."},
+            {"24:15:96", "Fortinet, Inc."},
+            {"40:A6:E8", "Fortinet, Inc."},
+            {"48:0F:CF", "Fortinet, Inc."},
+            {"70:4C:A5", "Fortinet, Inc."},
+            {"90:6C:AC", "Fortinet, Inc."},
+            {"B4:E9:B0", "Fortinet, Inc."},
+            // Belkin International Inc. OUI entries
+            {"00:0A:75", "Belkin International Inc."},
+            {"00:11:50", "Belkin International Inc."},
+            {"00:17:3F", "Belkin International Inc."},
+            {"00:1C:DF", "Belkin International Inc."},
+            {"08:86:3B", "Belkin International Inc."},
+            {"14:91:82", "Belkin International Inc."},
+            {"94:44:52", "Belkin International Inc."},
+            {"B4:75:0E", "Belkin International Inc."},
+            {"EC:1A:59", "Belkin International Inc."},
+            // Chongqing Fugui Electronics Co., Ltd. OUI entries
+            {"00:22:58", "Chongqing Fugui Electronics Co., Ltd."},
+            {"2C:AB:A4", "Chongqing Fugui Electronics Co., Ltd."},
+            {"F8:1A:67", "Chongqing Fugui Electronics Co., Ltd."}
         };
 
         public static string? GetManufacturer(string macAddress)
@@ -410,27 +506,78 @@ namespace Inventory.Shared.Utils
             return "Unknown";
         }
 
-        public static DeviceType GuessDeviceType(string macAddress, string? manufacturer)
+        public static DeviceType GuessDeviceType(string macAddress, string? manufacturer, bool hasAgent = false)
         {
             if (string.IsNullOrEmpty(macAddress))
                 return DeviceType.Unknown;
 
-            // Basic device type guessing based on manufacturer
-            if (manufacturer?.ToLower().Contains("cisco") == true)
-                return DeviceType.NetworkDevice;
-            
-            if (manufacturer?.ToLower().Contains("apple") == true)
-                return DeviceType.Laptop; // Could be laptop, desktop, or mobile
-            
-            if (manufacturer?.ToLower().Contains("vmware") == true || 
-                manufacturer?.ToLower().Contains("virtualbox") == true ||
-                manufacturer?.ToLower().Contains("qemu") == true ||
-                manufacturer?.ToLower().Contains("hyper-v") == true)
-                return DeviceType.Server; // Virtual machines
+            // If agent is installed, it's definitely a computer (desktop/laptop - treat as Desktop)
+            if (hasAgent)
+                return DeviceType.Desktop;
 
-            if (manufacturer?.ToLower().Contains("hp") == true || 
-                manufacturer?.ToLower().Contains("hewlett") == true)
-                return DeviceType.Printer; // HP is known for printers
+            var manufacturerLower = manufacturer?.ToLower() ?? "";
+
+            // Network equipment manufacturers
+            if (manufacturerLower.Contains("cisco") || 
+                manufacturerLower.Contains("fortinet"))
+            {
+                // Cisco and Fortinet make switches, routers, and other network equipment
+                return DeviceType.NetworkDevice;
+            }
+
+            // Computer manufacturers (without agent = likely discovered via network)
+            if (manufacturerLower.Contains("intel") || 
+                manufacturerLower.Contains("asus") || 
+                manufacturerLower.Contains("apple") || 
+                manufacturerLower.Contains("dell") || 
+                manufacturerLower.Contains("microsoft"))
+            {
+                return DeviceType.Desktop; // Network discovered computers
+            }
+
+            // Virtual machine manufacturers
+            if (manufacturerLower.Contains("vmware") || 
+                manufacturerLower.Contains("virtualbox") ||
+                manufacturerLower.Contains("qemu") ||
+                manufacturerLower.Contains("hyper-v"))
+            {
+                return DeviceType.Server; // Virtual machines
+            }
+
+            // Printer manufacturers
+            if (manufacturerLower.Contains("hp") || 
+                manufacturerLower.Contains("hewlett") ||
+                manufacturerLower.Contains("canon") ||
+                manufacturerLower.Contains("epson"))
+            {
+                return DeviceType.Printer;
+            }
+
+            // Router/Access Point manufacturers
+            if (manufacturerLower.Contains("belkin") || 
+                manufacturerLower.Contains("netgear") ||
+                manufacturerLower.Contains("linksys") ||
+                manufacturerLower.Contains("d-link"))
+            {
+                return DeviceType.Router;
+            }
+
+            // Camera manufacturers (including Chinese manufacturers)
+            if (manufacturerLower.Contains("hikvision") || 
+                manufacturerLower.Contains("dahua") ||
+                manufacturerLower.Contains("chongqing fugui") ||
+                manufacturerLower.Contains("axis"))
+            {
+                return DeviceType.Camera;
+            }
+
+            // Phone manufacturers
+            if (manufacturerLower.Contains("polycom") || 
+                manufacturerLower.Contains("avaya") ||
+                manufacturerLower.Contains("yealink"))
+            {
+                return DeviceType.IPPhone;
+            }
 
             return DeviceType.Unknown;
         }
