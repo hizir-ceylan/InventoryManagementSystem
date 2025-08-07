@@ -173,8 +173,8 @@ namespace Inventory.Api.Controllers
                 return BadRequest(new { errors = validationErrors });
             }
 
-            // Cihazın zaten var olup olmadığını kontrol et (IP veya MAC ile)
-            var existingDevice = await _deviceService.FindDeviceByIpOrMacAsync(device.IpAddress, device.MacAddress);
+            // Cihazın zaten var olup olmadığını kontrol et (improved logic)
+            var existingDevice = await _deviceService.FindDeviceByNameMacAndIpAsync(device.Name, device.MacAddress, device.IpAddress);
             if (existingDevice != null)
             {
                 // Var olan cihazı güncelle
@@ -197,8 +197,8 @@ namespace Inventory.Api.Controllers
         [SwaggerResponse(400, "Geçersiz cihaz verisi")]
         public async Task<ActionResult<Device>> RegisterOrUpdateByIpMac(NetworkDeviceRegistrationDto deviceDto)
         {
-            // Mevcut cihazı IP veya MAC ile bul
-            var existingDevice = await _deviceService.FindDeviceByIpOrMacAsync(deviceDto.IpAddress, deviceDto.MacAddress);
+            // Mevcut cihazı IP veya MAC ile bul (improved logic)
+            var existingDevice = await _deviceService.FindDeviceByNameMacAndIpAsync(deviceDto.Name, deviceDto.MacAddress, deviceDto.IpAddress);
             
             if (existingDevice != null)
             {

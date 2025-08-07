@@ -235,6 +235,11 @@
                                         <option value="5">Mobile Device</option>
                                         <option value="6">Unknown</option>
                                     </select>
+                                    <select id="filter-discovery" class="filter-select">
+                                        <option value="">Tüm Keşif Türleri</option>
+                                        <option value="agent">Agent</option>
+                                        <option value="network">Network</option>
+                                    </select>
                                     <button class="btn-clear" onclick="clearFilters()">
                                         <i class="bi bi-x-circle"></i>
                                         <span>Temizle</span>
@@ -255,7 +260,7 @@
                                         <th>Durum</th>
                                         <th class="hide-mobile">Model</th>
                                         <th class="hide-mobile">Konum</th>
-                                        <th class="hide-mobile">Son Görülme</th>
+                                        <th class="hide-mobile">Keşif Türü</th>
                                         <th>İşlemler</th>
                                     </tr>
                                 </thead>
