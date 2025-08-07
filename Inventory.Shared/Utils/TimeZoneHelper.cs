@@ -47,13 +47,13 @@ namespace Inventory.Shared.Utils
         }
         
         /// <summary>
-        /// Gets Turkey time for storing in database (still UTC but displayed as Turkey time)
-        /// We store as UTC but the helper provides methods to convert for display
+        /// Gets Turkey time for storing in database (Turkey local time, not UTC)
+        /// Based on requirements: Agent should send +3 time, others should display as received
         /// </summary>
-        /// <returns>Current UTC time</returns>
+        /// <returns>Current Turkey time</returns>
         public static DateTime GetUtcNowForStorage()
         {
-            return DateTime.UtcNow;
+            return GetTurkeyTime();
         }
         
         /// <summary>

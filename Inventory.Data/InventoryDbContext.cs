@@ -20,7 +20,7 @@ namespace Inventory.Data
             modelBuilder.Entity<Device>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Name).HasMaxLength(200);
                 entity.Property(e => e.MacAddress).HasMaxLength(17);
                 entity.Property(e => e.IpAddress).HasMaxLength(15);
                 entity.Property(e => e.Model).HasMaxLength(200);
