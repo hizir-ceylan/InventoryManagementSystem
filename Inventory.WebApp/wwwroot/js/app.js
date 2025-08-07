@@ -1292,27 +1292,31 @@ class InventoryApp {
 
 // Global functions for HTML onclick events
 function showPage(pageId) {
-    app.showPage(pageId);
+    if (app) {
+        app.showPage(pageId);
+    } else {
+        console.warn('App not initialized yet');
+    }
 }
 
 function hideError() {
-    app.hideError();
+    if (app) app.hideError();
 }
 
 function refreshDevices() {
-    app.refreshDevices();
+    if (app) app.refreshDevices();
 }
 
 function clearFilters() {
-    app.clearFilters();
+    if (app) app.clearFilters();
 }
 
 function closeModal() {
-    app.closeModal();
+    if (app) app.closeModal();
 }
 
 function showDeviceDetailPage(deviceId) {
-    app.showDeviceDetailPage(deviceId);
+    if (app) app.showDeviceDetailPage(deviceId);
 }
 
 function openApiDocumentation() {
@@ -1445,4 +1449,5 @@ InventoryApp.prototype.getMockDevices = function () {
 let app;
 document.addEventListener('DOMContentLoaded', function () {
     app = new InventoryApp();
+});
 });
