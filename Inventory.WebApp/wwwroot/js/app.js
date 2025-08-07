@@ -1027,8 +1027,23 @@ class InventoryApp {
 
     formatDate(dateString) {
         const date = new Date(dateString);
-        // API already provides GMT+3 times, so don't add additional offset
-        return date.toLocaleDateString('tr-TR') + ' ' + date.toLocaleTimeString('tr-TR');
+        
+        // Convert UTC time to Turkey time (UTC+3)
+        // The API returns UTC times, so we need to properly convert to Turkey timezone
+        const options = {
+            timeZone: 'Europe/Istanbul',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        };
+        
+        // Format the date using Turkey timezone
+        const formatter = new Intl.DateTimeFormat('tr-TR', options);
+        return formatter.format(date);
     }
 
     // Network Scan functionality

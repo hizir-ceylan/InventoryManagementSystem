@@ -113,6 +113,12 @@ namespace Inventory.Api.Controllers
         [SwaggerResponse(400, "Geçersiz cihaz verisi")]
         public async Task<ActionResult<Device>> Create(Device device)
         {
+            // Apply dynamic location assignment if location is not provided
+            if (string.IsNullOrWhiteSpace(device.Location))
+            {
+                device.Location = LocationHelper.GetLocationByIpAddress(device.IpAddress, "Network Discovery");
+            }
+
             // Cihazı doğrula
             var validationErrors = DeviceValidator.ValidateDevice(device);
             if (validationErrors.Any())
@@ -157,7 +163,7 @@ namespace Inventory.Api.Controllers
                 MacAddress = deviceDto.MacAddress,
                 DeviceType = deviceDto.DeviceType,
                 Model = deviceDto.Model,
-                Location = deviceDto.Location ?? "Network Discovery",
+                Location = LocationHelper.GetLocationByIpAddress(deviceDto.IpAddress, deviceDto.Location ?? "Network Discovery"),
                 ManagementType = deviceDto.ManagementType,
                 AgentInstalled = deviceDto.AgentInstalled,
                 DiscoveryMethod = DiscoveryMethod.NetworkDiscovery,

@@ -2,6 +2,7 @@ using Inventory.Api.Controllers;
 using Inventory.Api.Helpers;
 using Inventory.Domain.Entities;
 using Inventory.Data;
+using Inventory.Shared.Utils;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 
@@ -237,6 +238,18 @@ namespace Inventory.Api.Services
             _context = context;
         }
 
+        /// <summary>
+        /// Gets dynamic location based on IP address with fallback to provided location
+        /// </summary>
+        /// <param name="ipAddress">Device IP address</param>
+        /// <param name="providedLocation">Provided location as fallback</param>
+        /// <returns>Determined location</returns>
+        private string GetDynamicLocation(string? ipAddress, string? providedLocation)
+        {
+            var fallbackLocation = string.IsNullOrWhiteSpace(providedLocation) ? "Network Discovery" : providedLocation;
+            return LocationHelper.GetLocationByIpAddress(ipAddress, fallbackLocation);
+        }
+
         public async Task RegisterNetworkDevicesAsync(IEnumerable<NetworkDeviceResult> devices)
         {
             try
@@ -303,7 +316,7 @@ namespace Inventory.Api.Services
                                 MacAddress = networkDevice.MacAddress,
                                 DeviceType = networkDevice.DeviceType,
                                 Model = networkDevice.Model,
-                                Location = string.IsNullOrWhiteSpace(networkDevice.Location) ? "Network Discovery" : networkDevice.Location,
+                                Location = GetDynamicLocation(networkDevice.IpAddress, networkDevice.Location),
                                 Status = (int)networkDevice.Status,
                                 AgentInstalled = false, // Network discovered devices don't have agent
                                 ManagementType = ManagementType.NetworkDiscovery,
