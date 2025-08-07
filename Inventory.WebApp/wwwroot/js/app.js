@@ -4,6 +4,8 @@ class InventoryApp {
         this.apiBaseUrl = window.INVENTORY_CONFIG?.getApiUrl() || 'http://localhost:5093';
         this.devices = [];
         this.filteredDevices = [];
+        this.changeLogs = [];
+        this.filteredChangeLogs = [];
         this.currentPage = 'devices';
 
         this.init();
@@ -63,6 +65,27 @@ class InventoryApp {
 
         document.getElementById('filter-type').addEventListener('change', () => {
             this.filterDevices();
+        });
+
+        document.getElementById('filter-discovery').addEventListener('change', () => {
+            this.filterDevices();
+        });
+
+        // Change logs filter event listeners
+        document.getElementById('filter-change-type').addEventListener('change', () => {
+            this.filterChangeLogs();
+        });
+
+        document.getElementById('filter-device').addEventListener('change', () => {
+            this.filterChangeLogs();
+        });
+
+        document.getElementById('filter-date-from').addEventListener('change', () => {
+            this.filterChangeLogs();
+        });
+
+        document.getElementById('filter-date-to').addEventListener('change', () => {
+            this.filterChangeLogs();
         });
     }
 
@@ -218,6 +241,7 @@ class InventoryApp {
         const searchTerm = document.getElementById('search-devices').value.toLowerCase();
         const statusFilter = document.getElementById('filter-status').value;
         const typeFilter = document.getElementById('filter-type').value;
+        const discoveryFilter = document.getElementById('filter-discovery').value;
 
         this.filteredDevices = this.devices.filter(device => {
             // Search filter
@@ -234,7 +258,12 @@ class InventoryApp {
             // Type filter
             const matchesType = !typeFilter || device.deviceType.toString() === typeFilter;
 
-            return matchesSearch && matchesStatus && matchesType;
+            // Discovery method filter
+            const matchesDiscovery = !discoveryFilter || 
+                (discoveryFilter === 'agent' && (device.agentInstalled || device.managementType === 'Agent')) ||
+                (discoveryFilter === 'network' && (!device.agentInstalled && (device.managementType === 'NetworkDiscovery' || device.discoveryMethod === 'NetworkDiscovery')));
+
+            return matchesSearch && matchesStatus && matchesType && matchesDiscovery;
         });
 
         this.renderDevices();
@@ -245,6 +274,7 @@ class InventoryApp {
         document.getElementById('search-devices').value = '';
         document.getElementById('filter-status').value = '';
         document.getElementById('filter-type').value = '';
+        document.getElementById('filter-discovery').value = '';
         this.filterDevices();
     }
 
@@ -284,9 +314,9 @@ class InventoryApp {
                 <td class="hide-mobile"><span class="text-truncate-mobile">${device.model || 'N/A'}</span></td>
                 <td class="hide-mobile"><span class="text-truncate-mobile">${device.location || 'N/A'}</span></td>
                 <td class="hide-mobile">
-                    <small class="text-muted">
-                        ${device.lastSeen ? this.formatDate(device.lastSeen) : 'Bilinmiyor'}
-                    </small>
+                    <span class="badge ${this.getDiscoveryTypeBadgeClass(device)}">
+                        ${this.getDiscoveryTypeText(device)}
+                    </span>
                 </td>
                 <td>
                     <div class="action-buttons">
@@ -916,6 +946,26 @@ class InventoryApp {
         return statuses[status] || 'Bilinmiyor';
     }
 
+    getDiscoveryTypeBadgeClass(device) {
+        if (device.agentInstalled || device.managementType === 'Agent' || device.discoveryMethod === 'Agent') {
+            return 'badge-success'; // Green for agent-installed devices
+        } else if (device.managementType === 'NetworkDiscovery' || device.discoveryMethod === 'NetworkDiscovery') {
+            return 'badge-info'; // Blue for network discovered devices
+        } else {
+            return 'badge-secondary'; // Gray for manual/unknown
+        }
+    }
+
+    getDiscoveryTypeText(device) {
+        if (device.agentInstalled || device.managementType === 'Agent' || device.discoveryMethod === 'Agent') {
+            return 'Agent';
+        } else if (device.managementType === 'NetworkDiscovery' || device.discoveryMethod === 'NetworkDiscovery') {
+            return 'Network';
+        } else {
+            return 'Manual';
+        }
+    }
+
     // Check if device is recently active (within 24 hours)
     isRecentlyActive(device) {
         if (!device.lastSeen) return false;
@@ -971,9 +1021,8 @@ class InventoryApp {
 
     formatDate(dateString) {
         const date = new Date(dateString);
-        // Convert to Turkey timezone (UTC+3)
-        const turkeyTime = new Date(date.getTime() + (3 * 60 * 60 * 1000));
-        return turkeyTime.toLocaleDateString('tr-TR') + ' ' + turkeyTime.toLocaleTimeString('tr-TR');
+        // API already provides GMT+3 times, so don't add additional offset
+        return date.toLocaleDateString('tr-TR') + ' ' + date.toLocaleTimeString('tr-TR');
     }
 
     // Network Scan functionality
@@ -1104,27 +1153,99 @@ class InventoryApp {
     // Change Logs functionality
     async loadChangeLogs() {
         try {
-            // Try to load real change logs from API
-            const response = await fetch(`${this.apiBaseUrl}/api/ChangeLog`);
-            if (response.ok) {
-                const changeLogs = await response.json();
+            // Load both change logs and devices for proper device name mapping
+            const [changeLogsResponse, devicesResponse] = await Promise.all([
+                fetch(`${this.apiBaseUrl}/api/ChangeLog`),
+                fetch(`${this.apiBaseUrl}/api/device`)
+            ]);
+
+            if (changeLogsResponse.ok && devicesResponse.ok) {
+                const changeLogs = await changeLogsResponse.json();
+                const devices = await devicesResponse.json();
+                
+                // Create a device ID to name mapping
+                const deviceMap = new Map();
+                devices.forEach(device => {
+                    deviceMap.set(device.id, device.name);
+                });
+
                 this.changeLogs = changeLogs.map(log => ({
                     id: log.id,
-                    deviceName: log.deviceId, // We might need device name lookup later
+                    deviceId: log.deviceId,
+                    deviceName: deviceMap.get(log.deviceId) || 'Bilinmeyen Cihaz',
                     changeDate: log.changeDate,
                     changeType: log.changeType,
                     oldValue: log.oldValue,
                     newValue: log.newValue,
                     changedBy: log.changedBy
                 }));
+
+                // Populate device filter dropdown
+                this.populateDeviceFilter(devices);
             } else {
-                console.warn('Could not load change logs from API:', response.status);
+                console.warn('Could not load change logs or devices from API');
                 this.changeLogs = [];
             }
         } catch (error) {
             console.error('Error loading change logs:', error);
             this.changeLogs = [];
         }
+
+        this.filteredChangeLogs = [...this.changeLogs];
+        this.renderChangeLogs();
+    }
+
+    populateDeviceFilter(devices) {
+        const deviceFilter = document.getElementById('filter-device');
+        
+        // Clear existing options except the first one
+        while (deviceFilter.options.length > 1) {
+            deviceFilter.remove(1);
+        }
+
+        // Add devices as options
+        devices.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.id;
+            option.textContent = device.name;
+            deviceFilter.appendChild(option);
+        });
+    }
+
+    filterChangeLogs() {
+        const changeTypeFilter = document.getElementById('filter-change-type').value;
+        const deviceFilter = document.getElementById('filter-device').value;
+        const dateFromFilter = document.getElementById('filter-date-from').value;
+        const dateToFilter = document.getElementById('filter-date-to').value;
+
+        this.filteredChangeLogs = this.changeLogs.filter(log => {
+            // Filter by change type
+            if (changeTypeFilter && log.changeType !== changeTypeFilter) {
+                return false;
+            }
+
+            // Filter by device
+            if (deviceFilter && log.deviceId !== deviceFilter) {
+                return false;
+            }
+
+            // Filter by date range
+            if (dateFromFilter || dateToFilter) {
+                const logDate = new Date(log.changeDate);
+                const fromDate = dateFromFilter ? new Date(dateFromFilter) : null;
+                const toDate = dateToFilter ? new Date(dateToFilter + 'T23:59:59') : null;
+
+                if (fromDate && logDate < fromDate) {
+                    return false;
+                }
+
+                if (toDate && logDate > toDate) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
 
         this.renderChangeLogs();
     }
@@ -1133,14 +1254,16 @@ class InventoryApp {
         const tbody = document.getElementById('change-logs-body');
         const noDataDiv = document.getElementById('no-change-logs');
 
-        if (!this.changeLogs || this.changeLogs.length === 0) {
+        const logsToShow = this.filteredChangeLogs || this.changeLogs || [];
+
+        if (logsToShow.length === 0) {
             tbody.innerHTML = '';
             noDataDiv.classList.remove('d-none');
             return;
         }
 
         noDataDiv.classList.add('d-none');
-        tbody.innerHTML = this.changeLogs.map(log => `
+        tbody.innerHTML = logsToShow.map(log => `
             <tr>
                 <td>${this.formatDate(log.changeDate)}</td>
                 <td><strong>${log.deviceName||'Bilinmeyen Cihaz'}</strong></td>
@@ -1150,6 +1273,7 @@ class InventoryApp {
                 <td class="hide-mobile"><span class="badge badge-secondary">${log.changedBy||'Sistem'}</span></td>
             </tr>
         `).join('');
+    }
     }
 
     refreshChangeLogs() {
@@ -1161,6 +1285,7 @@ class InventoryApp {
         document.getElementById('filter-device').value = '';
         document.getElementById('filter-date-from').value = '';
         document.getElementById('filter-date-to').value = '';
+        this.filteredChangeLogs = [...this.changeLogs];
         this.renderChangeLogs();
     }
 }

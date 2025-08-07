@@ -216,6 +216,7 @@ namespace Inventory.Api.Services
         Task<Device?> GetDeviceByIdAsync(Guid id);
         Task<Device?> FindDeviceByIpOrMacAsync(string? ipAddress, string? macAddress);
         Task<Device?> FindDeviceByNameAndIpAsync(string? deviceName, string? ipAddress);
+        Task<Device?> FindDeviceByNameMacAndIpAsync(string? deviceName, string? macAddress, string? ipAddress);
         Task<Device> CreateDeviceAsync(Device device);
         Task<Device> UpdateDeviceAsync(Device device);
         Task<bool> DeleteDeviceAsync(Guid id);
@@ -243,19 +244,97 @@ namespace Inventory.Api.Services
                 var deviceList = devices.ToList();
                 _logger.LogInformation("Registering {DeviceCount} network devices", deviceList.Count);
 
-                foreach (var device in deviceList)
+                int newDevices = 0;
+                int updatedDevices = 0;
+
+                foreach (var networkDevice in deviceList)
                 {
-                    // Here you would typically save to database
-                    // For now, we'll just log the device information
-                    await _loggingService.LogInfoAsync("DeviceRegistration", 
-                        $"Registering device: {device.Name} ({device.IpAddress}, {device.MacAddress}) - {device.Manufacturer}");
-                    
-                    _logger.LogDebug("Registered device: {DeviceName} ({IpAddress}, {MacAddress}) - {Manufacturer}", 
-                        device.Name, device.IpAddress, device.MacAddress, device.Manufacturer);
+                    try
+                    {
+                        // Check if device already exists using improved identification logic
+                        var existingDevice = await FindDeviceByNameMacAndIpAsync(
+                            networkDevice.Name, 
+                            networkDevice.MacAddress, 
+                            networkDevice.IpAddress);
+
+                        if (existingDevice != null)
+                        {
+                            // Update existing device
+                            existingDevice.LastSeen = DateTime.UtcNow;
+                            existingDevice.Status = (int)networkDevice.Status;
+                            
+                            // Update IP address if it has changed (for DHCP devices)
+                            if (!string.IsNullOrWhiteSpace(networkDevice.IpAddress) && 
+                                existingDevice.IpAddress != networkDevice.IpAddress)
+                            {
+                                existingDevice.IpAddress = networkDevice.IpAddress;
+                                
+                                // Log IP change
+                                existingDevice.ChangeLogs ??= new List<ChangeLog>();
+                                existingDevice.ChangeLogs.Add(new ChangeLog
+                                {
+                                    Id = Guid.NewGuid(),
+                                    DeviceId = existingDevice.Id,
+                                    ChangeDate = DateTime.UtcNow,
+                                    ChangeType = "IpAddress",
+                                    OldValue = existingDevice.IpAddress ?? "",
+                                    NewValue = networkDevice.IpAddress,
+                                    ChangedBy = "NetworkDiscovery"
+                                });
+                            }
+
+                            await UpdateDeviceAsync(existingDevice);
+                            updatedDevices++;
+                            
+                            _logger.LogDebug("Updated existing device: {DeviceName} ({IpAddress}, {MacAddress})", 
+                                networkDevice.Name, networkDevice.IpAddress, networkDevice.MacAddress);
+                        }
+                        else
+                        {
+                            // Create new device from network discovery
+                            var newDevice = new Device
+                            {
+                                Id = Guid.NewGuid(),
+                                Name = string.IsNullOrWhiteSpace(networkDevice.Name) || 
+                                       networkDevice.Name.Equals("unknown", StringComparison.OrdinalIgnoreCase) 
+                                       ? $"Device-{networkDevice.IpAddress}" 
+                                       : networkDevice.Name,
+                                IpAddress = networkDevice.IpAddress,
+                                MacAddress = networkDevice.MacAddress,
+                                DeviceType = networkDevice.DeviceType,
+                                Model = networkDevice.Model,
+                                Location = string.IsNullOrWhiteSpace(networkDevice.Location) ? "Network Discovery" : networkDevice.Location,
+                                Status = (int)networkDevice.Status,
+                                AgentInstalled = false, // Network discovered devices don't have agent
+                                ManagementType = ManagementType.NetworkDiscovery,
+                                DiscoveryMethod = DiscoveryMethod.NetworkDiscovery,
+                                LastSeen = DateTime.UtcNow,
+                                ChangeLogs = new List<ChangeLog>()
+                            };
+
+                            await CreateDeviceAsync(newDevice);
+                            newDevices++;
+                            
+                            _logger.LogDebug("Created new network device: {DeviceName} ({IpAddress}, {MacAddress})", 
+                                newDevice.Name, networkDevice.IpAddress, networkDevice.MacAddress);
+                        }
+
+                        await _loggingService.LogInfoAsync("DeviceRegistration", 
+                            $"Processed device: {networkDevice.Name} ({networkDevice.IpAddress}, {networkDevice.MacAddress}) - {networkDevice.Manufacturer}");
+                    }
+                    catch (Exception deviceEx)
+                    {
+                        _logger.LogError(deviceEx, "Failed to register device: {DeviceName} ({IpAddress}, {MacAddress})", 
+                            networkDevice.Name, networkDevice.IpAddress, networkDevice.MacAddress);
+                        await _loggingService.LogErrorAsync("DeviceRegistration", 
+                            $"Failed to register device: {networkDevice.Name} ({networkDevice.IpAddress})", deviceEx);
+                    }
                 }
 
-                await _loggingService.LogInfoAsync("DeviceRegistration", $"Successfully registered {deviceList.Count} network devices");
-                _logger.LogInformation("Successfully registered {DeviceCount} network devices", deviceList.Count);
+                await _loggingService.LogInfoAsync("DeviceRegistration", 
+                    $"Successfully processed {deviceList.Count} network devices: {newDevices} new, {updatedDevices} updated");
+                _logger.LogInformation("Successfully processed {DeviceCount} network devices: {NewDevices} new, {UpdatedDevices} updated", 
+                    deviceList.Count, newDevices, updatedDevices);
             }
             catch (Exception ex)
             {
@@ -321,6 +400,39 @@ namespace Inventory.Api.Services
             }
             
             return null;
+        }
+
+        public async Task<Device?> FindDeviceByNameMacAndIpAsync(string? deviceName, string? macAddress, string? ipAddress)
+        {
+            // For better device identification, especially for laptops with multiple network interfaces
+            // Priority: 1. Name + MAC, 2. Name + IP, 3. MAC only, 4. IP only
+            
+            // First try by device name + MAC (best match for multi-interface devices)
+            if (!string.IsNullOrWhiteSpace(deviceName) && !string.IsNullOrWhiteSpace(macAddress) && 
+                !deviceName.Equals("unknown", StringComparison.OrdinalIgnoreCase))
+            {
+                var deviceByNameMac = await _context.Devices
+                    .FirstOrDefaultAsync(d => 
+                        d.Name.ToLower() == deviceName.ToLower() && 
+                        d.MacAddress == macAddress);
+                if (deviceByNameMac != null)
+                    return deviceByNameMac;
+            }
+            
+            // Second try by device name + IP (for devices where MAC might change)
+            if (!string.IsNullOrWhiteSpace(deviceName) && !string.IsNullOrWhiteSpace(ipAddress) && 
+                !deviceName.Equals("unknown", StringComparison.OrdinalIgnoreCase))
+            {
+                var deviceByNameIp = await _context.Devices
+                    .FirstOrDefaultAsync(d => 
+                        d.Name.ToLower() == deviceName.ToLower() && 
+                        d.IpAddress == ipAddress);
+                if (deviceByNameIp != null)
+                    return deviceByNameIp;
+            }
+            
+            // Fall back to existing logic for unknown devices or when name is not available
+            return await FindDeviceByIpOrMacAsync(ipAddress, macAddress);
         }
 
         public async Task<Device?> FindDeviceByNameAndIpAsync(string? deviceName, string? ipAddress)
@@ -518,18 +630,9 @@ namespace Inventory.Api.Services
         {
             Device? existingDevice = null;
             
-            // Try to find existing device using multiple strategies to avoid duplicates
-            // 1. First try by device name and IP address (best for multi-interface devices)
-            if (!string.IsNullOrWhiteSpace(device.Name) && !string.IsNullOrWhiteSpace(device.IpAddress))
-            {
-                existingDevice = await FindDeviceByNameAndIpAsync(device.Name, device.IpAddress);
-            }
-            
-            // 2. If not found, try by IP or MAC
-            if (existingDevice == null)
-            {
-                existingDevice = await FindDeviceByIpOrMacAsync(device.IpAddress, device.MacAddress);
-            }
+            // Try to find existing device using improved identification logic
+            // 1. First try by device name, MAC and IP (best for multi-interface devices)
+            existingDevice = await FindDeviceByNameMacAndIpAsync(device.Name, device.MacAddress, device.IpAddress);
             
             if (existingDevice != null)
             {
