@@ -914,10 +914,10 @@ namespace Inventory.Api.Services
                     }
                 }
 
-                // After processing change logs, update InstalledApps if provided and no change logs modified it
-                if (device.SoftwareInfo?.InstalledApps != null && device.SoftwareInfo.InstalledApps.Any() && existingDevice.SoftwareInfo != null)
+                // After processing change logs, update InstalledApps if provided
+                if (device.SoftwareInfo?.InstalledApps != null && existingDevice.SoftwareInfo != null)
                 {
-                    // Only overwrite if no application change logs were processed
+                    // Check if application change logs were processed
                     bool hasAppChangeLogs = (device.ChangeLogs?.Any(cl => 
                         cl.ChangeType == "Application Installed" || 
                         cl.ChangeType == "Application Uninstalled" || 
@@ -925,9 +925,27 @@ namespace Inventory.Api.Services
                         cl.ChangeType == "Software Version Changed" ||
                         cl.ChangeType == "Application Version Updated") == true);
                         
-                    if (!hasAppChangeLogs)
+                    if (hasAppChangeLogs)
                     {
+                        // Application change logs were processed - the ProcessApplicationChangeLog method
+                        // should have already updated the InstalledApps list, so we don't need to overwrite it
+                        _logger.LogDebug("Application change logs processed - InstalledApps list updated via change logs");
+                        
+                        // However, if the provided InstalledApps list is more comprehensive than what we have after processing change logs,
+                        // we should still update it. This handles cases where the agent sends a complete updated list along with change logs.
+                        if (device.SoftwareInfo.InstalledApps.Count > existingDevice.SoftwareInfo.InstalledApps.Count)
+                        {
+                            _logger.LogInformation("Updating InstalledApps with more comprehensive list from agent: {OldCount} -> {NewCount}", 
+                                existingDevice.SoftwareInfo.InstalledApps.Count, device.SoftwareInfo.InstalledApps.Count);
+                            existingDevice.SoftwareInfo.InstalledApps = device.SoftwareInfo.InstalledApps;
+                        }
+                    }
+                    else if (device.SoftwareInfo.InstalledApps.Any())
+                    {
+                        // No application change logs - update with the provided InstalledApps list
                         existingDevice.SoftwareInfo.InstalledApps = device.SoftwareInfo.InstalledApps;
+                        _logger.LogDebug("No application change logs - updated InstalledApps list from device data: {Count} apps", 
+                            device.SoftwareInfo.InstalledApps.Count);
                     }
                 }
 
@@ -986,6 +1004,9 @@ namespace Inventory.Api.Services
             // Ensure InstalledApps list exists
             softwareInfo.InstalledApps ??= new List<string>();
 
+            _logger.LogDebug("Processing application change log: {ChangeType} - Old: '{OldValue}' -> New: '{NewValue}'", 
+                changeLog.ChangeType, changeLog.OldValue, changeLog.NewValue);
+
             switch (changeLog.ChangeType)
             {
                 case "Application Installed":
@@ -994,7 +1015,11 @@ namespace Inventory.Api.Services
                         !softwareInfo.InstalledApps.Any(app => app.ToLower() == changeLog.NewValue.ToLower()))
                     {
                         softwareInfo.InstalledApps.Add(changeLog.NewValue);
-                        _logger.LogDebug("Added application to InstalledApps: {Application}", changeLog.NewValue);
+                        _logger.LogInformation("Added application to InstalledApps: {Application}", changeLog.NewValue);
+                    }
+                    else if (!string.IsNullOrEmpty(changeLog.NewValue))
+                    {
+                        _logger.LogDebug("Application already in InstalledApps: {Application}", changeLog.NewValue);
                     }
                     break;
 
@@ -1008,7 +1033,11 @@ namespace Inventory.Api.Services
                         if (appToRemove != null)
                         {
                             softwareInfo.InstalledApps.Remove(appToRemove);
-                            _logger.LogDebug("Removed application from InstalledApps: {Application}", changeLog.OldValue);
+                            _logger.LogInformation("Removed application from InstalledApps: {Application}", changeLog.OldValue);
+                        }
+                        else
+                        {
+                            _logger.LogDebug("Application not found in InstalledApps for removal: {Application}", changeLog.OldValue);
                         }
                     }
                     break;
@@ -1023,14 +1052,16 @@ namespace Inventory.Api.Services
                         if (oldAppToRemove != null)
                         {
                             softwareInfo.InstalledApps.Remove(oldAppToRemove);
+                            _logger.LogDebug("Removed old version from InstalledApps: {Application}", changeLog.OldValue);
                         }
                         
                         if (!softwareInfo.InstalledApps.Any(app => app.ToLower() == changeLog.NewValue.ToLower()))
                         {
                             softwareInfo.InstalledApps.Add(changeLog.NewValue);
+                            _logger.LogInformation("Added new version to InstalledApps: {Application}", changeLog.NewValue);
                         }
                         
-                        _logger.LogDebug("Updated application in InstalledApps: {OldApp} -> {NewApp}", 
+                        _logger.LogInformation("Updated application in InstalledApps: {OldApp} -> {NewApp}", 
                             changeLog.OldValue, changeLog.NewValue);
                     }
                     break;
@@ -1052,19 +1083,28 @@ namespace Inventory.Api.Services
                         if (existingApp != null)
                         {
                             softwareInfo.InstalledApps.Remove(existingApp);
+                            _logger.LogDebug("Removed old version from InstalledApps: {Application}", existingApp);
                         }
                         
                         // Add the new version
                         if (!softwareInfo.InstalledApps.Any(app => app.ToLower() == changeLog.NewValue.ToLower()))
                         {
                             softwareInfo.InstalledApps.Add(changeLog.NewValue);
+                            _logger.LogInformation("Added new version to InstalledApps: {Application}", changeLog.NewValue);
                         }
                         
-                        _logger.LogDebug("Updated application version in InstalledApps: {OldApp} -> {NewApp}", 
+                        _logger.LogInformation("Updated application version in InstalledApps: {OldApp} -> {NewApp}", 
                             changeLog.OldValue, changeLog.NewValue);
                     }
                     break;
+
+                default:
+                    // Log other change types for debugging
+                    _logger.LogDebug("Skipping non-application change log: {ChangeType}", changeLog.ChangeType);
+                    break;
             }
+
+            _logger.LogDebug("InstalledApps count after processing: {Count}", softwareInfo.InstalledApps.Count);
         }
 
         /// <summary>
