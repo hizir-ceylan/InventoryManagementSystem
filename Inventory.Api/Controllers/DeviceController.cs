@@ -234,6 +234,8 @@ namespace Inventory.Api.Controllers
         /// <summary>
         /// IP/MAC adresine göre cihaz kaydeder veya günceller
         /// </summary>
+        [HttpPost("register-by-ip-mac")]
+        [SwaggerOperation(Summary = "IP/MAC adresine göre cihaz kaydeder veya günceller", Description = "Mevcut cihazı IP veya MAC adresine göre bulur ve günceller, yoksa yeni cihaz oluşturur")]
         [SwaggerResponse(200, "Cihaz başarıyla güncellendi", typeof(Device))]
         [SwaggerResponse(201, "Cihaz başarıyla oluşturuldu", typeof(Device))]
         [SwaggerResponse(400, "Geçersiz cihaz verisi")]
