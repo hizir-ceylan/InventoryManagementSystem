@@ -1,8 +1,14 @@
-/* Çaykur Envanter Yönetim Sistemi - Tea Theme */
+/* =================================================================
+   Çaykur Envanter Yönetim Sistemi - Tea Theme
+   Bu CSS dosyası çay teması renk paletiyle tasarlanmış envanter 
+   yönetim sistemi için özel stilleri içerir
+   ================================================================= */
 
-/* CSS Variables - Çaykur Tea Color Palette */
+/* =================================================================
+   BÖLÜM 1: CSS DEĞİŞKENLERİ VE RENK PALETİ
+   ================================================================= */
 :root {
-    /* Primary Tea Colors */
+    /* Çay Teması Ana Renkler */
     --tea-green: #2d5016;
     --tea-green-light: #4a7c2a;
     --tea-green-lighter: #6ba644;
@@ -11,7 +17,7 @@
     --tea-brown: #8b4513;
     --tea-cream: #f5f5dc;
     
-    /* Nature-inspired colors */
+    /* Doğa Esinlenen Renkler */
     --forest-green: #1a4c13;
     --leaf-green: #7cb342;
     --mint-green: #98d982;
@@ -19,37 +25,37 @@
     --warm-orange: #ff8c42;
     --sunset-red: #ff6b6b;
     
-    /* Neutral colors */
+    /* Nötr Renkler */
     --white: #ffffff;
     --light-gray: #f8f9fa;
     --gray: #6c757d;
     --dark-gray: #343a40;
     --black: #212529;
     
-    /* Status colors */
+    /* Durum Renkleri */
     --success: #28a745;
     --warning: #ffc107;
     --danger: #dc3545;
     --info: #17a2b8;
     
-    /* Gradients */
+    /* Gradient Tanımları */
     --primary-gradient: linear-gradient(135deg, var(--tea-green), var(--tea-green-light));
     --secondary-gradient: linear-gradient(135deg, var(--tea-gold), var(--tea-gold-light));
     --nature-gradient: linear-gradient(135deg, var(--forest-green), var(--leaf-green));
     --warm-gradient: linear-gradient(135deg, var(--warm-orange), var(--tea-gold));
     
-    /* Shadows */
+    /* Gölge Efektleri */
     --shadow-sm: 0 2px 4px rgba(45, 80, 22, 0.1);
     --shadow-md: 0 4px 8px rgba(45, 80, 22, 0.15);
     --shadow-lg: 0 8px 16px rgba(45, 80, 22, 0.2);
     --shadow-xl: 0 16px 32px rgba(45, 80, 22, 0.25);
     
-    /* Transitions */
+    /* Geçiş Animasyonları */
     --transition-fast: 0.15s ease-in-out;
     --transition-normal: 0.3s ease-in-out;
     --transition-slow: 0.5s ease-in-out;
     
-    /* Border radius */
+    /* Kenar Yuvarlaklığı */
     --radius-sm: 4px;
     --radius-md: 8px;
     --radius-lg: 12px;
@@ -57,7 +63,9 @@
     --radius-full: 50%;
 }
 
-/* Global Styles */
+/* =================================================================
+   BÖLÜM 2: GENEL STILLER VE RESET
+   ================================================================= */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -65,7 +73,7 @@
 }
 
 html {
-    overflow-x: hidden; /* Prevent horizontal scrolling on root element */
+    overflow-x: hidden;
 }
 
 body {
@@ -75,23 +83,19 @@ body {
     line-height: 1.6;
     font-weight: 400;
     min-height: 100vh;
-    overflow-x: hidden; /* Prevent horizontal scrolling */
-    margin: 0;
-    padding: 0;
+    overflow-x: hidden;
 }
 
 .container {
-    max-width: min(1200px, 100vw); /* Ensure container doesn't exceed viewport width */
+    max-width: min(1200px, 100vw);
     margin: 0 auto;
-    padding: 0 15px; /* Reduced padding for more space */
-    overflow-x: hidden; /* Prevent horizontal overflow */
+    padding: 0 15px;
+    overflow-x: hidden;
 }
 
-/* Utility Classes */
-.d-none { display: none !important; }
-.hide-mobile { display: table-cell; }
-
-/* Navigation */
+/* =================================================================
+   BÖLÜM 3: NAVİGASYON SİSTEMİ
+   ================================================================= */
 .navbar {
     background: linear-gradient(135deg, var(--tea-green), var(--forest-green));
     padding: 15px 0;
@@ -107,9 +111,10 @@ body {
     justify-content: space-between;
     align-items: center;
     position: relative;
+    overflow-x: visible;
+    padding-right: 30px;
 }
 
-/* Left side of navbar - Brand + Navigation */
 .navbar-left {
     display: flex;
     align-items: center;
@@ -117,7 +122,6 @@ body {
     flex: 1;
 }
 
-/* Right side of navbar - Status */
 .navbar-right {
     display: flex;
     align-items: center;
@@ -127,21 +131,21 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center; /* Center align the brand text */
+    align-items: center;
     gap: 4px;
     color: var(--white);
     text-decoration: none;
-    min-width: 200px; /* Increased for better spacing */
+    min-width: 200px;
 }
 
 .logo {
     display: flex;
     align-items: center;
-    justify-content: center; /* Center the Çaykur text */
+    justify-content: center;
     gap: 8px;
     font-size: 1.8rem;
     font-weight: 700;
-    width: 100%; /* Take full width for proper centering */
+    width: 100%;
 }
 
 .logo i {
@@ -161,7 +165,7 @@ body {
     opacity: 0.9;
     white-space: nowrap;
     line-height: 1;
-    text-align: center; /* Center align the subtitle */
+    text-align: center;
 }
 
 .navbar-toggle {
@@ -265,6 +269,10 @@ body {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.7; transform: scale(1.2); }
 }
+
+/* =================================================================
+   BÖLÜM 4: BUTONLAR VE FORM ELEMENTLERİ
+   ================================================================= */
 
 /* Main Content */
 .main-content {

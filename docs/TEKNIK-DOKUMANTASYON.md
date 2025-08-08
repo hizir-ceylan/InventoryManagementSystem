@@ -1,84 +1,259 @@
-# Inventory Management System - Teknik Dokümantasyon
+# Inventory Management System - Kapsamlı Teknik Dokümantasyon
 
 ## İçindekiler
 
-1. [Sistem Genel Bakış](#sistem-genel-bakış)
-2. [Mimari Yapı](#mimari-yapı)
-3. [Veritabanı Yapısı](#veritabanı-yapısı)
-4. [Kurulum Rehberi](#kurulum-rehberi)
-5. [Build ve Deployment](#build-ve-deployment)
-6. [Konfigürasyon](#konfigürasyon)
-7. [API Dokümantasyonu](#api-dokümantasyonu)
-8. [Windows Service Kurulumu](#windows-service-kurulumu)
-9. [Docker Deployment](#docker-deployment)
-10. [Geliştirici Rehberi](#geliştirici-rehberi)
-11. [Sorun Giderme](#sorun-giderme)
+1. [Sistem Genel Bakış ve Mimari](#sistem-genel-bakış-ve-mimari)
+2. [Ana Bileşenler ve Kod Yapısı](#ana-bileşenler-ve-kod-yapısı)
+3. [Kurulum ve Deployment Seçenekleri](#kurulum-ve-deployment-seçenekleri)
+4. [Konfigürasyon ve Özelleştirme](#konfigürasyon-ve-özelleştirme)
+5. [API Dokümantasyonu ve Endpoint'ler](#api-dokümantasyonu-ve-endpointler)
+6. [Veritabanı Yapısı ve Yönetimi](#veritabanı-yapısı-ve-yönetimi)
+7. [Network ve Sunucu Konfigürasyonu](#network-ve-sunucu-konfigürasyonu)
+8. [Geliştirici Rehberi ve Best Practices](#geliştirici-rehberi-ve-best-practices)
+9. [Sorun Giderme ve Monitoring](#sorun-giderme-ve-monitoring)
+10. [Güvenlik ve Production Optimizasyonları](#güvenlik-ve-production-optimizasyonları)
 
 ---
 
-## Sistem Genel Bakış
+## Sistem Genel Bakış ve Mimari
 
-Inventory Management System, kurumsal cihaz envanteri yönetimi için geliştirilmiş .NET 8.0 tabanlı bir sistemdir. Sistem, agent tabanlı ve ağ keşfi yöntemlerini kullanarak cihaz bilgilerini toplar ve merkezi olarak yönetir.
+### 🏗️ Sistem Mimarisi
 
-### Temel Bileşenler
+Inventory Management System, modern .NET 8.0 tabanlı modüler bir envanter yönetim sistemidir. Sistem Clean Architecture prensiplerine göre tasarlanmış olup, üç ana bileşenden oluşur:
 
-- **Inventory.Api**: RESTful Web API servisi
-- **Inventory.Agent.Windows**: Windows için agent uygulaması
-- **Inventory.Data**: Entity Framework Core veri katmanı
-- **Inventory.Domain**: Domain modelleri ve iş mantığı
-- **Inventory.Shared**: Paylaşılan sınıflar ve yardımcı fonksiyonlar
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        PRESENTATION LAYER                      │
+├─────────────────┬─────────────────┬─────────────────────────────┤
+│  🌐 Web App     │  🖥️ API Server  │  🔍 Windows Agent           │
+│  (localhost:X)  │  (localhost:5093)│  (Background Service)      │
+└─────────────────┴─────────────────┴─────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                      APPLICATION LAYER                         │
+├─────────────────┬─────────────────┬─────────────────────────────┤
+│  📊 Services    │  🔧 Handlers    │  ✅ Validators              │
+│  Business Logic │  Request/Response│ Input Validation           │
+└─────────────────┴─────────────────┴─────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                        DOMAIN LAYER                           │
+├─────────────────┬─────────────────┬─────────────────────────────┤
+│  🏢 Entities    │  📋 Value Obj.  │  📐 Domain Interfaces      │
+│  Core Models    │  Business Rules │  Contracts                 │
+└─────────────────┴─────────────────┴─────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    INFRASTRUCTURE LAYER                       │
+├─────────────────┬─────────────────┬─────────────────────────────┤
+│  🗄️ EF Core     │  📦 Repositories│  🌐 External Services      │
+│  Database       │  Data Access    │  WMI, Network Scanner      │
+└─────────────────┴─────────────────┴─────────────────────────────┘
+```
 
-### Teknoloji Stack
+### 🔄 Veri Akışı ve İletişim
 
-- **.NET 8.0**: Ana framework
-- **ASP.NET Core**: Web API framework
-- **Entity Framework Core**: ORM
-- **SQLite/SQL Server/PostgreSQL**: Veritabanı seçenekleri
-- **Docker**: Konteyner teknolojisi
-- **Swagger/OpenAPI**: API dokümantasyonu
-- **WMI (Windows Management Instrumentation)**: Windows sistem bilgileri
+```
+🔍 Agent (WMI) → 📊 System Info → 🌐 HTTP API → 🗄️ Database
+                      ↓                ↓
+               📝 Local Logs    🌐 Web App View
+                      ↓                ↓  
+               💾 Offline       📊 Reports & Analytics
+                  Storage
+```
+
+### 🎯 Temel Özellikler
+
+- **🔄 Real-time Monitoring**: 30 dakikada bir otomatik envanter toplama
+- **🌐 Network Discovery**: IP aralığından cihaz keşfi (ARP, ICMP, SNMP)
+- **💾 Offline Capability**: Internet bağlantısı olmadan da çalışma
+- **🔒 Security**: JWT authentication, role-based authorization (gelecek sürüm)
+- **📊 Multi-Database**: SQLite (dev), SQL Server/PostgreSQL (production)
+- **🐳 Containerization**: Docker ve Kubernetes desteği
+- **📱 Cross-Platform**: Windows, Linux server desteği
 
 ---
 
-## Mimari Yapı
+## Ana Bileşenler ve Kod Yapısı
 
-### Clean Architecture Katmanları
+### 🖥️ **Inventory.Api** - RESTful Web API Sunucusu
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Presentation Layer                       │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │ Web API         │  │ Windows Agent   │  │ Swagger UI  │ │
-│  │ (Controllers)   │  │                 │  │             │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│                   Application Layer                         │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │ Services        │  │ Handlers        │  │ Validators  │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│                     Domain Layer                           │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │ Entities        │  │ Value Objects   │  │ Interfaces  │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│                  Infrastructure Layer                      │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │ Entity Framework│  │ Repositories    │  │ External    │ │
-│  │ DbContext       │  │                 │  │ Services    │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
-└─────────────────────────────────────────────────────────────┘
+Sistemin kalbi olan merkezi API sunucusu. Tüm cihaz verilerini toplar, işler ve dağıtır.
+
+#### 📁 **Controllers/** - API Endpoint Controllers
+**Dosyalar ve İşlevleri:**
+- `DeviceController.cs`: Cihaz CRUD işlemleri, envanter yönetimi
+- `NetworkScanController.cs`: Ağ tarama ve keşif işlemleri  
+- `ChangeLogController.cs`: Değişiklik geçmişi ve audit logları
+- `LocationController.cs`: Lokasyon bazlı cihaz gruplandırma
+- `LoggingController.cs`: Sistem log görüntüleme ve filtreleme
+
+#### 📁 **Services/** - Business Logic Katmanı
+**Ana Servisler:**
+- `DeviceService.cs`: Cihaz iş mantığı, validation, rules
+- `NetworkScanService.cs`: Ağ tarama algoritmaları, IP range işleme
+- `ChangeTrackingService.cs`: Hardware değişiklik takibi
+- `DataSyncService.cs`: Agent-API arası veri senkronizasyonu
+
+#### 📁 **DTOs/** - Data Transfer Objects
+**Veri Transfer Modelleri:**
+- `DeviceDto.cs`: Cihaz bilgi transferi için optimize edilmiş model
+- `NetworkScanDto.cs`: Ağ tarama sonuç modeli
+- `HardwareInfoDto.cs`: Donanım bilgi aktarım modeli
+
+#### ⚙️ **Konfigürasyon Dosyaları:**
+```json
+// appsettings.json - Temel konfigürasyon
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=./Data/inventory.db"
+  },
+  "DatabaseProvider": "SQLite", // SQLite|SqlServer|PostgreSQL
+  "ApiSettings": {
+    "BaseUrl": "http://localhost:5093",
+    "EnableSwagger": true,
+    "DefaultPageSize": 50,
+    "MaxPageSize": 1000
+  }
+}
 ```
 
-### Veri Akışı
+### 🔍 **Inventory.Agent.Windows** - Windows Agent Servisi
 
+Her Windows bilgisayarına kurularak sistem bilgilerini otomatik toplayan servis.
+
+#### 📁 **Services/** - Agent Background Services
+**Temel Servisler:**
+- `InventoryAgentService.cs`: Ana agent servisi, 30 dakikalık cycle
+- `HardwareMonitoringService.cs`: Hardware değişiklik tespit sistemi
+- `NetworkReportingService.cs`: Network connectivity ve status reporting
+- `OfflineStorageService.cs`: API erişimi olmadığında yerel veri saklama
+
+#### 📁 **Models/** - Agent Veri Modelleri  
+**Veri Modelleri:**
+- `DeviceHardwareInfoDto.cs`: WMI'dan toplanan hardware bilgileri
+- `SystemStateModel.cs`: Sistem durumu ve performans metrikleri
+- `OfflineDataModel.cs`: Offline modda saklanan veri yapısı
+
+#### 📁 **Configuration/** - Agent Ayarları
+```json
+// appsettings.json - Agent konfigürasyonu  
+{
+  "AgentSettings": {
+    "ApiBaseUrl": "http://localhost:5093",
+    "ScanIntervalMinutes": 30,
+    "EnableHardwareMonitoring": true,
+    "EnableOfflineStorage": true,
+    "MaxOfflineRecords": 10000
+  },
+  "WindowsAgent": {
+    "UseWMI": true,
+    "CollectInstalledSoftware": true,
+    "CollectNetworkInfo": true
+  }
+}
 ```
-Agent/UI → API Controller → Service → Repository → Database
-                ↓
-            Change Logging → Log Files
-                ↓
-            Network Scan → Device Discovery
+
+#### 🔧 **CrossPlatformSystemInfo.cs** - Sistem Bilgisi Toplama
+**Ana İşlevler:**
+- WMI sorguları ile hardware bilgisi toplama
+- Registry okuma işlemleri
+- Network adapter bilgileri
+- Kurulu yazılım listesi çıkarma
+- Performance counter'lar ile sistem metrikleri
+
+### 🌐 **Inventory.WebApp** - Web Yönetim Arayüzü
+
+Modern ASP.NET Core MVC tabanlı web arayüzü.
+
+#### 📁 **Pages/** - Razor Pages
+**Ana Sayfalar:**
+- `Index.cshtml`: Dashboard ve genel istatistikler
+- `Devices/`: Cihaz listesi, detay görünüm, düzenleme sayfaları
+- `Reports/`: Raporlama ve analytics sayfaları
+- `Settings/`: Sistem ayarları ve konfigürasyon
+
+#### 📁 **wwwroot/** - Static Dosyalar
+**Frontend Dosyaları:**
+- `css/`: Bootstrap tabanlı custom CSS stilleri
+- `js/`: jQuery ve custom JavaScript fonksiyonları
+- `lib/`: Third-party libraries (jQuery, Bootstrap)
+
+### 📊 **Inventory.Data** - Entity Framework Veri Katmanı
+
+Veritabanı işlemleri ve ORM katmanı.
+
+#### 📁 **Contexts/** - Database Context'leri
+- `InventoryDbContext.cs`: Ana database context, entity configurations
+- `DbInitializer.cs`: Veritabanı ilk kurulum ve seed data
+
+#### 📁 **Migrations/** - EF Core Migrations
+- Veritabanı şema güncellemeleri
+- Version kontrollü veritabanı yapısı
+- SQL Server, PostgreSQL migration dosyaları
+
+#### 📁 **Repositories/** - Repository Pattern
+- `DeviceRepository.cs`: Cihaz veri erişim katmanı
+- `ChangeLogRepository.cs`: Değişiklik log veri erişimi
+- `GenericRepository.cs`: Genel CRUD operasyonları
+
+### 🏗️ **Inventory.Domain** - Domain Models ve Business Logic
+
+İş mantığı ve domain modelleri.
+
+#### 📁 **Entities/** - Database Entities
+**Ana Entity'ler:**
+- `Device.cs`: Cihaz ana modeli (ID, Name, IP, MAC, vb.)
+- `HardwareInfo.cs`: Donanım bilgileri (CPU, RAM, GPU, vb.)
+- `SoftwareInfo.cs`: Yazılım bilgileri (OS, Version, vb.)
+- `DeviceChangeLog.cs`: Değişiklik geçmişi modeli
+- `NetworkAdapter.cs`, `RamModule.cs`, `Disk.cs`: Hardware detay modelleri
+
+#### 📁 **Enums/** - System Enumerations
+```csharp
+public enum DeviceType
+{
+    PC = 0,
+    Laptop = 1, 
+    Server = 2,
+    Printer = 3,
+    Router = 4,
+    Switch = 5,
+    Unknown = 99
+}
+
+public enum DeviceStatus  
+{
+    Active = 0,
+    Inactive = 1,
+    Maintenance = 2,
+    Retired = 3
+}
 ```
+
+#### 📁 **ValueObjects/** - Domain Value Objects
+- `IpAddress.cs`: IP adresi value object
+- `MacAddress.cs`: MAC adresi validation ve formatting
+- `SerialNumber.cs`: Seri numarası value object
+
+### 🔧 **Inventory.Shared** - Paylaşılan Sınıflar
+
+Projeler arası paylaşılan utility sınıfları.
+
+#### 📁 **DTOs/** - Shared Data Transfer Objects
+- `ApiResponseDto.cs`: Standart API response wrapper
+- `PagedResultDto.cs`: Sayfalama için generic wrapper
+- `ValidationResultDto.cs`: Validation sonuçları
+
+#### 📁 **Extensions/** - Extension Methods
+- `StringExtensions.cs`: String utility methods
+- `DateTimeExtensions.cs`: DateTime formatting helpers
+- `CollectionExtensions.cs`: Collection utility methods
+
+#### 📁 **Helpers/** - Utility Classes
+- `NetworkHelper.cs`: IP range, subnet hesaplamaları
+- `FileHelper.cs`: Dosya işlemleri utility'leri
+- `CryptoHelper.cs`: Şifreleme ve hash işlemleri
 
 ---
 
@@ -211,76 +386,369 @@ public enum DiscoveryMethod
 
 ---
 
-## Kurulum Rehberi
+## Kurulum ve Deployment Seçenekleri
 
-### Sistem Gereksinimleri
+### 🏠 **Lokal Development Kurulumu**
 
-**Minimum Gereksinimler:**
-- İşletim Sistemi: Windows 10/11 veya Linux (Ubuntu 20.04+)
-- .NET 8.0 Runtime
-- RAM: 2GB (minimum), 4GB (önerilen)
-- Disk: 500MB (uygulama) + veritabanı için ek alan
-- Ağ: HTTP/HTTPS portları (varsayılan: 5093)
+#### Gereksinimler
+- .NET 8.0 SDK
+- Git
+- Visual Studio 2022 / VS Code (opsiyonel)
+- Docker Desktop (opsiyonel)
 
-**Önerilen Gereksinimler:**
-- RAM: 8GB+
-- CPU: 4 Core+
-- SSD depolama
-- Dedicated SQL Server
-
-### Adım 1: Repository'yi İndirme
-
+#### Adım Adım Kurulum
 ```bash
+# 1. Repository'yi klonla
 git clone https://github.com/hizir-ceylan/InventoryManagementSystem.git
 cd InventoryManagementSystem
+
+# 2. NuGet paketlerini restore et
+dotnet restore
+
+# 3. Database migration'ları çalıştır
+dotnet ef database update --project Inventory.Data --startup-project Inventory.Api
+
+# 4. API'yi başlat
+dotnet run --project Inventory.Api --environment Development
+
+# 5. Web App'i başlat (isteğe bağlı, ayrı terminal)
+dotnet run --project Inventory.WebApp --environment Development
+
+# 6. Agent'ı test için başlat (Windows'ta, ayrı terminal)
+dotnet run --project Inventory.Agent.Windows --environment Development
 ```
 
-### Adım 2: Gerekli Araçları Kurma
+**Erişim URL'leri:**
+- API Swagger: http://localhost:5093/swagger
+- Web App: http://localhost:5094
 
-**Windows:**
+### 🖥️ **Windows Server Production Kurulumu**
+
+#### Sunucu Gereksinimleri
+- Windows Server 2019+ / Windows 10+
+- .NET 8.0 Runtime
+- IIS (Web App için)
+- SQL Server (production için önerilen)
+- RAM: 4GB+ 
+- Disk: 10GB+ (log ve database için)
+
+#### Otomatik Kurulum (Önerilen)
 ```powershell
-# .NET 8.0 SDK kurulumu
-winget install Microsoft.DotNet.SDK.8
-
-# Docker Desktop (isteğe bağlı)
-winget install Docker.DockerDesktop
+# Yönetici PowerShell'de çalıştır
+cd build-tools
+.\Build-Setup.ps1
 ```
 
-**Linux:**
-```bash
-# .NET 8.0 SDK kurulumu
-wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-sudo dpkg -i packages-microsoft-prod.deb
-sudo apt-get update
-sudo apt-get install -y dotnet-sdk-8.0
+Bu script şunları yapar:
+1. .NET runtime kontrolü ve kurulumu
+2. SQL Server bağlantı testi
+3. API ve Agent projelerini Release modunda build
+4. Windows Service'leri oluşturur ve başlatır
+5. IIS site'ini configure eder (WebApp için)
+6. Firewall kurallarını açar
 
-# Docker kurulumu
-sudo apt-get install -y docker.io docker-compose
+#### Manuel Production Kurulumu
+
+**1. Servisleri Build Et:**
+```powershell
+# API için
+dotnet publish Inventory.Api -c Release -o "C:\InventoryManagement\API" --self-contained
+
+# Agent için  
+dotnet publish Inventory.Agent.Windows -c Release -o "C:\InventoryManagement\Agent" --self-contained
+
+# Web App için
+dotnet publish Inventory.WebApp -c Release -o "C:\InventoryManagement\WebApp" --self-contained
 ```
 
-### Adım 3: Veritabanı Kurulumu
+**2. Windows Service'leri Oluştur:**
+```powershell
+# API Service
+sc create "InventoryManagementApi" binpath="C:\InventoryManagement\API\Inventory.Api.exe" start=auto
+sc description "InventoryManagementApi" "Inventory Management System API Service"
 
-**SQLite (Basit kurulum):**
-```bash
-# Otomatik olarak oluşturulur, ek kurulum gerekmez
+# Agent Service  
+sc create "InventoryManagementAgent" binpath="C:\InventoryManagement\Agent\Inventory.Agent.Windows.exe" start=auto depend="InventoryManagementApi"
+sc description "InventoryManagementAgent" "Inventory Management System Windows Agent"
 ```
 
-**SQL Server:**
-```bash
-# Docker ile SQL Server
-docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=YourStrong@Password123" \
-   -p 1433:1433 --name sql-server \
-   -d mcr.microsoft.com/mssql/server:2022-latest
+**3. IIS Site Kurulumu (Web App):**
+```powershell
+# IIS ve ASP.NET Core Hosting Bundle yükle
+Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole, IIS-WebServer, IIS-CommonHttpFeatures, IIS-HttpErrors, IIS-HttpRedirect, IIS-ApplicationDevelopment, IIS-NetFxExtensibility45, IIS-HealthAndDiagnostics, IIS-HttpLogging, IIS-Security, IIS-RequestFiltering, IIS-Performance, IIS-WebServerManagementTools, IIS-ManagementConsole, IIS-IIS6ManagementCompatibility, IIS-Metabase, IIS-ASPNET45
+
+# IIS site oluştur
+New-IISSite -Name "InventoryWebApp" -PhysicalPath "C:\InventoryManagement\WebApp" -Port 5094
 ```
 
-**PostgreSQL:**
+### 🐳 **Docker Production Deployment**
+
+#### Docker Compose ile Tam Stack
+
+**docker-compose.production.yml:**
+```yaml
+version: '3.8'
+
+services:
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      SA_PASSWORD: "YourStrong@Password123"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    restart: unless-stopped
+
+  # API Service
+  inventory-api:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InventoryDB;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=true;
+      - DatabaseProvider=SqlServer
+    ports:
+      - "5093:5093"
+    depends_on:
+      - sqlserver
+    restart: unless-stopped
+    volumes:
+      - api_data:/app/Data
+      - api_logs:/app/Logs
+
+  # Web Application
+  inventory-webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile.webapp
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ApiSettings__BaseUrl=http://inventory-api:5093
+    ports:
+      - "5094:5094"
+    depends_on:
+      - inventory-api
+    restart: unless-stopped
+
+  # NGINX Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/ssl/certs
+    depends_on:
+      - inventory-api
+      - inventory-webapp
+    restart: unless-stopped
+
+volumes:
+  sqlserver_data:
+  api_data:
+  api_logs:
+```
+
+**Kurulum Komutları:**
 ```bash
-# Docker ile PostgreSQL
-docker run --name postgres-db \
-   -e POSTGRES_PASSWORD=YourStrong@Password123 \
-   -e POSTGRES_DB=inventorydb \
-   -p 5432:5432 \
-   -d postgres:15-alpine
+# Production environment'ı başlat
+docker-compose -f docker-compose.production.yml up -d
+
+# Database migration çalıştır
+docker-compose exec inventory-api dotnet ef database update
+
+# Health check
+curl http://localhost/api/device
+```
+
+### ☁️ **Cloud Deployment (Azure/AWS)**
+
+#### Azure App Service Deployment
+
+**Azure CLI ile:**
+```bash
+# Resource group oluştur
+az group create --name InventoryManagementRG --location "East US"
+
+# App Service Plan oluştur  
+az appservice plan create --name InventoryPlan --resource-group InventoryManagementRG --sku B1 --is-linux
+
+# Web App oluştur (API için)
+az webapp create --resource-group InventoryManagementRG --plan InventoryPlan --name inventory-api-app --runtime "DOTNETCORE|8.0"
+
+# Web App oluştur (WebApp için)
+az webapp create --resource-group InventoryManagementRG --plan InventoryPlan --name inventory-webapp-app --runtime "DOTNETCORE|8.0"
+
+# SQL Database oluştur
+az sql server create --name inventory-sql-server --resource-group InventoryManagementRG --location "East US" --admin-user sqladmin --admin-password "YourStrong@Password123"
+az sql db create --resource-group InventoryManagementRG --server inventory-sql-server --name InventoryDB --service-objective Basic
+
+# Deploy
+dotnet publish Inventory.Api -c Release -o ./publish
+az webapp deployment source config-zip --resource-group InventoryManagementRG --name inventory-api-app --src ./publish.zip
+```
+
+#### AWS ECS Deployment
+
+**ECS Task Definition örneği:**
+```json
+{
+  "family": "inventory-management",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::account:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "inventory-api",
+      "image": "your-ecr-repo/inventory-api:latest",
+      "portMappings": [{"containerPort": 5093}],
+      "environment": [
+        {"name": "ASPNETCORE_ENVIRONMENT", "value": "Production"},
+        {"name": "ConnectionStrings__DefaultConnection", "value": "your-rds-connection-string"}
+      ]
+    }
+  ]
+}
+```
+
+### 🔗 **Network Sunucu Konfigürasyonu**
+
+#### Kurumsal Ağda API Sunucusu Kurulumu
+
+**Senaryo**: API'yi merkezi sunucuda, Agent'ları client bilgisayarlarda çalıştırma
+
+**1. Sunucu Tarafı (API):**
+```json
+// appsettings.Production.json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=SQL-SERVER-01;Database=InventoryDB;Integrated Security=true;"
+  },
+  "Urls": "http://0.0.0.0:5093", // Tüm interface'lerden erişim
+  "ApiSettings": {
+    "AllowedOrigins": ["http://webapp-server:5094", "https://inventory.company.com"],
+    "EnableSwagger": false // Production'da kapatılabilir
+  }
+}
+```
+
+**2. Client Tarafı (Agent):**
+```json
+// Her client'ta appsettings.json
+{
+  "AgentSettings": {
+    "ApiBaseUrl": "http://inventory-server.company.local:5093",
+    "ScanIntervalMinutes": 30,
+    "EnableOfflineStorage": true,
+    "RetryCount": 5,
+    "Timeout": 60
+  }
+}
+```
+
+**3. Firewall Kuralları:**
+```powershell
+# Sunucu firewall - API port açma
+New-NetFirewallRule -DisplayName "Inventory Management API" -Direction Inbound -Protocol TCP -LocalPort 5093 -Action Allow
+
+# Client firewall - Outbound connection
+New-NetFirewallRule -DisplayName "Inventory Agent API Connection" -Direction Outbound -Protocol TCP -RemotePort 5093 -Action Allow
+```
+
+#### Web App'i Farklı Sunucuda Çalıştırma
+
+**Web App Sunucusu Konfigürasyonu:**
+```json
+// appsettings.Production.json (Web App)
+{
+  "ApiSettings": {
+    "BaseUrl": "http://api-server.company.local:5093",
+    "Timeout": 30,
+    "ApiKey": "your-api-key-if-implemented"
+  },
+  "Urls": "http://0.0.0.0:5094"
+}
+```
+
+#### Load Balancing ve High Availability
+
+**NGINX Load Balancer Konfigürasyonu:**
+```nginx
+upstream inventory_api {
+    server api-server-01:5093;
+    server api-server-02:5093;
+    server api-server-03:5093;
+}
+
+server {
+    listen 80;
+    server_name inventory.company.com;
+    
+    location /api/ {
+        proxy_pass http://inventory_api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+    
+    location / {
+        proxy_pass http://webapp-server:5094;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+### 📊 **Database Production Konfigürasyonu**
+
+#### SQL Server Production Setup
+
+```sql
+-- Database oluşturma
+CREATE DATABASE InventoryDB
+ON (
+    NAME = 'InventoryDB_Data',
+    FILENAME = 'C:\Data\InventoryDB.mdf',
+    SIZE = 1GB,
+    MAXSIZE = 10GB,
+    FILEGROWTH = 100MB
+)
+LOG ON (
+    NAME = 'InventoryDB_Log',
+    FILENAME = 'C:\Logs\InventoryDB.ldf',
+    SIZE = 100MB,
+    MAXSIZE = 1GB,
+    FILEGROWTH = 10MB
+);
+
+-- Backup job oluşturma
+EXEC sp_add_job 
+    @job_name = 'InventoryDB Daily Backup',
+    @enabled = 1;
+
+EXEC sp_add_jobstep
+    @job_name = 'InventoryDB Daily Backup',
+    @step_name = 'Backup Database',
+    @command = 'BACKUP DATABASE InventoryDB TO DISK = ''C:\Backups\InventoryDB_$(ESCAPE_SQUOTE(STRTDT))_$(ESCAPE_SQUOTE(STRTTM)).bak''';
+```
+
+#### PostgreSQL Production Setup
+
+```sql
+-- Database ve user oluşturma
+CREATE DATABASE inventorydb;
+CREATE USER inventoryuser WITH PASSWORD 'StrongPassword123!';
+GRANT ALL PRIVILEGES ON DATABASE inventorydb TO inventoryuser;
+
+-- Connection string
+"Host=postgres-server;Database=inventorydb;Username=inventoryuser;Password=StrongPassword123!"
 ```
 
 ---
@@ -347,73 +815,288 @@ docker-compose build
 
 ---
 
-## Konfigürasyon
+## Konfigürasyon ve Özelleştirme
 
-### appsettings.json (API)
+### ⚙️ **Agent Konfigürasyon Seçenekleri**
 
+#### Veri Toplama Sıklığı ve Monitoring
+```json
+{
+  "AgentSettings": {
+    "ScanIntervalMinutes": 30,        // Her 30 dakikada envanter toplama
+    "EnableHardwareMonitoring": true, // Hardware değişiklik takibi
+    "EnableSoftwareMonitoring": true, // Yazılım değişiklik takibi  
+    "EnableChangeTracking": true,     // Değişiklik loglaması
+    "EnableNetworkDiscovery": false   // Ağ keşif özelliği
+  }
+}
+```
+
+**Environment Variable ile Değiştirme:**
+```bash
+# Windows
+set AgentSettings__ScanIntervalMinutes=60
+set AgentSettings__EnableHardwareMonitoring=true
+
+# Linux/Docker
+export AgentSettings__ScanIntervalMinutes=60
+export AgentSettings__EnableHardwareMonitoring=true
+```
+
+#### API Bağlantı ve Network Ayarları
+```json
+{
+  "ApiSettings": {
+    "BaseUrl": "http://localhost:5093",     // API sunucu adresi
+    "Timeout": 30,                          // HTTP timeout (saniye)
+    "RetryCount": 3,                        // Başarısız istek yeniden deneme
+    "EnableOfflineStorage": true,           // Offline veri saklama
+    "BatchUploadInterval": 300,             // Offline veri gönderim aralığı (saniye)
+    "MaxOfflineRecords": 10000,            // Maksimum offline kayıt
+    "EnableCompression": true,              // HTTP response compression
+    "ApiKey": "",                          // API anahtarı (gelecek sürüm)
+    "UseHttps": false                      // HTTPS zorunluluğu
+  }
+}
+```
+
+#### Windows Özel Ayarları
+```json
+{
+  "WindowsAgent": {
+    "UseWMI": true,                         // WMI kullanımı
+    "CollectInstalledSoftware": true,       // Kurulu yazılım listesi
+    "CollectRunningProcesses": false,       // Çalışan process'ler
+    "CollectEventLogs": false,              // Windows event log'ları
+    "CollectNetworkInfo": true,             // Network adapter bilgileri
+    "CollectPerformanceCounters": false,    // Performance metrikleri
+    "EnableServiceMode": true,              // Windows service modu
+    "ServiceName": "InventoryManagementAgent"
+  }
+}
+```
+
+#### Dosya ve Log Yönetimi
+```json
+{
+  "FileSettings": {
+    "DataPath": "./Data",                   // Veri dosyaları dizini
+    "LogPath": "./Logs",                    // Log dosyaları dizini
+    "OfflineStoragePath": "./OfflineStorage", // Offline veri dizini
+    "MaxLogFileSize": "10MB",               // Maksimum log dosya boyutu
+    "LogRetentionDays": 30,                 // Log dosya saklama süresi
+    "EnableFileCompression": true,          // Eski log dosyalarını sıkıştırma
+    "BackupInterval": "24:00:00"            // Backup alma aralığı
+  }
+}
+```
+
+### 🖥️ **API Server Konfigürasyonu**
+
+#### Database Bağlantıları
 ```json
 {
   "ConnectionStrings": {
     "DefaultConnection": "Data Source=./Data/inventory.db",
-    "SqlServerConnection": "Server=localhost;Database=InventoryDB;Trusted_Connection=true;",
-    "PostgreSqlConnection": "Host=localhost;Database=inventorydb;Username=inventoryuser;Password=password"
+    "SqlServerConnection": "Server=localhost;Database=InventoryDB;Trusted_Connection=true;TrustServerCertificate=true;",
+    "PostgreSqlConnection": "Host=localhost;Database=inventorydb;Username=inventoryuser;Password=password;",
+    "MySqlConnection": "Server=localhost;Database=inventorydb;Uid=root;Pwd=password;"
   },
-  "DatabaseProvider": "SQLite", // SQLite, SqlServer, PostgreSQL
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    },
-    "File": {
-      "Path": "./Data/ApiLogs/api-{Date}.log",
-      "LogLevel": "Information"
-    }
-  },
-  "ApiSettings": {
-    "EnableSwagger": true,
-    "AllowedOrigins": ["http://localhost:3000", "https://yourdomain.com"],
-    "MaxRequestSize": 104857600,
-    "DefaultPageSize": 50,
-    "MaxPageSize": 1000
-  },
-  "NetworkScan": {
-    "DefaultTimeout": 5000,
-    "MaxConcurrentScans": 50,
-    "EnableNetworkDiscovery": true
-  }
+  "DatabaseProvider": "SQLite"  // SQLite|SqlServer|PostgreSQL|MySQL
 }
 ```
 
-### Agent Configuration
-
+#### API Server Davranış Ayarları
 ```json
 {
-  "AgentSettings": {
-    "ApiBaseUrl": "http://localhost:5093",
-    "ScanIntervalMinutes": 30,
-    "LogPath": "./Data/AgentLogs/",
-    "EnableHardwareMonitoring": true,
-    "EnableSoftwareMonitoring": true,
-    "EnableChangeTracking": true
-  },
-  "WindowsAgent": {
-    "UseWMI": true,
-    "CollectInstalledSoftware": true,
-    "CollectRunningProcesses": false,
-    "CollectEventLogs": false
+  "ApiSettings": {
+    "EnableSwagger": true,                  // Swagger UI aktif/pasif
+    "SwaggerRoutePrefix": "swagger",        // Swagger URL prefix
+    "DefaultPageSize": 50,                  // Sayfalama varsayılan boyut
+    "MaxPageSize": 1000,                    // Sayfalama maksimum boyut  
+    "EnableCaching": true,                  // Response caching
+    "CacheExpirationMinutes": 30,           // Cache süre sonu
+    "EnableCors": true,                     // CORS aktif/pasif
+    "AllowedOrigins": ["*"],                // İzinli origin'ler
+    "MaxRequestSize": 104857600,            // Maksimum request boyutu (100MB)
+    "EnableApiKey": false,                  // API key zorunluluğu
+    "RateLimitPerMinute": 1000              // Dakika başına istek limiti
   }
 }
 ```
 
-### Docker Environment Variables
+#### Network Scanning Ayarları
+```json
+{
+  "NetworkScan": {
+    "DefaultTimeout": 5000,                 // Ağ tarama timeout (ms)
+    "MaxConcurrentScans": 50,               // Eşzamanlı tarama sayısı
+    "EnableNetworkDiscovery": true,         // Otomatik ağ keşfi
+    "DiscoveryInterval": "01:00:00",        // Keşif çalıştırma aralığı
+    "DefaultNetworkRange": "192.168.1.0/24", // Varsayılan IP aralığı
+    "EnableHostnameResolution": true,       // DNS hostname çözümleme
+    "EnableMacAddressDiscovery": true,      // MAC adresi keşfi
+    "ScanMethods": ["Ping", "ARP", "SNMP"], // Kullanılacak keşif yöntemleri
+    "SnmpCommunity": "public",              // SNMP community string
+    "ExcludeRanges": ["192.168.1.1", "192.168.1.255"] // Hariç tutulacak IP'ler
+  }
+}
+```
 
+#### Logging ve Monitoring
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",             // Genel log seviyesi
+      "Microsoft.AspNetCore": "Warning",    // ASP.NET Core logları
+      "Microsoft.EntityFrameworkCore": "Error", // EF Core logları  
+      "System.Net.Http": "Warning",         // HTTP client logları
+      "Inventory": "Debug"                  // Uygulama özel logları
+    },
+    "File": {
+      "Enabled": true,                      // Dosya logging aktif
+      "Path": "./Logs/api-{Date}.log",      // Log dosya yolu
+      "RetentionHours": 168,                // Log saklama süresi (7 gün)
+      "LogLevel": "Information"             // Dosya log seviyesi
+    },
+    "Console": {
+      "Enabled": true,                      // Konsol logging aktif
+      "LogLevel": "Information"             // Konsol log seviyesi
+    },
+    "EventLog": {
+      "Enabled": false,                     // Windows Event Log
+      "SourceName": "InventoryManagementApi"
+    }
+  }
+}
+```
+
+### 🌐 **Web App Konfigürasyonu**
+
+#### Web Application Ayarları
+```json
+{
+  "WebAppSettings": {
+    "ApiBaseUrl": "http://localhost:5093",  // API server adresi
+    "EnableRealTimeUpdates": true,          // SignalR real-time güncellemeler
+    "RefreshInterval": 30,                  // Otomatik sayfa yenileme (saniye)
+    "EnableDarkMode": true,                 // Dark mode desteği
+    "DefaultLanguage": "tr-TR",             // Varsayılan dil
+    "EnableExport": true,                   // Veri export özellikleri
+    "ExportFormats": ["Excel", "CSV", "PDF"], // Desteklenen export formatları
+    "MaxExportRecords": 10000,              // Maksimum export kayıt sayısı
+    "EnableAuditLog": true                  // Kullanıcı işlem logları
+  }
+}
+```
+
+#### Authentication ve Authorization (Gelecek Sürüm)
+```json
+{
+  "Authentication": {
+    "EnableAuthentication": false,          // Kimlik doğrulama aktif
+    "AuthenticationType": "JWT",            // JWT|Cookie|Windows
+    "JwtSettings": {
+      "SecretKey": "your-secret-key-here",
+      "Issuer": "InventoryManagementSystem",
+      "Audience": "InventoryUsers",
+      "ExpirationMinutes": 60
+    },
+    "WindowsAuthentication": {
+      "Enabled": false,
+      "AutoLogin": true
+    }
+  },
+  "Authorization": {
+    "EnableRoleBasedAccess": false,         // Rol tabanlı erişim
+    "DefaultRole": "User",
+    "Roles": {
+      "Admin": ["Read", "Write", "Delete", "Configure"],
+      "User": ["Read"],
+      "Operator": ["Read", "Write"]
+    }
+  }
+}
+```
+
+### 🐳 **Docker ve Container Konfigürasyonu**
+
+#### Docker Environment Variables
 ```bash
-# .env dosyası
+# API Container
 ASPNETCORE_ENVIRONMENT=Production
-DB_CONNECTION_STRING=Server=sqlserver;Database=InventoryDB;User Id=sa;Password=YourStrong@Password123;
-API_PORT=5093
-DB_PASSWORD=YourStrong@Password123
-CORS_ORIGINS=*
+ASPNETCORE_URLS=http://+:5093
+ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InventoryDB;User Id=sa;Password=YourStrong@Password123;
+DatabaseProvider=SqlServer
+ApiSettings__EnableSwagger=false
+ApiSettings__AllowedOrigins=["http://webapp:5094"]
+
+# Agent Container  
+AgentSettings__ApiBaseUrl=http://api:5093
+AgentSettings__ScanIntervalMinutes=30
+AgentSettings__EnableOfflineStorage=true
+
+# Web App Container
+ASPNETCORE_ENVIRONMENT=Production
+ASPNETCORE_URLS=http://+:5094
+WebAppSettings__ApiBaseUrl=http://api:5093
+```
+
+#### Docker Compose Özel Konfigürasyonu
+```yaml
+services:
+  inventory-api:
+    environment:
+      - DatabaseProvider=SqlServer
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
+      - ApiSettings__EnableSwagger=${ENABLE_SWAGGER:-false}
+    volumes:
+      - api_data:/app/Data
+      - api_logs:/app/Logs
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5093/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+### 🔧 **Performance ve Optimizasyon Ayarları**
+
+#### Database Performance
+```json
+{
+  "DatabaseSettings": {
+    "CommandTimeout": 60,                   // SQL command timeout (saniye)
+    "ConnectionTimeout": 30,                // Bağlantı timeout (saniye)
+    "MaxRetryCount": 3,                     // Bağlantı yeniden deneme
+    "EnableSensitiveDataLogging": false,    // SQL parametrelerini loglama
+    "EnableQuerySplitting": true,           // EF Core query splitting
+    "ConnectionPoolSize": 100,              // Bağlantı havuzu boyutu
+    "EnableBatchProcessing": true,          // Toplu işlem optimizasyonu
+    "BatchSize": 1000                       // Toplu işlem boyutu
+  }
+}
+```
+
+#### Memory ve CPU Optimizasyonu
+```json
+{
+  "PerformanceSettings": {
+    "EnableResponseCompression": true,      // HTTP response sıkıştırma
+    "EnableOutputCaching": true,            // Output cache
+    "MaxConcurrentRequests": 1000,          // Eşzamanlı istek limiti
+    "EnableBackgroundServices": true,       // Arka plan servisleri
+    "GarbageCollectionMode": "Server",      // GC modu
+    "ThreadPoolMinThreads": 50,             // Minimum thread sayısı
+    "ThreadPoolMaxThreads": 1000            // Maksimum thread sayısı
+  }
+}
 ```
 
 ---
