@@ -8,11 +8,17 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace Inventory.Api.Controllers
 {
+    /// <summary>
+    /// Cihaz Yönetimi Controller'ı
+    /// Agent kurulu ve ağ keşfi ile bulunan cihazları yönetir
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [SwaggerTag("Device management operations - supports both agent-installed and network-discovered devices")]
     public class DeviceController : ControllerBase
     {
+        #region Fields ve Constructor
+        
         private readonly IDeviceService _deviceService;
         private readonly ILogger<DeviceController> _logger;
 
@@ -21,7 +27,14 @@ namespace Inventory.Api.Controllers
             _deviceService = deviceService;
             _logger = logger;
         }
+        
+        #endregion
 
+        #region GET - Cihaz Listeleme ve Sorgulama İşlemleri
+
+        /// <summary>
+        /// Tüm cihazları getirir
+        /// </summary>
         [HttpGet]
         [SwaggerOperation(Summary = "Tüm cihazları getir", Description = "Envanterdeki tüm cihazları döndürür")]
         [SwaggerResponse(200, "Cihaz listesini döndürür", typeof(IEnumerable<Device>))]
@@ -31,6 +44,9 @@ namespace Inventory.Api.Controllers
             return Ok(devices);
         }
 
+        /// <summary>
+        /// Agent kurulu cihazları getirir
+        /// </summary>
         [HttpGet("agent-installed")]
         [SwaggerOperation(Summary = "Agent kurulu cihazları getir", Description = "Sadece agent kurulu cihazları döndürür")]
         [SwaggerResponse(200, "Agent kurulu cihaz listesini döndürür", typeof(IEnumerable<Device>))]
@@ -40,6 +56,9 @@ namespace Inventory.Api.Controllers
             return Ok(devices);
         }
 
+        /// <summary>
+        /// Ağ keşfi ile bulunan cihazları getirir
+        /// </summary>
         [HttpGet("network-discovered")]
         [SwaggerOperation(Summary = "Ağ keşfi ile bulunan cihazları getir", Description = "Sadece ağ taraması ile keşfedilen cihazları döndürür")]
         [SwaggerResponse(200, "Ağ keşfi ile bulunan cihaz listesini döndürür", typeof(IEnumerable<Device>))]
@@ -49,6 +68,9 @@ namespace Inventory.Api.Controllers
             return Ok(devices);
         }
 
+        /// <summary>
+        /// Belirli bir cihazın mevcut alanlarını getirir
+        /// </summary>
         [HttpGet("{id}/available-fields")]
         [SwaggerOperation(Summary = "Cihaz için mevcut alanları getir", Description = "Belirli bir cihaz için hangi alanların mevcut olduğu bilgisini döndürür")]
         [SwaggerResponse(200, "Mevcut alan bilgilerini döndürür")]
@@ -94,6 +116,9 @@ namespace Inventory.Api.Controllers
             return Ok(availableFields);
         }
 
+        /// <summary>
+        /// ID ile belirli bir cihazı getirir
+        /// </summary>
         [HttpGet("{id}")]
         [SwaggerOperation(Summary = "ID ile cihaz getir", Description = "ID'si ile belirli bir cihazı döndürür")]
         [SwaggerResponse(200, "Cihazı döndürür", typeof(Device))]
@@ -105,7 +130,14 @@ namespace Inventory.Api.Controllers
                 return NotFound();
             return Ok(device);
         }
+        
+        #endregion
 
+        #region POST - Cihaz Oluşturma İşlemleri
+
+        /// <summary>
+        /// Yeni cihaz oluşturur veya mevcut cihazı günceller
+        /// </summary>
         [HttpPost]
         [SwaggerOperation(Summary = "Yeni cihaz oluştur veya güncelle", Description = "MAC adresine göre mevcut cihazı bulur ve günceller veya yeni cihaz oluşturur")]
         [SwaggerResponse(201, "Cihaz başarıyla oluşturuldu", typeof(Device))]
@@ -113,48 +145,51 @@ namespace Inventory.Api.Controllers
         [SwaggerResponse(400, "Geçersiz cihaz verisi")]
         public async Task<ActionResult<Device>> Create(Device device)
         {
-            // Apply dynamic location assignment if location is not provided
+            // Lokasyon atanmamışsa dinamik olarak belirle
             if (string.IsNullOrWhiteSpace(device.Location))
             {
                 device.Location = LocationHelper.GetLocationByIpAddress(device.IpAddress, "Network Discovery");
             }
 
-            // Cihazı doğrula
+            // Cihaz verilerini doğrula
             var validationErrors = DeviceValidator.ValidateDevice(device);
             if (validationErrors.Any())
             {
                 return BadRequest(new { errors = validationErrors });
             }
 
-            // Use the existing CreateOrUpdateDeviceAsync method which handles duplicates and change tracking
+            // Mevcut cihaz kontrolü ve oluşturma/güncelleme işlemi
             var result = await _deviceService.CreateOrUpdateDeviceAsync(device);
             if (result == null)
             {
                 return BadRequest(new { error = "Failed to create or update device" });
             }
 
-            // Check if it's a new device or an update by checking if device already had an ID
+            // Yeni cihaz mı güncelleme mi kontrol et
             var isNewDevice = device.Id == Guid.Empty;
             
             if (isNewDevice)
             {
-                _logger.LogInformation("New device created: {DeviceName} ({MacAddress})", result.Name, result.MacAddress);
+                _logger.LogInformation("Yeni cihaz oluşturuldu: {DeviceName} ({MacAddress})", result.Name, result.MacAddress);
                 return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
             }
             else
             {
-                _logger.LogInformation("Existing device updated: {DeviceName} ({MacAddress})", result.Name, result.MacAddress);
+                _logger.LogInformation("Mevcut cihaz güncellendi: {DeviceName} ({MacAddress})", result.Name, result.MacAddress);
                 return Ok(result);
             }
         }
 
+        /// <summary>
+        /// Ağ keşfi ile bulunan cihaz kaydeder
+        /// </summary>
         [HttpPost("network-discovered")]
         [SwaggerOperation(Summary = "Ağ keşfi ile bulunan cihaz oluştur", Description = "Ağ taraması ile keşfedilen yeni bir cihaz oluşturur")]
         [SwaggerResponse(201, "Cihaz başarıyla oluşturuldu", typeof(Device))]
         [SwaggerResponse(400, "Geçersiz cihaz verisi")]
         public async Task<ActionResult<Device>> CreateNetworkDiscoveredDevice(NetworkDeviceRegistrationDto deviceDto)
         {
-            // DTO'dan cihaz oluştur
+            // DTO'dan cihaz modeli oluştur
             var device = new Device
             {
                 Id = Guid.NewGuid(),
@@ -172,14 +207,14 @@ namespace Inventory.Api.Controllers
                 ChangeLogs = new List<ChangeLog>()
             };
 
-            // Cihazı doğrula
+            // Cihaz verilerini doğrula
             var validationErrors = DeviceValidator.ValidateDevice(device);
             if (validationErrors.Any())
             {
                 return BadRequest(new { errors = validationErrors });
             }
 
-            // Cihazın zaten var olup olmadığını kontrol et (improved logic)
+            // Mevcut cihaz kontrolü (iyileştirilmiş logic)
             var existingDevice = await _deviceService.FindDeviceByNameMacAndIpAsync(device.Name, device.MacAddress, device.IpAddress);
             if (existingDevice != null)
             {
@@ -187,17 +222,18 @@ namespace Inventory.Api.Controllers
                 return await UpdateExistingNetworkDevice(existingDevice, device);
             }
 
-            // Yeni cihaz ekle
+            // Yeni cihaz oluştur
             var createdDevice = await _deviceService.CreateDeviceAsync(device);
             
-            _logger.LogInformation("Network-discovered device registered: {DeviceName} ({IpAddress}) - Management: {ManagementType}", 
+            _logger.LogInformation("Ağ keşfi ile cihaz kaydedildi: {DeviceName} ({IpAddress}) - Yönetim: {ManagementType}", 
                 device.Name, device.IpAddress, device.ManagementType);
             
             return CreatedAtAction(nameof(GetById), new { id = createdDevice.Id }, createdDevice);
         }
 
-        [HttpPost("register-by-ip-mac")]
-        [SwaggerOperation(Summary = "IP/MAC ile cihaz kaydet veya güncelle", Description = "IP veya MAC adresine göre yeni cihaz kaydeder veya mevcut olanı günceller")]
+        /// <summary>
+        /// IP/MAC adresine göre cihaz kaydeder veya günceller
+        /// </summary>
         [SwaggerResponse(200, "Cihaz başarıyla güncellendi", typeof(Device))]
         [SwaggerResponse(201, "Cihaz başarıyla oluşturuldu", typeof(Device))]
         [SwaggerResponse(400, "Geçersiz cihaz verisi")]

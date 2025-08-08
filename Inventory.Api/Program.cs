@@ -7,34 +7,46 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Inventory.Api
 {
+    /// <summary>
+    /// Inventory Management System - Ana API Sunucusu
+    /// Bu sınıf sistem başlatma, servislerin kaydı ve middleware yapılandırmasını yönetir
+    /// </summary>
     public class Program
     {
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Windows Service support ekle
+            // =====================================================================
+            // BÖLÜM 1: WINDOWS SERVICE KONFIGÜRASYONU
+            // =====================================================================
+            
+            // Windows Service desteği - Sunucuda service olarak çalışabilmesi için
             builder.Services.AddWindowsService(options =>
             {
                 options.ServiceName = "InventoryManagementApi";
             });
 
-            // Veritabanı bağlamını ekle
+            // =====================================================================
+            // BÖLÜM 2: VERİTABANI BAĞLANTI KONFIGÜRASYONU
+            // =====================================================================
+            
+            // Veritabanı bağlantı dizesini yapılandır
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             var serverSettings = builder.Configuration.GetSection("ServerSettings");
             var serverMode = serverSettings.GetValue<string>("Mode", "Local");
             var remoteConnectionString = serverSettings.GetValue<string>("RemoteDatabaseConnectionString", "");
 
-            // Uzak bağlantı dizesi yapılandırılmış ve mod uzak olarak ayarlanmışsa onu kullan
+            // Uzak sunucu konfigürasyonu - Production ortamları için
             if (!string.IsNullOrEmpty(remoteConnectionString) && serverMode.Equals("Remote", StringComparison.OrdinalIgnoreCase))
             {
                 connectionString = remoteConnectionString;
             }
 
+            // SQLite varsayılan konfigürasyonu - Geliştirme ve test ortamları için
             if (string.IsNullOrEmpty(connectionString))
             {
-                // Bağlantı dizesi sağlanmamışsa varsayılan olarak SQLite kullan
-                // Önce sistem geneli veri yolu environment variable'ını kontrol et (Windows Service için)
+                // Önce sistem geneli veri dizini environment variable'ını kontrol et (Windows Service için)
                 var dataPath = Environment.GetEnvironmentVariable("INVENTORY_DATA_PATH", EnvironmentVariableTarget.Machine);
                 
                 if (!string.IsNullOrEmpty(dataPath) && Directory.Exists(dataPath))
@@ -60,32 +72,41 @@ namespace Inventory.Api
                 }
             }
 
+            // Veritabanı provider seçimi - SQLite veya SQL Server
             if (connectionString.Contains("Data Source"))
             {
-                // SQLite
+                // SQLite konfigürasyonu - Development ve küçük kurumlar için
                 builder.Services.AddDbContext<InventoryDbContext>(options =>
                     options.UseSqlite(connectionString));
             }
             else
             {
-                // SQL Server
+                // SQL Server konfigürasyonu - Production ve büyük kurumlar için  
                 builder.Services.AddDbContext<InventoryDbContext>(options =>
                     options.UseSqlServer(connectionString));
             }
 
-            // Servisleri container'a ekle
+            // =====================================================================
+            // BÖLÜM 3: DEPENDENCY INJECTION VE SERVİS KAYITLARI
+            // =====================================================================
+            
+            // ASP.NET Core temel servisleri
             builder.Services.AddControllers();
             
-            // Özel servisleri kaydet
+            // Business logic servisleri
             builder.Services.AddScoped<INetworkScanService, NetworkScanService>();
             builder.Services.AddScoped<INetworkScannerService, NetworkScannerService>();
             builder.Services.AddScoped<IDeviceService, DeviceService>();
             builder.Services.AddSingleton<ICentralizedLoggingService, CentralizedLoggingService>();
             
-            // Arka plan servislerini kaydet
+            // Background (arka plan) servisleri - Otomatik işlemler için
             builder.Services.AddHostedService<NetworkScanBackgroundService>();
             
-            // Swagger/OpenAPI yapılandırması hakkında daha fazla bilgi için: https://aka.ms/aspnetcore/swashbuckle
+            // =====================================================================
+            // BÖLÜM 4: SWAGGER/OPENAPI DOKÜMANTASYON KONFIGÜRASYONU
+            // =====================================================================
+            
+            // API keşfedilebilirlik için Swagger/OpenAPI desteği
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
@@ -95,25 +116,33 @@ namespace Inventory.Api
                     Version = "v1",
                     Description = "Agent kurulu ve ağ keşfi ile bulunan cihazları destekleyen envanter cihaz yönetimi API'si"
                 });
-                c.EnableAnnotations();
+                c.EnableAnnotations(); // Controller'lardaki SwaggerOperation attribute'larını etkinleştir
             });
 
-            // Docker ortamı için CORS desteği ekle
+            // =====================================================================
+            // BÖLÜM 5: CORS (Cross-Origin Resource Sharing) KONFIGÜRASYONU
+            // =====================================================================
+            
+            // Web uygulaması ve Docker ortamları için CORS desteği
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll",
                     builder =>
                     {
                         builder
-                            .AllowAnyOrigin()
-                            .AllowAnyMethod()
-                            .AllowAnyHeader();
+                            .AllowAnyOrigin()   // Tüm domain'lerden erişim izni
+                            .AllowAnyMethod()   // Tüm HTTP methodları (GET, POST, PUT, DELETE)
+                            .AllowAnyHeader();  // Tüm HTTP header'ları
                     });
             });
 
             var app = builder.Build();
 
-            // Veritabanının oluşturulduğundan emin ol
+            // =====================================================================
+            // BÖLÜM 6: VERİTABANI BAŞLATMA VE MİGRATION
+            // =====================================================================
+            
+            // Uygulama başlatılırken veritabanının hazır olduğundan emin ol
             using (var scope = app.Services.CreateScope())
             {
                 try
@@ -122,43 +151,52 @@ namespace Inventory.Api
                     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
                     
                     logger.LogInformation("Veritabanı bağlantısı kontrol ediliyor...");
-                    context.Database.EnsureCreated();
+                    context.Database.EnsureCreated(); // Veritabanı yoksa oluştur
                     logger.LogInformation("Veritabanı başarıyla oluşturuldu veya mevcut.");
                 }
                 catch (Exception ex)
                 {
                     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
                     logger.LogError(ex, "Veritabanı oluşturulurken hata oluştu: {ErrorMessage}", ex.Message);
-                    throw;
+                    throw; // Veritabanı hatası kritik - uygulama başlatılamaz
                 }
             }
 
-            // HTTP istek pipeline'ını yapılandır
-            // Docker testleri için tüm ortamlarda Swagger'ı etkinleştir
+            // =====================================================================
+            // BÖLÜM 7: HTTP PIPELINE VE MIDDLEWARE KONFIGÜRASYONU
+            // =====================================================================
+
+            // Swagger UI - API dokümantasyonu (tüm ortamlarda aktif)
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Inventory Management System API v1");
-                c.RoutePrefix = ""; // Swagger UI'ı kök dizinde (/) kullanılabilir yapar
+                c.RoutePrefix = ""; // Swagger UI'ı root'ta (/) kullanılabilir yapar
             });
 
-            // Static files'ı etkinleştir (sadece vendor files için)
+            // Static dosya desteği (CSS, JS, resimler için)
             app.UseStaticFiles();
 
-            // CORS'u etkinleştir
+            // CORS middleware'ini etkinleştir - Web uygulaması bağlantıları için
             app.UseCors("AllowAll");
 
-            // İstek günlükleme middleware'ini ekle
+            // İstek loglaması - Tüm API çağrılarını logla
             app.UseMiddleware<RequestLoggingMiddleware>();
 
-            // Docker ortamı için HTTPS yönlendirmesini kaldır
+            // HTTPS yönlendirmesi Docker ortamında devre dışı
             // app.UseHttpsRedirection();
 
+            // Authorization middleware (şu anda pasif)
             app.UseAuthorization();
 
+            // Controller routing - API endpoint'lerini etkinleştir
             app.MapControllers();
 
-            // API info endpoint - moved to /api/info since root now serves Swagger UI
+            // =====================================================================
+            // BÖLÜM 8: API BİLGİ ENDPOINT'İ
+            // =====================================================================
+            
+            // Sistem durumu ve bilgi endpoint'i - Sağlık kontrolü için
             app.MapGet("/api/info", () => new
             {
                 Message = "Inventory Management System API",
@@ -168,6 +206,7 @@ namespace Inventory.Api
                 Status = "Running"
             });
 
+            // Uygulamayı başlat
             app.Run();
         }
     }
