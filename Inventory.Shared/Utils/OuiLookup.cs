@@ -9082,6 +9082,24 @@ namespace Inventory.Shared.Utils
             {"FC:F7:38", "HUAWEI TECHNOLOGIES CO.,LTD"},
             {"FC:FB:FB", "Cisco Systems, Inc"},
             {"FC:FE:77", "Hitachi Reftechno, Inc."},
+            
+            // Essential new OUIs for the specific requirement
+            {"4C:D5:77", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"A8:93:4A", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"A4:97:B1", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"5C:BA:EF", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"8C:C8:4B", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"E8:6F:38", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"40:23:43", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"74:12:B3", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"64:6C:80", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"5C:FB:3A", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"D4:1B:81", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"5C:3A:45", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"D8:12:65", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"4C:EB:BD", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"40:5B:D8", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
+            {"C0:B5:D7", "CHONGQING FUGUI ELECTRONICS CO.,LTD."},
         };
 
         public static string? GetManufacturer(string macAddress)
@@ -9125,10 +9143,19 @@ namespace Inventory.Shared.Utils
                 manufacturerLower.Contains("aruba") ||
                 manufacturerLower.Contains("ubiquiti") ||
                 manufacturerLower.Contains("mikrotik") ||
+                manufacturerLower.Contains("routerboard") ||
                 manufacturerLower.Contains("netgear") ||
                 manufacturerLower.Contains("linksys") ||
                 manufacturerLower.Contains("belkin") ||
-                manufacturerLower.Contains("d-link"))
+                manufacturerLower.Contains("d-link") ||
+                manufacturerLower.Contains("ruckus wireless") ||
+                manufacturerLower.Contains("edgecore") ||
+                manufacturerLower.Contains("ruijie networks") ||
+                manufacturerLower.Contains("zyxel") ||
+                manufacturerLower.Contains("fiberhome telecommunication") ||
+                manufacturerLower.Contains("adva optical") ||
+                manufacturerLower.Contains("netcomm wireless") ||
+                manufacturerLower.Contains("quectel wireless"))
             {
                 return DeviceType.NetworkDevice;
             }
@@ -9175,8 +9202,10 @@ namespace Inventory.Shared.Utils
             // Camera manufacturers (IP cameras)
             if (manufacturerLower.Contains("hikvision") || 
                 manufacturerLower.Contains("dahua") ||
+                manufacturerLower.Contains("zhejiang dahua") ||
                 manufacturerLower.Contains("axis") ||
                 manufacturerLower.Contains("bosch") ||
+                manufacturerLower.Contains("bosch security") ||
                 manufacturerLower.Contains("avigilon") ||
                 manufacturerLower.Contains("panasonic") ||
                 manufacturerLower.Contains("vivotek") ||
@@ -9209,6 +9238,12 @@ namespace Inventory.Shared.Utils
                 manufacturerLower.Contains("broadband"))
             {
                 return DeviceType.Router;
+            }
+
+            // Special case for OEM/ODM manufacturers whose products vary
+            if (manufacturerLower.Contains("chongqing fugui electronics"))
+            {
+                return DeviceType.Other; // Generic electronics manufacturer
             }
 
             return DeviceType.Unknown;
