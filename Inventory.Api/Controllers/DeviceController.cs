@@ -786,5 +786,7 @@ namespace Inventory.Api.Controllers
             
             return Ok(updatedDevice);
         }
+        
+        #endregion
     }
 }
