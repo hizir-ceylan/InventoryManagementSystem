@@ -12,7 +12,9 @@ namespace Inventory.Agent.Windows.Models
         public string Model { get; set; }
         public string Location { get; set; }
         public int Status { get; set; }
-        public bool AgentInstalled { get; set; }
+        public bool AgentInstalled { get; set; } = true; // Agent installed devices
+        public ManagementType ManagementType { get; set; } = ManagementType.Agent;
+        public DiscoveryMethod DiscoveryMethod { get; set; } = DiscoveryMethod.Agent;
         public string? Manufacturer { get; set; }
         public List<ChangeLogDto> ChangeLogs { get; set; }
         public DeviceHardwareInfoDto HardwareInfo { get; set; }
