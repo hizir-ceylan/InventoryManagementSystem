@@ -97,6 +97,7 @@ namespace Inventory.Api
             builder.Services.AddScoped<INetworkScanService, NetworkScanService>();
             builder.Services.AddScoped<INetworkScannerService, NetworkScannerService>();
             builder.Services.AddScoped<IDeviceService, DeviceService>();
+            builder.Services.AddScoped<IUpdateService, UpdateService>();
             builder.Services.AddSingleton<ICentralizedLoggingService, CentralizedLoggingService>();
             
             // Background (arka plan) servisleri - Otomatik işlemler için
