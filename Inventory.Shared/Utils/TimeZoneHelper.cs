@@ -83,7 +83,7 @@ namespace Inventory.Shared.Utils
                 
             var currentTurkeyTime = GetTurkeyTime();
             var timeDifference = currentTurkeyTime - lastSeenTurkey.Value;
-            return timeDifference.TotalMinutes > thresholdMinutes;
+            return timeDifference.TotalMinutes >= thresholdMinutes;
         }
         
         /// <summary>

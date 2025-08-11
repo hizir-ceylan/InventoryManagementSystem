@@ -41,6 +41,13 @@ namespace Inventory.Api.Controllers
         public async Task<ActionResult<IEnumerable<Device>>> GetAll()
         {
             var devices = await _deviceService.GetAllDevicesAsync();
+            
+            // Update computed status for each device before returning
+            foreach (var device in devices)
+            {
+                device.Status = TimeZoneHelper.GetDeviceStatus(device.LastSeen, device.Status);
+            }
+            
             return Ok(devices);
         }
 
@@ -133,6 +140,38 @@ namespace Inventory.Api.Controllers
         
         #endregion
 
+        #region Device Status Management
+
+        /// <summary>
+        /// Cihaz durumlarını son görülme zamanına göre günceller
+        /// </summary>
+        [HttpPost("update-statuses")]
+        [SwaggerOperation(Summary = "Cihaz durumlarını güncelle", Description = "Tüm cihazların durumlarını son görülme zamanına göre günceller")]
+        [SwaggerResponse(200, "Güncellenen cihaz sayısını döndürür")]
+        public async Task<ActionResult<object>> UpdateDeviceStatuses()
+        {
+            try
+            {
+                var updatedDevices = await _deviceService.UpdateDeviceStatusesAsync();
+                
+                _logger.LogInformation("Updated device statuses: {Count} devices", updatedDevices.Count);
+                
+                return Ok(new 
+                { 
+                    success = true,
+                    updatedCount = updatedDevices.Count,
+                    message = $"{updatedDevices.Count} cihazın durumu güncellendi"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating device statuses");
+                return BadRequest(new { error = "Cihaz durumları güncellenirken hata oluştu: " + ex.Message });
+            }
+        }
+
+        #endregion
+        
         #region POST - Cihaz Oluşturma İşlemleri
 
         /// <summary>
