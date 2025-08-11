@@ -206,31 +206,9 @@ class InventoryApp {
     updateStatistics(allDevices, agentDevices, networkDevices) {
         const totalDevices = allDevices?.length || 0;
 
-        // Improved active device detection: include devices that are:
-        // 1. Status 0 (Aktif) OR
-        // 2. Recently seen (within last 24 hours) regardless of status OR  
-        // 3. Status 2 (Bakım) - maintenance devices are often still working
-        const now = new Date();
-        const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000);
-
-        const activeDevices = allDevices?.filter(d => {
-            // Always consider status 0 as active
-            if (d.status === 0) return true;
-
-            // Consider maintenance devices as active if recently seen
-            if (d.status === 2 && d.lastSeen) {
-                const lastSeen = new Date(d.lastSeen);
-                return lastSeen > twentyFourHoursAgo;
-            }
-
-            // Consider any device as active if seen in last 24 hours, even if marked inactive
-            if (d.lastSeen) {
-                const lastSeen = new Date(d.lastSeen);
-                return lastSeen > twentyFourHoursAgo;
-            }
-
-            return false;
-        }).length || 0;
+        // Improved active device detection: trust the API's computed status
+        // The API already computes status based on 30-minute threshold
+        const activeDevices = allDevices?.filter(d => d.status === 0).length || 0;
 
         const agentDevicesCount = agentDevices?.length || 0;
         const networkDevicesCount = networkDevices?.length || 0;
