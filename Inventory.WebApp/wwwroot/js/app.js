@@ -316,8 +316,8 @@ class InventoryApp {
 
             // Discovery method filter
             const matchesDiscovery = !discoveryFilter || 
-                (discoveryFilter === 'agent' && (device.agentInstalled || device.managementType === 'Agent' || device.discoveryMethod === 2)) ||
-                (discoveryFilter === 'network' && (!device.agentInstalled && (device.managementType === 'NetworkDiscovery' || device.discoveryMethod === 1)));
+                (discoveryFilter === 'agent' && (device.agentInstalled || device.managementType === 1 || device.discoveryMethod === 2)) ||
+                (discoveryFilter === 'network' && (!device.agentInstalled && (device.managementType === 2 || device.discoveryMethod === 1)));
 
             return matchesSearch && matchesStatus && matchesType && matchesDiscovery;
         });
@@ -1139,9 +1139,9 @@ class InventoryApp {
     }
 
     getDiscoveryTypeBadgeClass(device) {
-        if (device.agentInstalled || device.managementType === 'Agent' || device.discoveryMethod === 2) {
+        if (device.agentInstalled || device.managementType === 1 || device.discoveryMethod === 2) {
             return 'badge-success'; // Green for agent-installed devices
-        } else if (device.managementType === 'NetworkDiscovery' || device.discoveryMethod === 1 || device.discoveryMethod === 3) {
+        } else if (device.managementType === 2 || device.discoveryMethod === 1 || device.discoveryMethod === 3) {
             return 'badge-info'; // Blue for network discovered devices (including manual network discovery)
         } else {
             return 'badge-secondary'; // Gray for unknown
@@ -1149,9 +1149,9 @@ class InventoryApp {
     }
 
     getDiscoveryTypeText(device) {
-        if (device.agentInstalled || device.managementType === 'Agent' || device.discoveryMethod === 2) {
+        if (device.agentInstalled || device.managementType === 1 || device.discoveryMethod === 2) {
             return 'Ajan';
-        } else if (device.managementType === 'NetworkDiscovery' || device.discoveryMethod === 1 || device.discoveryMethod === 3) {
+        } else if (device.managementType === 2 || device.discoveryMethod === 1 || device.discoveryMethod === 3) {
             return 'Ağ'; // Show "Ağ" for both network discovery and manual network discovery
         } else {
             return 'Bilinmiyor';
