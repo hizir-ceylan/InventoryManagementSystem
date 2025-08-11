@@ -87,10 +87,25 @@ body {
 }
 
 .container {
-    max-width: min(1200px, 100vw);
+    max-width: min(1400px, 100vw);
     margin: 0 auto;
-    padding: 0 15px;
+    padding: 0 10px;
     overflow-x: hidden;
+}
+
+/* Desktop spacing adjustments */
+@media (min-width: 768px) {
+    .container {
+        padding: 0 15px;
+        max-width: min(1400px, 95vw);
+    }
+}
+
+@media (min-width: 1200px) {
+    .container {
+        padding: 0 20px;
+        max-width: 90vw;
+    }
 }
 
 /* =================================================================
@@ -438,8 +453,15 @@ body {
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+@media (min-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+    }
 }
 
 .stat-card {
@@ -467,6 +489,14 @@ body {
 .stat-card:hover {
     transform: translateY(-8px) scale(1.02);
     box-shadow: var(--shadow-xl);
+    border-color: rgba(45, 80, 22, 0.2);
+}
+
+.stat-card:active {
+    transform: translateY(-4px) scale(1.01);
+    transition: var(--transition-fast);
+}
+    box-shadow: var(--shadow-xl);
     border-color: rgba(45, 80, 22, 0.1);
 }
 
@@ -474,6 +504,7 @@ body {
 .success-card::before { background: linear-gradient(135deg, var(--success), var(--leaf-green)); }
 .warning-card::before { background: var(--warm-gradient); }
 .info-card::before { background: linear-gradient(135deg, var(--info), var(--mint-green)); }
+.update-card::before { background: linear-gradient(135deg, var(--danger), var(--sunset-red)); }
 
 .stat-content {
     display: flex;
@@ -529,6 +560,7 @@ body {
 .success-card .stat-icon { background: linear-gradient(135deg, var(--success), var(--leaf-green)); }
 .warning-card .stat-icon { background: var(--warm-gradient); }
 .info-card .stat-icon { background: linear-gradient(135deg, var(--info), var(--mint-green)); }
+.update-card .stat-icon { background: linear-gradient(135deg, var(--danger), var(--sunset-red)); }
 
 .stat-card:hover .stat-icon {
     transform: rotate(10deg) scale(1.1);
@@ -1224,6 +1256,21 @@ body {
     color: white;
 }
 
+.badge-info {
+    background-color: var(--info);
+    color: white;
+}
+
+.badge-warning {
+    background-color: var(--warning);
+    color: var(--dark-gray);
+}
+
+.badge-danger {
+    background-color: var(--danger);
+    color: white;
+}
+
 .badge-sm {
     font-size: 0.7rem;
     padding: 2px 4px;
@@ -1784,6 +1831,64 @@ body {
 .btn-load-more:hover {
     background: rgba(45, 80, 22, 0.1);
     transform: translateY(-1px);
+}
+
+/* Update Information Styles */
+.updates-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.update-item {
+    background: rgba(220, 53, 69, 0.05);
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    margin-bottom: 8px;
+    border-left: 3px solid var(--danger);
+    transition: var(--transition-fast);
+    border: 1px solid rgba(220, 53, 69, 0.1);
+}
+
+.update-item:hover {
+    background: rgba(220, 53, 69, 0.08);
+    transform: translateX(2px);
+    border-color: var(--danger);
+}
+
+.update-item:last-child {
+    margin-bottom: 0;
+}
+
+.update-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+
+.update-type {
+    color: var(--gray);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.update-description {
+    font-size: 0.85rem;
+    color: var(--gray);
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.update-kb {
+    font-size: 0.8rem;
+    color: var(--info);
+    font-weight: 500;
+}
+
+.badge-sm {
+    font-size: 0.7rem;
+    padding: 2px 6px;
 }
 
 /* Change Logs Table Styles */

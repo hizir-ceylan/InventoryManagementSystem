@@ -115,7 +115,7 @@
         <div id="stats-cards" class="stats-section">
             <div class="container">
                 <div class="stats-grid">
-                    <div class="stat-card primary-card">
+                    <div class="stat-card primary-card" onclick="app.handleStatCardClick('total')">
                         <div class="stat-content">
                             <div class="stat-info">
                                 <h3 class="stat-title">Toplam Cihaz</h3>
@@ -133,7 +133,7 @@
                         </div>
                     </div>
 
-                    <div class="stat-card success-card">
+                    <div class="stat-card success-card" onclick="app.handleStatCardClick('active')">
                         <div class="stat-content">
                             <div class="stat-info">
                                 <h3 class="stat-title">Aktif Cihazlar</h3>
@@ -151,10 +151,10 @@
                         </div>
                     </div>
 
-                    <div class="stat-card warning-card">
+                    <div class="stat-card warning-card" onclick="app.handleStatCardClick('agent')">
                         <div class="stat-content">
                             <div class="stat-info">
-                                <h3 class="stat-title">Agent Kurulu</h3>
+                                <h3 class="stat-title">Ajan Kurulu</h3>
                                 <h2 class="stat-number" id="agent-devices">-</h2>
                                 <p class="stat-description">Yönetilen cihazlar</p>
                             </div>
@@ -169,7 +169,7 @@
                         </div>
                     </div>
 
-                    <div class="stat-card info-card">
+                    <div class="stat-card info-card" onclick="app.handleStatCardClick('network')">
                         <div class="stat-content">
                             <div class="stat-info">
                                 <h3 class="stat-title">Ağ Keşfi</h3>
@@ -178,6 +178,24 @@
                             </div>
                             <div class="stat-icon">
                                 <i class="bi bi-wifi"></i>
+                                <div class="icon-bg"></div>
+                            </div>
+                        </div>
+                        <div class="stat-waves">
+                            <div class="wave wave1"></div>
+                            <div class="wave wave2"></div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card update-card" onclick="app.handleStatCardClick('updates')">
+                        <div class="stat-content">
+                            <div class="stat-info">
+                                <h3 class="stat-title">Güncelleme Mevcut</h3>
+                                <h2 class="stat-number" id="update-devices">-</h2>
+                                <p class="stat-description">Güncellenmesi gereken</p>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-arrow-up-circle"></i>
                                 <div class="icon-bg"></div>
                             </div>
                         </div>
@@ -231,14 +249,14 @@
                                         <option value="1">Laptop</option>
                                         <option value="2">Server</option>
                                         <option value="3">Printer</option>
-                                        <option value="4">Network Device</option>
-                                        <option value="5">Mobile Device</option>
-                                        <option value="6">Unknown</option>
+                                        <option value="4">Ağ Cihazı</option>
+                                        <option value="5">Mobil Cihaz</option>
+                                        <option value="6">Bilinmiyor</option>
                                     </select>
                                     <select id="filter-discovery" class="filter-select">
                                         <option value="">Tüm Keşif Türleri</option>
-                                        <option value="agent">Agent</option>
-                                        <option value="network">Network</option>
+                                        <option value="agent">Ajan</option>
+                                        <option value="network">Ağ</option>
                                     </select>
                                     <button class="btn-clear" onclick="clearFilters()">
                                         <i class="bi bi-x-circle"></i>
