@@ -11,6 +11,7 @@ namespace Inventory.Data
 
         public DbSet<Device> Devices { get; set; }
         public DbSet<ChangeLog> ChangeLogs { get; set; }
+        public DbSet<SystemUpdate> SystemUpdates { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -103,6 +104,31 @@ namespace Inventory.Data
                 entity.HasOne<Device>()
                     .WithMany(d => d.ChangeLogs)
                     .HasForeignKey(c => c.DeviceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // SystemUpdate için temel yapılandırma
+            modelBuilder.Entity<SystemUpdate>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UpdateType).HasMaxLength(50);
+                entity.Property(e => e.Title).HasMaxLength(500);
+                entity.Property(e => e.Description).HasMaxLength(2000);
+                entity.Property(e => e.KBNumber).HasMaxLength(20);
+                entity.Property(e => e.CurrentVersion).HasMaxLength(100);
+                entity.Property(e => e.LatestVersion).HasMaxLength(100);
+                entity.Property(e => e.SecurityBulletinId).HasMaxLength(50);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
+                entity.HasIndex(e => e.DeviceId);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.Priority);
+                entity.HasIndex(e => e.DetectedDate);
+                
+                // Device ile foreign key ilişkisini yapılandır
+                entity.HasOne(e => e.Device)
+                    .WithMany()
+                    .HasForeignKey(e => e.DeviceId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
         }

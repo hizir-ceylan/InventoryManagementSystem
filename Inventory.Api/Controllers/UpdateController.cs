@@ -339,21 +339,3 @@ namespace Inventory.Api.Controllers
         #endregion
     }
 }
-
-/// <summary>
-/// Güncelleme servisi interface'i
-/// </summary>
-public interface IUpdateService
-{
-    Task<IEnumerable<SystemUpdate>> GetAllUpdatesAsync(UpdateStatus? status, UpdatePriority? priority, string? updateType, int page, int pageSize);
-    Task<IEnumerable<SystemUpdate>> GetUpdatesByDeviceAsync(Guid deviceId);
-    Task<IEnumerable<SystemUpdate>> GetAvailableUpdatesAsync();
-    Task<IEnumerable<SystemUpdate>> GetCriticalUpdatesAsync();
-    Task<object> GetUpdateStatisticsAsync();
-    Task<object> GetUpdatesByTypeAsync();
-    Task<int> SaveUpdatesAsync(List<SystemUpdate> updates);
-    Task<Guid> StartUpdateScanAsync(Guid deviceId);
-    Task<bool> UpdateStatusAsync(Guid updateId, UpdateStatus status, string? reason);
-    Task<int> BulkUpdateStatusAsync(List<Guid> updateIds, UpdateStatus status, string? reason);
-    Task<int> CleanupOldRecordsAsync(int daysOld);
-}
