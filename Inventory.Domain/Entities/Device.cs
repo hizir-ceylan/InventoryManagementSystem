@@ -23,5 +23,6 @@ namespace Inventory.Domain.Entities
         public ManagementType ManagementType { get; set; }
         public DiscoveryMethod DiscoveryMethod { get; set; }
         public DateTime? LastSeen { get; set; }
+        public DateTime? LastUpdate { get; set; }
     }
 }

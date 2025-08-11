@@ -30,6 +30,8 @@ namespace Inventory.Data
                 entity.HasIndex(e => e.MacAddress);
                 entity.HasIndex(e => e.IpAddress);
                 entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.LastSeen);
+                entity.HasIndex(e => e.LastUpdate);
 
                 // DeviceHardwareInfo'yu owned entity olarak yapılandır
                 entity.OwnsOne(e => e.HardwareInfo, hardware =>

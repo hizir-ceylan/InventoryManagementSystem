@@ -220,9 +220,11 @@ namespace Inventory.Api.Services
         Task<Device?> FindDeviceByNameMacAndIpAsync(string? deviceName, string? macAddress, string? ipAddress);
         Task<Device> CreateDeviceAsync(Device device);
         Task<Device> UpdateDeviceAsync(Device device);
+        Task<Device> UpdateDeviceAsync(Device device, bool isDataChange);
         Task<bool> DeleteDeviceAsync(Guid id);
         Task<Device?> CreateOrUpdateDeviceAsync(Device device);
         Task<List<Device>> BatchCreateOrUpdateDevicesAsync(List<Device> devices);
+        Task<List<Device>> UpdateDeviceStatusesAsync(); // New method to update device statuses
     }
 
     public class DeviceService : IDeviceService
@@ -281,6 +283,7 @@ namespace Inventory.Api.Services
                                 existingDevice.IpAddress != networkDevice.IpAddress)
                             {
                                 existingDevice.IpAddress = networkDevice.IpAddress;
+                                existingDevice.LastUpdate = TimeZoneHelper.GetUtcNowForStorage();
                                 
                                 // Log IP change
                                 existingDevice.ChangeLogs ??= new List<ChangeLog>();
@@ -345,6 +348,7 @@ namespace Inventory.Api.Services
                                 ManagementType = ManagementType.NetworkDiscovery,
                                 DiscoveryMethod = DiscoveryMethod.NetworkDiscovery,
                                 LastSeen = TimeZoneHelper.GetUtcNowForStorage(),
+                                LastUpdate = TimeZoneHelper.GetUtcNowForStorage(), // New devices get initial LastUpdate
                                 ChangeLogs = new List<ChangeLog>()
                             };
 
@@ -494,6 +498,7 @@ namespace Inventory.Api.Services
                 device.DiscoveryMethod = DiscoveryMethod.Manual;
             
             device.LastSeen = TimeZoneHelper.GetUtcNowForStorage();
+            device.LastUpdate = TimeZoneHelper.GetUtcNowForStorage(); // New devices get initial LastUpdate
             
             try
             {
@@ -634,7 +639,18 @@ namespace Inventory.Api.Services
 
         public async Task<Device> UpdateDeviceAsync(Device device)
         {
+            return await UpdateDeviceAsync(device, false);
+        }
+
+        public async Task<Device> UpdateDeviceAsync(Device device, bool isDataChange)
+        {
             device.LastSeen = TimeZoneHelper.GetUtcNowForStorage();
+            
+            // Only update LastUpdate if this represents actual data changes
+            if (isDataChange)
+            {
+                device.LastUpdate = TimeZoneHelper.GetUtcNowForStorage();
+            }
             
             // Clear any existing tracking to avoid conflicts
             _context.ChangeTracker.Clear();
@@ -972,7 +988,10 @@ namespace Inventory.Api.Services
                     }
                 }
 
-                var result = await UpdateDeviceAsync(existingDevice);
+                // Check if any changes were made (either property changes or new change logs)
+                bool hasChanges = changes.Any() || (device.ChangeLogs != null && device.ChangeLogs.Any());
+                
+                var result = await UpdateDeviceAsync(existingDevice, hasChanges);
                 
                 if (changes.Any())
                 {
@@ -1017,6 +1036,53 @@ namespace Inventory.Api.Services
             }
             
             return results;
+        }
+
+        /// <summary>
+        /// Updates device statuses based on LastSeen times
+        /// This should be called periodically to ensure device statuses are current
+        /// </summary>
+        public async Task<List<Device>> UpdateDeviceStatusesAsync()
+        {
+            var devices = await _context.Devices.ToListAsync();
+            var updatedDevices = new List<Device>();
+
+            foreach (var device in devices)
+            {
+                var currentStatus = device.Status;
+                var computedStatus = TimeZoneHelper.GetDeviceStatus(device.LastSeen, currentStatus);
+
+                // Only update if status has changed
+                if (currentStatus != computedStatus)
+                {
+                    device.Status = computedStatus;
+                    device.LastSeen = TimeZoneHelper.GetUtcNowForStorage(); // Update LastSeen to current time
+
+                    // Create a change log for status change
+                    device.ChangeLogs ??= new List<ChangeLog>();
+                    device.ChangeLogs.Add(new ChangeLog
+                    {
+                        Id = Guid.NewGuid(),
+                        DeviceId = device.Id,
+                        ChangeDate = TimeZoneHelper.GetUtcNowForStorage(),
+                        ChangeType = "Status",
+                        OldValue = currentStatus.ToString(),
+                        NewValue = computedStatus.ToString(),
+                        ChangedBy = "System"
+                    });
+
+                    device.LastUpdate = TimeZoneHelper.GetUtcNowForStorage(); // Update LastUpdate since this is a data change
+                    updatedDevices.Add(device);
+                }
+            }
+
+            if (updatedDevices.Any())
+            {
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Updated status for {Count} devices", updatedDevices.Count);
+            }
+
+            return updatedDevices;
         }
 
         /// <summary>

@@ -23,6 +23,11 @@ class InventoryApp {
                 this.loadDevices(false); // Silent refresh
             }
         }, window.INVENTORY_CONFIG?.AUTO_REFRESH_INTERVAL || 30000);
+
+        // Set up device status update every 5 minutes
+        setInterval(() => {
+            this.updateDeviceStatuses();
+        }, 5 * 60 * 1000); // 5 minutes
     }
 
     // Setup mobile menu
@@ -615,7 +620,7 @@ class InventoryApp {
                 </div>
                 <div class="device-info-item">
                     <span class="device-info-label">Son Güncelleme:</span>
-                    <span class="device-info-value">${this.getLastUpdateInfo(device)}</span>
+                    <span class="device-info-value">${device.lastUpdate ? this.formatDate(device.lastUpdate) : (device.lastSeen ? this.formatDate(device.lastSeen) : 'Bilinmiyor')}</span>
                 </div>
             </div>
 
@@ -1028,7 +1033,23 @@ class InventoryApp {
         this.loadDevices();
     }
 
-    // Update last update time
+    // Update device statuses based on LastSeen times
+    async updateDeviceStatuses() {
+        try {
+            const response = await this.apiCall('device/update-statuses', {
+                method: 'POST'
+            });
+            
+            if (response.success && response.updatedCount > 0) {
+                console.log(`Updated ${response.updatedCount} device statuses`);
+                // Silently reload devices to reflect status changes
+                await this.loadDevices(false);
+            }
+        } catch (error) {
+            console.warn('Failed to update device statuses:', error);
+            // Don't show error to user as this is a background operation
+        }
+    }
     updateLastUpdateTime() {
         const now = new Date();
         const updateText = `Son güncelleme: ${this.formatDate(now)}`;
