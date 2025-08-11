@@ -304,6 +304,29 @@ namespace Inventory.Api.Services
                         }
                         else
                         {
+                            // Get manufacturer from MAC OUI if model is unknown
+                            var deviceModel = networkDevice.Model;
+                            if (string.IsNullOrWhiteSpace(deviceModel) || 
+                                deviceModel.Equals("unknown", StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (!string.IsNullOrWhiteSpace(networkDevice.MacAddress))
+                                {
+                                    var manufacturer = OuiLookup.GetManufacturer(networkDevice.MacAddress);
+                                    if (!string.IsNullOrWhiteSpace(manufacturer) && !manufacturer.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        deviceModel = manufacturer;
+                                    }
+                                    else
+                                    {
+                                        deviceModel = "Unknown";
+                                    }
+                                }
+                                else
+                                {
+                                    deviceModel = "Unknown";
+                                }
+                            }
+
                             // Create new device from network discovery
                             var newDevice = new Device
                             {
@@ -315,7 +338,7 @@ namespace Inventory.Api.Services
                                 IpAddress = networkDevice.IpAddress,
                                 MacAddress = networkDevice.MacAddress,
                                 DeviceType = networkDevice.DeviceType,
-                                Model = networkDevice.Model,
+                                Model = deviceModel,
                                 Location = GetDynamicLocation(networkDevice.IpAddress, networkDevice.Location),
                                 Status = (int)networkDevice.Status,
                                 AgentInstalled = false, // Network discovered devices don't have agent

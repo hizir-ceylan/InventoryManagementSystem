@@ -189,6 +189,29 @@ namespace Inventory.Api.Controllers
         [SwaggerResponse(400, "Geçersiz cihaz verisi")]
         public async Task<ActionResult<Device>> CreateNetworkDiscoveredDevice(NetworkDeviceRegistrationDto deviceDto)
         {
+            // Get manufacturer from MAC OUI if model is unknown
+            var deviceModel = deviceDto.Model;
+            if (string.IsNullOrWhiteSpace(deviceModel) || 
+                deviceModel.Equals("unknown", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrWhiteSpace(deviceDto.MacAddress))
+                {
+                    var manufacturer = OuiLookup.GetManufacturer(deviceDto.MacAddress);
+                    if (!string.IsNullOrWhiteSpace(manufacturer) && !manufacturer.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+                    {
+                        deviceModel = manufacturer;
+                    }
+                    else
+                    {
+                        deviceModel = "Unknown";
+                    }
+                }
+                else
+                {
+                    deviceModel = "Unknown";
+                }
+            }
+
             // DTO'dan cihaz modeli oluştur
             var device = new Device
             {
@@ -197,7 +220,7 @@ namespace Inventory.Api.Controllers
                 IpAddress = deviceDto.IpAddress,
                 MacAddress = deviceDto.MacAddress,
                 DeviceType = deviceDto.DeviceType,
-                Model = deviceDto.Model,
+                Model = deviceModel,
                 Location = LocationHelper.GetLocationByIpAddress(deviceDto.IpAddress, deviceDto.Location ?? "Network Discovery"),
                 ManagementType = deviceDto.ManagementType,
                 AgentInstalled = deviceDto.AgentInstalled,
