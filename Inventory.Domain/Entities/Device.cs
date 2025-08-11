@@ -13,6 +13,7 @@ namespace Inventory.Domain.Entities
         public string? Model { get; set; }
         public string? Location { get; set; }
         public int Status { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public List<ChangeLog>? ChangeLogs { get; set; }
         public DeviceHardwareInfo? HardwareInfo { get; set; }
         public DeviceSoftwareInfo? SoftwareInfo { get; set; }

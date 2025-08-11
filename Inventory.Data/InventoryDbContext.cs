@@ -25,8 +25,10 @@ namespace Inventory.Data
                 entity.Property(e => e.IpAddress).HasMaxLength(15);
                 entity.Property(e => e.Model).HasMaxLength(200);
                 entity.Property(e => e.Location).HasMaxLength(200);
+                entity.Property(e => e.CreatedAt).IsRequired();
                 entity.HasIndex(e => e.MacAddress);
                 entity.HasIndex(e => e.IpAddress);
+                entity.HasIndex(e => e.CreatedAt);
 
                 // DeviceHardwareInfo'yu owned entity olarak yapılandır
                 entity.OwnsOne(e => e.HardwareInfo, hardware =>

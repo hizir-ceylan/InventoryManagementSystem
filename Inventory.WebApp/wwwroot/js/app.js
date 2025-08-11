@@ -235,8 +235,7 @@ class InventoryApp {
 
         document.getElementById('total-devices').textContent = totalDevices;
         document.getElementById('active-devices').textContent = activeDevices;
-        document.getElementById('agent-devices').textContent = agentDevicesCount;
-        document.getElementById('network-devices').textContent = networkDevicesCount;
+        // Removed agent-devices and network-devices cards
     }
 
     // Load update statistics
@@ -276,12 +275,6 @@ class InventoryApp {
         switch (type) {
             case 'active':
                 document.getElementById('filter-status').value = '0'; // Active status
-                break;
-            case 'agent':
-                document.getElementById('filter-discovery').value = 'agent';
-                break;
-            case 'network':
-                document.getElementById('filter-discovery').value = 'network';
                 break;
             case 'updates':
                 // For updates, we could implement a special filter or navigate to a specific view
@@ -605,10 +598,6 @@ class InventoryApp {
                     <span class="device-info-value">${device.location || 'Bilinmiyor'}</span>
                 </div>
                 <div class="device-info-item">
-                    <span class="device-info-label">Yönetim Türü:</span>
-                    <span class="device-info-value">${this.getManagementTypeText(device.managementType)}</span>
-                </div>
-                <div class="device-info-item">
                     <span class="device-info-label">Keşif Yöntemi:</span>
                     <span class="device-info-value">${this.getDiscoveryMethodText(device.discoveryMethod)}</span>
                 </div>
@@ -617,20 +606,16 @@ class InventoryApp {
             <div class="device-info-group">
                 <h6><i class="bi bi-calendar"></i> Zaman Bilgileri</h6>
                 <div class="device-info-item">
-                    <span class="device-info-label">İlk Görülme:</span>
-                    <span class="device-info-value">${device.firstSeen ? this.formatDate(device.firstSeen) : 'Bilinmiyor'}</span>
+                    <span class="device-info-label">Oluşturulma:</span>
+                    <span class="device-info-value">${device.createdAt ? this.formatDate(device.createdAt) : 'Bilinmiyor'}</span>
                 </div>
                 <div class="device-info-item">
                     <span class="device-info-label">Son Görülme:</span>
                     <span class="device-info-value">${device.lastSeen ? this.formatDate(device.lastSeen) : 'Bilinmiyor'}</span>
                 </div>
                 <div class="device-info-item">
-                    <span class="device-info-label">Oluşturulma:</span>
-                    <span class="device-info-value">${device.createdAt ? this.formatDate(device.createdAt) : 'Bilinmiyor'}</span>
-                </div>
-                <div class="device-info-item">
                     <span class="device-info-label">Son Güncelleme:</span>
-                    <span class="device-info-value">${device.updatedAt ? this.formatDate(device.updatedAt) : 'Bilinmiyor'}</span>
+                    <span class="device-info-value">${this.getLastUpdateInfo(device)}</span>
                 </div>
             </div>
 
@@ -1156,20 +1141,20 @@ class InventoryApp {
     getDiscoveryTypeBadgeClass(device) {
         if (device.agentInstalled || device.managementType === 'Agent' || device.discoveryMethod === 'Agent') {
             return 'badge-success'; // Green for agent-installed devices
-        } else if (device.managementType === 'NetworkDiscovery' || device.discoveryMethod === 'NetworkDiscovery') {
-            return 'badge-info'; // Blue for network discovered devices
+        } else if (device.managementType === 'NetworkDiscovery' || device.discoveryMethod === 'NetworkDiscovery' || device.discoveryMethod === 'Manual') {
+            return 'badge-info'; // Blue for network discovered devices (including manual network discovery)
         } else {
-            return 'badge-secondary'; // Gray for manual/unknown
+            return 'badge-secondary'; // Gray for unknown
         }
     }
 
     getDiscoveryTypeText(device) {
         if (device.agentInstalled || device.managementType === 'Agent' || device.discoveryMethod === 'Agent') {
             return 'Ajan';
-        } else if (device.managementType === 'NetworkDiscovery' || device.discoveryMethod === 'NetworkDiscovery') {
-            return 'Ağ Keşfi';
+        } else if (device.managementType === 'NetworkDiscovery' || device.discoveryMethod === 'NetworkDiscovery' || device.discoveryMethod === 'Manual') {
+            return 'Ağ Keşfi'; // Show "Ağ Keşfi" for both network discovery and manual network discovery
         } else {
-            return 'Manuel';
+            return 'Bilinmiyor';
         }
     }
 
@@ -1210,6 +1195,23 @@ class InventoryApp {
 
         // If device was seen recently, it's online (status 0)
         return 0; // Aktif/Online
+    }
+
+    // Get last update information from change logs or fallback to last seen
+    getLastUpdateInfo(device) {
+        if (device.changeLogs && device.changeLogs.length > 0) {
+            // Find the most recent change log
+            const latestChangeLog = device.changeLogs.reduce((latest, current) => {
+                const latestDate = new Date(latest.changeDate);
+                const currentDate = new Date(current.changeDate);
+                return currentDate > latestDate ? current : latest;
+            });
+            return this.formatDate(latestChangeLog.changeDate);
+        } else if (device.lastSeen) {
+            return this.formatDate(device.lastSeen);
+        } else {
+            return 'Bilinmiyor';
+        }
     }
 
     getManagementTypeText(managementType) {
