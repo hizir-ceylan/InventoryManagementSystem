@@ -2,7 +2,7 @@
 ; This script creates a setup.exe that installs both API and Agent services
 
 #define MyAppName "Inventory Management System"
-#define MyAppVersion "1.0.1"
+#define MyAppVersion "1.1"
 #define MyAppPublisher "Hizir Ceylan"
 #define MyAppURL "https://github.com/hizir-ceylan/InventoryManagementSystem"
 #define MyAppExeName "Inventory.Api.exe"
