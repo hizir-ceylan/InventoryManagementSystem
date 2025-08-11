@@ -230,10 +230,72 @@ class InventoryApp {
         const agentDevicesCount = agentDevices?.length || 0;
         const networkDevicesCount = networkDevices?.length || 0;
 
+        // Load update statistics asynchronously
+        this.loadUpdateStatistics();
+
         document.getElementById('total-devices').textContent = totalDevices;
         document.getElementById('active-devices').textContent = activeDevices;
         document.getElementById('agent-devices').textContent = agentDevicesCount;
         document.getElementById('network-devices').textContent = networkDevicesCount;
+    }
+
+    // Load update statistics
+    async loadUpdateStatistics() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/Update/statistics`);
+            if (response.ok) {
+                const stats = await response.json();
+                const availableUpdates = stats.availableCount || 0;
+                document.getElementById('update-devices').textContent = availableUpdates;
+            } else {
+                // Fallback to count devices with available updates
+                const updatesResponse = await fetch(`${this.apiBaseUrl}/api/Update/available`);
+                if (updatesResponse.ok) {
+                    const updates = await updatesResponse.json();
+                    const deviceIds = new Set(updates.map(u => u.deviceId));
+                    document.getElementById('update-devices').textContent = deviceIds.size;
+                } else {
+                    document.getElementById('update-devices').textContent = '0';
+                }
+            }
+        } catch (error) {
+            console.warn('Could not load update statistics:', error);
+            document.getElementById('update-devices').textContent = '0';
+        }
+    }
+
+    // Handle statistics card clicks
+    handleStatCardClick(type) {
+        // Navigate to devices page
+        this.showPage('devices');
+        
+        // Clear existing filters first
+        this.clearFilters();
+        
+        // Apply specific filter based on clicked card
+        switch (type) {
+            case 'active':
+                document.getElementById('filter-status').value = '0'; // Active status
+                break;
+            case 'agent':
+                document.getElementById('filter-discovery').value = 'agent';
+                break;
+            case 'network':
+                document.getElementById('filter-discovery').value = 'network';
+                break;
+            case 'updates':
+                // For updates, we could implement a special filter or navigate to a specific view
+                // For now, just show all devices - this could be extended later
+                console.log('Updates card clicked - could implement special updates view');
+                break;
+            case 'total':
+            default:
+                // Show all devices (no filter)
+                break;
+        }
+        
+        // Apply the filters
+        this.filterDevices();
     }
 
     // Filter devices based on search and filters
@@ -252,8 +314,9 @@ class InventoryApp {
                 device.model?.toLowerCase().includes(searchTerm) ||
                 device.location?.toLowerCase().includes(searchTerm);
 
-            // Status filter
-            const matchesStatus = !statusFilter || device.status.toString() === statusFilter;
+            // Status filter - use computed status for consistency with display
+            const computedStatus = this.getComputedStatus(device);
+            const matchesStatus = !statusFilter || computedStatus.toString() === statusFilter;
 
             // Type filter
             const matchesType = !typeFilter || device.deviceType.toString() === typeFilter;
@@ -420,14 +483,52 @@ class InventoryApp {
                     </div>
                 </div>
                 ${this.renderDeviceDetail(device)}
+                <div id="update-info-container">
+                    <div class="device-info-group">
+                        <h6><i class="bi bi-arrow-up-circle"></i> Sistem Güncellemeleri</h6>
+                        <div class="device-info-item">
+                            <span class="device-info-value text-muted">
+                                <i class="bi bi-hourglass-split"></i>
+                                Güncelleme bilgileri yükleniyor...
+                            </span>
+                        </div>
+                    </div>
+                </div>
             `;
 
             // Show device details page
             this.showPage('device-details');
 
+            // Load update information asynchronously
+            this.loadDeviceUpdateInfo(device);
+
             this.hideLoading();
         } catch (error) {
             this.showError('Cihaz detayları yüklenirken hata oluştu: ' + error.message);
+        }
+    }
+
+    // Load device update information asynchronously
+    async loadDeviceUpdateInfo(device) {
+        try {
+            const updateHtml = await this.renderUpdateInfo(device);
+            const container = document.getElementById('update-info-container');
+            if (container) {
+                container.innerHTML = updateHtml;
+            }
+        } catch (error) {
+            console.error('Error loading device update info:', error);
+            const container = document.getElementById('update-info-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="device-info-group">
+                        <h6><i class="bi bi-arrow-up-circle"></i> Sistem Güncellemeleri</h6>
+                        <div class="device-info-item">
+                            <span class="device-info-value text-muted">Güncelleme bilgisi yüklenirken hata oluştu</span>
+                        </div>
+                    </div>
+                `;
+            }
         }
     }
 
@@ -787,6 +888,106 @@ class InventoryApp {
         }
     }
 
+    // Render update information section
+    async renderUpdateInfo(device) {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/Update/device/${device.id}`);
+            
+            if (!response.ok) {
+                return `
+                    <div class="device-info-group">
+                        <h6><i class="bi bi-arrow-up-circle"></i> Sistem Güncellemeleri</h6>
+                        <div class="device-info-item">
+                            <span class="device-info-value text-muted">Bu cihaz için güncelleme bilgisi alınamadı</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const updates = await response.json();
+            
+            if (!updates || updates.length === 0) {
+                return `
+                    <div class="device-info-group">
+                        <h6><i class="bi bi-arrow-up-circle"></i> Sistem Güncellemeleri</h6>
+                        <div class="device-info-item">
+                            <span class="device-info-value text-success">
+                                <i class="bi bi-check-circle"></i>
+                                Bu cihaz için mevcut güncelleme bulunmuyor
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const availableUpdates = updates.filter(u => u.status === 0); // Available status
+            const criticalUpdates = availableUpdates.filter(u => u.priority >= 3); // Critical or Security
+
+            return `
+                <div class="device-info-group">
+                    <h6><i class="bi bi-arrow-up-circle"></i> Sistem Güncellemeleri</h6>
+                    
+                    ${availableUpdates.length > 0 ? `
+                        <div class="device-info-item">
+                            <span class="device-info-label">Mevcut Güncellemeler:</span>
+                            <span class="device-info-value">
+                                <span class="badge badge-warning">${availableUpdates.length} güncelleme</span>
+                                ${criticalUpdates.length > 0 ? `<span class="badge badge-danger">${criticalUpdates.length} kritik</span>` : ''}
+                            </span>
+                        </div>
+                        
+                        <div class="device-info-item">
+                            <div class="device-info-value">
+                                <div class="updates-list">
+                                    ${availableUpdates.slice(0, 5).map(update => `
+                                        <div class="update-item">
+                                            <div class="update-info">
+                                                <strong>${update.title}</strong>
+                                                ${update.updateType ? `<span class="update-type">(${update.updateType})</span>` : ''}
+                                                ${update.priority >= 3 ? '<span class="badge badge-danger badge-sm">Kritik</span>' : ''}
+                                            </div>
+                                            ${update.description ? `<div class="update-description">${update.description.substring(0, 100)}${update.description.length > 100 ? '...' : ''}</div>` : ''}
+                                            ${update.kbNumber ? `<div class="update-kb">KB: ${update.kbNumber}</div>` : ''}
+                                        </div>
+                                    `).join('')}
+                                    
+                                    ${availableUpdates.length > 5 ? `
+                                        <div class="update-item text-muted">
+                                            <i class="bi bi-three-dots"></i>
+                                            ve ${availableUpdates.length - 5} diğer güncelleme...
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="device-info-item">
+                            <span class="device-info-label">Son Kontrol:</span>
+                            <span class="device-info-value">${updates.length > 0 && updates[0].lastChecked ? this.formatDate(updates[0].lastChecked) : 'Bilinmiyor'}</span>
+                        </div>
+                    ` : `
+                        <div class="device-info-item">
+                            <span class="device-info-value text-success">
+                                <i class="bi bi-check-circle"></i>
+                                Bu cihaz güncel durumda
+                            </span>
+                        </div>
+                    `}
+                </div>
+            `;
+        } catch (error) {
+            console.warn('Update info could not be loaded:', error);
+            return `
+                <div class="device-info-group">
+                    <h6><i class="bi bi-arrow-up-circle"></i> Sistem Güncellemeleri</h6>
+                    <div class="device-info-item">
+                        <span class="device-info-value text-muted">Güncelleme bilgisi yüklenirken hata oluştu</span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
     // Show different pages
     showPage(pageId) {
         // Hide all pages
@@ -910,26 +1111,26 @@ class InventoryApp {
 
     getDeviceTypeText(deviceType) {
         const types = {
-            0: 'Unknown',
+            0: 'Bilinmiyor',
             1: 'Laptop',
-            2: 'Desktop',
-            3: 'Server',
-            4: 'Printer',
-            5: 'Scanner',
-            6: 'Camera',
-            7: 'IP Phone',
-            8: 'Network Device',
+            2: 'Masaüstü',
+            3: 'Sunucu',
+            4: 'Yazıcı',
+            5: 'Tarayıcı',
+            6: 'Kamera',
+            7: 'IP Telefon',
+            8: 'Ağ Cihazı',
             9: 'Router',
             10: 'Switch',
             11: 'Access Point',
-            12: 'Storage',
+            12: 'Depolama',
             13: 'Tablet',
-            14: 'Smartphone',
-            15: 'Smart TV',
-            16: 'Projector/Display',
-            17: 'Other'
+            14: 'Akıllı Telefon',
+            15: 'Akıllı TV',
+            16: 'Projektör/Ekran',
+            17: 'Diğer'
         };
-        return types[deviceType] || 'Unknown';
+        return types[deviceType] || 'Bilinmiyor';
     }
 
     getStatusBadgeClass(status) {
@@ -964,11 +1165,11 @@ class InventoryApp {
 
     getDiscoveryTypeText(device) {
         if (device.agentInstalled || device.managementType === 'Agent' || device.discoveryMethod === 'Agent') {
-            return 'Agent';
+            return 'Ajan';
         } else if (device.managementType === 'NetworkDiscovery' || device.discoveryMethod === 'NetworkDiscovery') {
-            return 'Network';
+            return 'Ağ Keşfi';
         } else {
-            return 'Manual';
+            return 'Manuel';
         }
     }
 
@@ -1014,7 +1215,7 @@ class InventoryApp {
     getManagementTypeText(managementType) {
         const types = {
             0: 'Yönetilmeyen',
-            1: 'Agent Kurulu',
+            1: 'Ajan',
             2: 'Ağ Keşfi'
         };
         return types[managementType] || 'Bilinmiyor';
@@ -1026,7 +1227,7 @@ class InventoryApp {
             1: 'Ping',
             2: 'Port Tarama',
             3: 'SNMP',
-            4: 'Agent Kaydı'
+            4: 'Ajan Kaydı'
         };
         return methods[discoveryMethod] || 'Bilinmiyor';
     }
@@ -1124,7 +1325,7 @@ class InventoryApp {
                             this.displayScanResults(devices.map(device => ({
                                 ip: device.ipAddress,
                                 mac: device.macAddress,
-                                name: device.name || 'Unknown',
+                                name: device.name || 'Bilinmiyor',
                                 status: 'Discovered',
                                 ports: device.openPorts && device.openPorts.length > 0 ? device.openPorts.join(', ') : 'None'
                             })));
