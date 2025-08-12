@@ -266,6 +266,23 @@ namespace Inventory.Api.Helpers
                     });
                     break;
 
+                // Yaygın özel IP aralıkları
+                case 168 when secondOctet == 105: // 168.105.x.x gibi varyasyonlar
+                    additionalRanges.AddRange(new[]
+                    {
+                        "168.105.0.0/24",
+                        $"168.105.{ipBytes[2]}.0/24"
+                    });
+                    break;
+
+                case 168 when secondOctet == 112: // 168.112.x.x gibi varyasyonlar  
+                    additionalRanges.AddRange(new[]
+                    {
+                        "168.112.0.0/24",
+                        $"168.112.{ipBytes[2]}.0/24"
+                    });
+                    break;
+
                 // Diğer kurumsal aralıklar (Class A özel aralıkları)
                 default:
                     if (firstOctet >= 1 && firstOctet <= 126 && firstOctet != 127)
