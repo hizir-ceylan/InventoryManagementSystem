@@ -65,13 +65,10 @@ namespace Inventory.Api.Helpers
             {
                 networkRanges.AddRange(new[]
                 {
-                    "192.168.1.0/24",  // Yaygın ev ağları
-                    "192.168.0.0/24",  // Yaygın ev ağları
+                    "192.168.0.0/16",  // Yaygın ev ağları
                     "10.0.0.0/24",     // Kurumsal ağlar
                     "172.16.0.0/24",   // Özel ağlar
-                    "100.64.0.0/24",   // Carrier-grade NAT
-                    "105.0.0.0/24",    // Kullanıcının belirttiği aralık
-                    "112.0.0.0/24"     // Kullanıcının belirttiği aralık
+                    "100.64.0.0/24"
                 });
             }
 
