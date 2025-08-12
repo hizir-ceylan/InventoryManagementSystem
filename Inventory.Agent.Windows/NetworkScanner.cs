@@ -16,9 +16,9 @@ namespace Inventory.Agent.Windows
         private readonly string _networkRange;
         private readonly CentralizedLogger _logger;
 
-        public NetworkScanner(string networkRange = "192.168.1.0/24")
+        public NetworkScanner(string? networkRange = null)
         {
-            _networkRange = networkRange;
+            _networkRange = networkRange ?? DetectLocalNetworkRange();
             _logger = new CentralizedLogger("https://localhost:5001", "NetworkScanner");
         }
 
@@ -186,6 +186,111 @@ namespace Inventory.Agent.Windows
             }
 
             return ipAddresses;
+        }
+
+        /// <summary>
+        /// Yerel ağ aralığını otomatik olarak algılar
+        /// </summary>
+        /// <returns>CIDR notasyonunda ağ aralığı</returns>
+        private string DetectLocalNetworkRange()
+        {
+            try
+            {
+                var networkInterfaces = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces();
+
+                foreach (var networkInterface in networkInterfaces)
+                {
+                    // Loopback ve çalışmayan arayüzleri atla
+                    if (networkInterface.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback ||
+                        networkInterface.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up)
+                    {
+                        continue;
+                    }
+
+                    var ipProperties = networkInterface.GetIPProperties();
+
+                    foreach (var unicastAddress in ipProperties.UnicastAddresses)
+                    {
+                        // Sadece IPv4 adreslerini işle
+                        if (unicastAddress.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        {
+                            var networkRange = CalculateNetworkRangeFromAddress(unicastAddress.Address, unicastAddress.IPv4Mask);
+                            if (!string.IsNullOrEmpty(networkRange))
+                            {
+                                return networkRange;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error detecting local network range: {ex.Message}");
+            }
+
+            // Yedek aralık olarak yaygın özel aralıkları döndür
+            return "192.168.1.0/24";
+        }
+
+        /// <summary>
+        /// IP adresi ve alt ağ maskesinden CIDR notasyonunda ağ aralığını hesaplar
+        /// </summary>
+        /// <param name="ipAddress">IP adresi</param>
+        /// <param name="subnetMask">Alt ağ maskesi</param>
+        /// <returns>CIDR notasyonunda ağ aralığı</returns>
+        private string CalculateNetworkRangeFromAddress(IPAddress ipAddress, IPAddress subnetMask)
+        {
+            try
+            {
+                var ipBytes = ipAddress.GetAddressBytes();
+                var maskBytes = subnetMask.GetAddressBytes();
+
+                // Ağ adresini hesapla
+                var networkBytes = new byte[4];
+                for (int i = 0; i < 4; i++)
+                {
+                    networkBytes[i] = (byte)(ipBytes[i] & maskBytes[i]);
+                }
+
+                var networkAddress = new IPAddress(networkBytes);
+
+                // CIDR önek uzunluğunu hesapla
+                var prefixLength = CalculatePrefixLengthFromMask(subnetMask);
+
+                return $"{networkAddress}/{prefixLength}";
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Alt ağ maskesinden CIDR önek uzunluğunu hesaplar
+        /// </summary>
+        /// <param name="subnetMask">Alt ağ maskesi</param>
+        /// <returns>CIDR önek uzunluğu</returns>
+        private int CalculatePrefixLengthFromMask(IPAddress subnetMask)
+        {
+            var maskBytes = subnetMask.GetAddressBytes();
+            var prefixLength = 0;
+
+            foreach (var maskByte in maskBytes)
+            {
+                for (int i = 7; i >= 0; i--)
+                {
+                    if ((maskByte & (1 << i)) != 0)
+                    {
+                        prefixLength++;
+                    }
+                    else
+                    {
+                        return prefixLength;
+                    }
+                }
+            }
+
+            return prefixLength;
         }
     }
 }

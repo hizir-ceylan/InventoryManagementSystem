@@ -1003,6 +1003,8 @@ class InventoryApp {
             this.loadDevices();
         } else if (pageId === 'change-logs') {
             this.loadChangeLogs();
+        } else if (pageId === 'network-scan') {
+            this.loadNetworkRanges();
         }
     }
 
@@ -1256,7 +1258,7 @@ class InventoryApp {
 
     // Network Scan functionality
     async startNetworkScan() {
-        const networkRange = document.getElementById('network-range').value;
+        const networkRange = await this.getEffectiveNetworkRange();
         const timeout = document.getElementById('scan-timeout').value;
         const portScan = document.getElementById('port-scan').value;
 
@@ -1377,6 +1379,79 @@ class InventoryApp {
     async addToInventory(ip, mac, name) {
         alert(`${name} (${ip}) envantere eklendi!`);
         // Here you would make an API call to add the device
+    }
+
+    // Network Range Helper Functions
+    updateNetworkRange() {
+        const preset = document.getElementById('network-range-preset');
+        const input = document.getElementById('network-range');
+        
+        if (preset.value === 'auto') {
+            input.value = 'auto';
+            input.placeholder = 'Otomatik algılanacak';
+            input.disabled = true;
+        } else if (preset.value === '') {
+            input.value = '';
+            input.placeholder = 'Örn: 105.10.5.0/24 veya 112.30.45.0/24';
+            input.disabled = false;
+        } else {
+            input.value = preset.value;
+            input.disabled = false;
+        }
+    }
+
+    async loadNetworkRanges() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/NetworkScan/network-ranges`);
+            if (response.ok) {
+                const data = await response.json();
+                const preset = document.getElementById('network-range-preset');
+                
+                // Add detected ranges to the dropdown if they're not already there
+                data.networkRanges.forEach(range => {
+                    const existingOption = Array.from(preset.options).find(option => option.value === range);
+                    if (!existingOption && range !== '192.168.1.0/24' && range !== '192.168.0.0/24') {
+                        const option = document.createElement('option');
+                        option.value = range;
+                        option.textContent = `${range} (Algılanan)`;
+                        preset.appendChild(option);
+                    }
+                });
+                
+                // If there are detected ranges, set the first one as default
+                if (data.networkRanges.length > 0) {
+                    const firstRange = data.networkRanges[0];
+                    // Check if it's not a common range we already have
+                    const commonRanges = ['192.168.1.0/24', '192.168.0.0/24', '10.0.0.0/24', '172.16.0.0/24'];
+                    if (!commonRanges.includes(firstRange)) {
+                        preset.value = firstRange;
+                        this.updateNetworkRange();
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('Could not load network ranges:', error);
+            // Fallback to manual entry
+        }
+    }
+
+    async getEffectiveNetworkRange() {
+        const input = document.getElementById('network-range');
+        
+        if (input.value === 'auto') {
+            try {
+                const response = await fetch(`${this.apiBaseUrl}/api/NetworkScan/network-ranges`);
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.networkRanges.length > 0 ? data.networkRanges[0] : '192.168.1.0/24';
+                }
+            } catch (error) {
+                console.warn('Could not get network ranges, using default:', error);
+            }
+            return '192.168.1.0/24'; // Fallback
+        }
+        
+        return input.value || '192.168.1.0/24';
     }
 
     // Change Logs functionality
