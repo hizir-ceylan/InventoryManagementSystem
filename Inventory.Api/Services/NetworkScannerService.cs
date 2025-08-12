@@ -118,36 +118,49 @@ namespace Inventory.Api.Services
                 if (reply.Status == IPStatus.Success)
                 {
                     var macAddress = await GetMacAddressAsync(ipAddress);
+                    
+                    // Perform port scanning
+                    var openPorts = await ScanPortsAsync(ipAddress, portScanType, timeoutMs);
+                    
+                    // For cross-network scanning, MAC address might not be available
+                    // Still create device entry but with limited information
+                    var manufacturer = "Unknown";
+                    var deviceType = DeviceType.Unknown;
+                    
                     if (!string.IsNullOrEmpty(macAddress))
                     {
-                        var manufacturer = OuiLookup.GetManufacturer(macAddress);
-                        var deviceType = OuiLookup.GuessDeviceType(macAddress, manufacturer);
-
-                        // Perform port scanning based on the type
-                        var openPorts = await ScanPortsAsync(ipAddress, portScanType, timeoutMs);
-
-                        var device = new NetworkDeviceResult
-                        {
-                            Name = await GetHostNameAsync(ipAddress),
-                            IpAddress = ipAddress.ToString(),
-                            MacAddress = macAddress,
-                            DeviceType = deviceType,
-                            Manufacturer = manufacturer,
-                            Status = DeviceStatus.Active,
-                            AgentInstalled = false, // Network-discovered devices don't have agent
-                            Location = "Network Discovery",
-                            Model = "Unknown",
-                            DiscoveryMethod = DiscoveryMethod.NetworkDiscovery,
-                            LastSeen = TimeZoneHelper.GetUtcNowForStorage(),
-                            ResponseTime = reply.RoundtripTime,
-                            OpenPorts = openPorts
-                        };
-
-                        await _loggingService.LogInfoAsync("NetworkScanner", $"Device discovered: {device.Name} ({device.IpAddress}) - {device.Manufacturer}");
-                        _logger.LogDebug("Device discovered: {DeviceName} ({IpAddress}) - {Manufacturer}", device.Name, device.IpAddress, device.Manufacturer);
-                        
-                        return device;
+                        manufacturer = OuiLookup.GetManufacturer(macAddress);
+                        deviceType = OuiLookup.GuessDeviceType(macAddress, manufacturer);
                     }
+                    else
+                    {
+                        // For devices without MAC (cross-network), try to guess type from open ports
+                        deviceType = GuessDeviceTypeFromPorts(openPorts);
+                        macAddress = $"Unknown-{ipAddress}"; // Use IP as unique identifier
+                    }
+
+                    var device = new NetworkDeviceResult
+                    {
+                        Name = await GetHostNameAsync(ipAddress),
+                        IpAddress = ipAddress.ToString(),
+                        MacAddress = macAddress,
+                        DeviceType = deviceType,
+                        Manufacturer = manufacturer,
+                        Status = DeviceStatus.Active,
+                        AgentInstalled = false, // Network-discovered devices don't have agent
+                        Location = "Network Discovery",
+                        Model = "Unknown",
+                        DiscoveryMethod = DiscoveryMethod.NetworkDiscovery,
+                        LastSeen = TimeZoneHelper.GetUtcNowForStorage(),
+                        ResponseTime = reply.RoundtripTime,
+                        OpenPorts = openPorts
+                    };
+
+                    await _loggingService.LogInfoAsync("NetworkScanner", 
+                        $"Device discovered: {device.Name} ({device.IpAddress}) - {device.Manufacturer} - MAC: {(macAddress?.StartsWith("Unknown-") == true ? "N/A (Cross-network)" : macAddress)}");
+                    _logger.LogDebug("Device discovered: {DeviceName} ({IpAddress}) - {Manufacturer}", device.Name, device.IpAddress, device.Manufacturer);
+                    
+                    return device;
                 }
             }
             catch (Exception ex)
@@ -299,6 +312,28 @@ namespace Inventory.Api.Services
                 "all" => Enumerable.Range(1, 1024).ToList(), // First 1024 ports
                 _ => new List<int>()
             };
+        }
+
+        private static DeviceType GuessDeviceTypeFromPorts(List<int> openPorts)
+        {
+            if (openPorts.Contains(3389)) // RDP
+                return DeviceType.Desktop;
+            if (openPorts.Contains(22)) // SSH
+                return DeviceType.Server;
+            if (openPorts.Contains(80) || openPorts.Contains(443)) // HTTP/HTTPS
+                return DeviceType.Server;
+            if (openPorts.Contains(21)) // FTP
+                return DeviceType.Server;
+            if (openPorts.Contains(25)) // SMTP
+                return DeviceType.Server;
+            if (openPorts.Contains(53)) // DNS
+                return DeviceType.Server;
+            if (openPorts.Contains(135) || openPorts.Contains(139) || openPorts.Contains(445)) // Windows networking
+                return DeviceType.Desktop;
+            if (openPorts.Contains(5900)) // VNC
+                return DeviceType.Desktop;
+            
+            return DeviceType.Unknown;
         }
     }
 

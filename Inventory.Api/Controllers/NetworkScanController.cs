@@ -79,9 +79,9 @@ namespace Inventory.Api.Controllers
         [HttpGet("history")]
         [SwaggerOperation(Summary = "Ağ tarama geçmişini getir", Description = "Ağ taramalarının geçmişini döndürür")]
         [SwaggerResponse(200, "Tarama geçmişini döndürür")]
-        public IActionResult GetScanHistory()
+        public async Task<IActionResult> GetScanHistory()
         {
-            var history = _networkScanService.GetScanHistory();
+            var history = await _networkScanService.GetScanHistoryAsync();
             return Ok(history);
         }
 

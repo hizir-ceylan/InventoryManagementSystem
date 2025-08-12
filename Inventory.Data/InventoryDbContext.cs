@@ -12,6 +12,8 @@ namespace Inventory.Data
         public DbSet<Device> Devices { get; set; }
         public DbSet<ChangeLog> ChangeLogs { get; set; }
         public DbSet<SystemUpdate> SystemUpdates { get; set; }
+        public DbSet<NetworkScanHistory> NetworkScanHistories { get; set; }
+        public DbSet<PredefinedNetworkRange> PredefinedNetworkRanges { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -132,6 +134,36 @@ namespace Inventory.Data
                     .WithMany()
                     .HasForeignKey(e => e.DeviceId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // NetworkScanHistory için temel yapılandırma
+            modelBuilder.Entity<NetworkScanHistory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ScanType).HasMaxLength(50);
+                entity.Property(e => e.Status).HasMaxLength(50);
+                entity.Property(e => e.Error).HasMaxLength(500);
+                entity.Property(e => e.NetworkRange).HasMaxLength(50);
+                entity.Property(e => e.PortScanType).HasMaxLength(20);
+                entity.HasIndex(e => e.ScanTime);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.NetworkRange);
+                entity.HasIndex(e => e.CreatedAt);
+            });
+
+            // PredefinedNetworkRange için temel yapılandırma
+            modelBuilder.Entity<PredefinedNetworkRange>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.NetworkRange).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(200);
+                entity.Property(e => e.PortScanType).HasMaxLength(20);
+                entity.HasIndex(e => e.Name);
+                entity.HasIndex(e => e.NetworkRange);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.LastScanTime);
             });
         }
     }

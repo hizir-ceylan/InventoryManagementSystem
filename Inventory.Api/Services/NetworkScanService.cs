@@ -14,8 +14,9 @@ namespace Inventory.Api.Services
         Task TriggerManualScanAsync(string networkRange);
         Task TriggerManualScanAsync(string networkRange, int timeoutSeconds, string portScanType);
         Task TriggerScanAllNetworksAsync();
+        Task TriggerScanForPredefinedRangeAsync(Guid predefinedRangeId);
         object GetScanStatus();
-        object GetScanHistory();
+        Task<object> GetScanHistoryAsync();
         void SetSchedule(NetworkScanScheduleDto schedule);
         object GetSchedule();
         List<string> GetLocalNetworkRanges();
@@ -27,21 +28,26 @@ namespace Inventory.Api.Services
         private readonly IDeviceService _deviceService;
         private readonly INetworkScannerService _networkScannerService;
         private readonly ICentralizedLoggingService _loggingService;
+        private readonly InventoryDbContext _context;
+        private readonly IPredefinedNetworkRangeService _predefinedNetworkRangeService;
         private bool _isScanning = false;
         private DateTime? _lastScanTime;
-        private readonly List<NetworkScanHistoryItem> _scanHistory = new();
         private NetworkScanScheduleDto _schedule = new() { Enabled = false, Interval = TimeSpan.FromHours(1) };
 
         public NetworkScanService(
             ILogger<NetworkScanService> logger, 
             IDeviceService deviceService,
             INetworkScannerService networkScannerService,
-            ICentralizedLoggingService loggingService)
+            ICentralizedLoggingService loggingService,
+            InventoryDbContext context,
+            IPredefinedNetworkRangeService predefinedNetworkRangeService)
         {
             _logger = logger;
             _deviceService = deviceService;
             _networkScannerService = networkScannerService;
             _loggingService = loggingService;
+            _context = context;
+            _predefinedNetworkRangeService = predefinedNetworkRangeService;
         }
 
         public async Task TriggerManualScanAsync()
@@ -82,6 +88,26 @@ namespace Inventory.Api.Services
             }
 
             await TriggerScanAsync("Manual-AllNetworks", null, true);
+        }
+
+        public async Task TriggerScanForPredefinedRangeAsync(Guid predefinedRangeId)
+        {
+            if (_isScanning)
+            {
+                throw new InvalidOperationException("Tarama zaten devam ediyor.");
+            }
+
+            var predefinedRange = await _predefinedNetworkRangeService.GetByIdAsync(predefinedRangeId);
+            if (predefinedRange == null)
+            {
+                throw new ArgumentException("Öntanımlı ağ aralığı bulunamadı.");
+            }
+
+            await TriggerScanAsync("Predefined", predefinedRange.NetworkRange, false, 
+                predefinedRange.TimeoutSeconds, predefinedRange.PortScanType);
+            
+            // Update scan statistics for predefined range
+            await _predefinedNetworkRangeService.UpdateLastScanTimeAsync(predefinedRangeId);
         }
 
         private async Task TriggerScanAsync(string scanType, string? networkRange, bool scanAllNetworks = false, int timeoutSeconds = 5, string portScanType = "common")
@@ -129,15 +155,31 @@ namespace Inventory.Api.Services
             }
             finally
             {
-                _scanHistory.Add(new NetworkScanHistoryItem
+                // Save scan history to database
+                var scanHistory = new NetworkScanHistory
                 {
+                    Id = Guid.NewGuid(),
                     ScanTime = _lastScanTime.Value,
                     ScanType = scanType,
                     Status = error == null ? "Tamamlandı" : "Başarısız",
                     DevicesFound = devicesFound,
                     Error = error,
-                    NetworkRange = networkRange ?? (scanAllNetworks ? "Tüm Ağlar" : NetworkRangeDetector.GetPrimaryNetworkRange())
-                });
+                    NetworkRange = networkRange ?? (scanAllNetworks ? "Tüm Ağlar" : NetworkRangeDetector.GetPrimaryNetworkRange()),
+                    TimeoutSeconds = timeoutSeconds,
+                    PortScanType = portScanType,
+                    CreatedAt = DateTime.UtcNow
+                };
+                
+                try
+                {
+                    _context.NetworkScanHistories.Add(scanHistory);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Scan history saved to database: {ScanId}", scanHistory.Id);
+                }
+                catch (Exception saveEx)
+                {
+                    _logger.LogError(saveEx, "Failed to save scan history to database");
+                }
                 
                 _isScanning = false;
             }
@@ -155,9 +197,27 @@ namespace Inventory.Api.Services
             };
         }
 
-        public object GetScanHistory()
+        public async Task<object> GetScanHistoryAsync()
         {
-            return _scanHistory.OrderByDescending(h => h.ScanTime).Take(20).ToList();
+            var history = await _context.NetworkScanHistories
+                .OrderByDescending(h => h.ScanTime)
+                .Take(50)
+                .Select(h => new
+                {
+                    h.Id,
+                    h.ScanTime,
+                    h.ScanType,
+                    h.Status,
+                    h.DevicesFound,
+                    h.Error,
+                    h.NetworkRange,
+                    h.TimeoutSeconds,
+                    h.PortScanType,
+                    h.CreatedAt
+                })
+                .ToListAsync();
+            
+            return history;
         }
 
         public void SetSchedule(NetworkScanScheduleDto schedule)
@@ -190,16 +250,6 @@ namespace Inventory.Api.Services
             var devices = await _networkScannerService.ScanNetworkAsync(_schedule.NetworkRange);
             await _deviceService.RegisterNetworkDevicesAsync(devices);
         }
-    }
-
-    public class NetworkScanHistoryItem
-    {
-        public DateTime ScanTime { get; set; }
-        public string ScanType { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public int DevicesFound { get; set; }
-        public string? Error { get; set; }
-        public string? NetworkRange { get; set; }
     }
 }
 
@@ -447,9 +497,29 @@ namespace Inventory.Api.Services
             // For better device identification, especially for laptops with multiple network interfaces
             // Priority: 1. Name + MAC, 2. Name + IP, 3. MAC only, 4. IP only
             
+            // Handle synthetic MAC addresses for cross-network devices
+            if (!string.IsNullOrWhiteSpace(macAddress) && macAddress.StartsWith("Unknown-"))
+            {
+                // For synthetic MAC addresses, prioritize IP-based matching
+                if (!string.IsNullOrWhiteSpace(ipAddress))
+                {
+                    var deviceByIp = await _context.Devices
+                        .FirstOrDefaultAsync(d => d.IpAddress == ipAddress);
+                    if (deviceByIp != null)
+                        return deviceByIp;
+                }
+                
+                // Also check if there's a device with the synthetic MAC address
+                var deviceBySyntheticMac = await _context.Devices
+                    .FirstOrDefaultAsync(d => d.MacAddress == macAddress);
+                if (deviceBySyntheticMac != null)
+                    return deviceBySyntheticMac;
+            }
+            
             // First try by device name + MAC (best match for multi-interface devices)
             if (!string.IsNullOrWhiteSpace(deviceName) && !string.IsNullOrWhiteSpace(macAddress) && 
-                !deviceName.Equals("unknown", StringComparison.OrdinalIgnoreCase))
+                !deviceName.Equals("unknown", StringComparison.OrdinalIgnoreCase) &&
+                !macAddress.StartsWith("Unknown-"))
             {
                 var deviceByNameMac = await _context.Devices
                     .FirstOrDefaultAsync(d => 
