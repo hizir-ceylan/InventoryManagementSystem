@@ -12,7 +12,7 @@ namespace Inventory.Agent.Windows
         private readonly string _apiBaseUrl;
         private readonly CentralizedLogger _logger;
 
-        public NetworkDiscoveryReporter(string apiBaseUrl = "https://localhost:5001/api/devices", string networkRange = "192.168.1.0/24")
+        public NetworkDiscoveryReporter(string apiBaseUrl = "https://localhost:5001/api/devices", string? networkRange = null)
         {
             _networkScanner = new NetworkScanner(networkRange);
             _apiBaseUrl = apiBaseUrl;

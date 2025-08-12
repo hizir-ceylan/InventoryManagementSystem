@@ -287,7 +287,23 @@
                                 <div class="config-form">
                                     <div class="form-group">
                                         <label for="network-range">Ağ Aralığı:</label>
-                                        <input type="text" id="network-range" class="form-control" value="192.168.1.0/24" placeholder="192.168.1.0/24">
+                                        <div class="input-group">
+                                            <select id="network-range-preset" class="form-control" onchange="app.updateNetworkRange()">
+                                                <option value="">-- Özel Aralık --</option>
+                                                <option value="auto">Otomatik Algıla</option>
+                                                <option value="192.168.1.0/24">192.168.1.0/24 (Yaygın Ev Ağı)</option>
+                                                <option value="192.168.0.0/24">192.168.0.0/24 (Yaygın Ev Ağı)</option>
+                                                <option value="10.0.0.0/24">10.0.0.0/24 (Kurumsal Ağ)</option>
+                                                <option value="172.16.0.0/24">172.16.0.0/24 (Özel Ağ)</option>
+                                                <option value="100.64.0.0/24">100.64.0.0/24 (Carrier NAT)</option>
+                                                <option value="105.0.0.0/24">105.0.0.0/24 (Özel Aralık)</option>
+                                                <option value="112.0.0.0/24">112.0.0.0/24 (Özel Aralık)</option>
+                                            </select>
+                                            <input type="text" id="network-range" class="form-control" value="auto" placeholder="Örn: 192.168.1.0/24 veya 105.10.5.0/24">
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            Taranacak ağ aralığını seçin veya özel aralık girin. "Otomatik Algıla" seçeneği yerel ağ arayüzlerinizi kullanır.
+                                        </small>
                                     </div>
                                     <div class="form-group">
                                         <label for="scan-timeout">Zaman Aşımı (saniye):</label>

@@ -8,6 +8,7 @@ namespace Inventory.Api.Helpers
     {
         /// <summary>
         /// Cihazın ağ arayüzlerine göre yerel ağ aralıklarını otomatik olarak algılar
+        /// Kullanıcının özel IP aralıkları için geliştirilmiş destek
         /// </summary>
         /// <returns>CIDR notasyonunda ağ aralıkları listesi (örn., "192.168.1.0/24")</returns>
         public static List<string> GetLocalNetworkRanges()
@@ -38,6 +39,16 @@ namespace Inventory.Api.Helpers
                             if (!string.IsNullOrEmpty(networkRange) && !networkRanges.Contains(networkRange))
                             {
                                 networkRanges.Add(networkRange);
+                                
+                                // Özel IP aralıkları için ek tarama aralıkları öner
+                                var additionalRanges = GetAdditionalScanRanges(unicastAddress.Address);
+                                foreach (var additionalRange in additionalRanges)
+                                {
+                                    if (!networkRanges.Contains(additionalRange))
+                                    {
+                                        networkRanges.Add(additionalRange);
+                                    }
+                                }
                             }
                         }
                     }
@@ -49,14 +60,18 @@ namespace Inventory.Api.Helpers
                 Console.WriteLine($"Error detecting network ranges: {ex.Message}");
             }
 
-            // Hiçbir aralık algılanmadıysa yedek olarak yaygın özel aralıkları ekle
+            // Hiçbir aralık algılanmadıysa yedek olarak geniş özel aralıkları ekle
             if (!networkRanges.Any())
             {
                 networkRanges.AddRange(new[]
                 {
-                    "192.168.1.0/24",
-                    "192.168.0.0/24",
-                    "10.0.0.0/24"
+                    "192.168.1.0/24",  // Yaygın ev ağları
+                    "192.168.0.0/24",  // Yaygın ev ağları
+                    "10.0.0.0/24",     // Kurumsal ağlar
+                    "172.16.0.0/24",   // Özel ağlar
+                    "100.64.0.0/24",   // Carrier-grade NAT
+                    "105.0.0.0/24",    // Kullanıcının belirttiği aralık
+                    "112.0.0.0/24"     // Kullanıcının belirttiği aralık
                 });
             }
 
@@ -168,6 +183,124 @@ namespace Inventory.Api.Helpers
             }
 
             return "127.0.0.1";
+        }
+
+        /// <summary>
+        /// IP adresine göre ek tarama aralıkları önerir - özellikle özel/kurumsal ağlar için
+        /// </summary>
+        /// <param name="ipAddress">Referans IP adresi</param>
+        /// <returns>Önerilen ek tarama aralıkları</returns>
+        private static List<string> GetAdditionalScanRanges(IPAddress ipAddress)
+        {
+            var additionalRanges = new List<string>();
+            var ipBytes = ipAddress.GetAddressBytes();
+            var firstOctet = ipBytes[0];
+            var secondOctet = ipBytes[1];
+
+            // Özel IP aralıkları için ek tarama aralıkları öner
+            switch (firstOctet)
+            {
+                case 10:
+                    // 10.x.x.x ağındaysa, yaygın 10.x alt ağlarını öner
+                    additionalRanges.AddRange(new[]
+                    {
+                        "10.0.0.0/24",
+                        "10.0.1.0/24",
+                        "10.1.0.0/24",
+                        $"10.{secondOctet}.0.0/24"
+                    });
+                    break;
+
+                case 172:
+                    // 172.16.x.x - 172.31.x.x aralığındaysa
+                    if (secondOctet >= 16 && secondOctet <= 31)
+                    {
+                        additionalRanges.AddRange(new[]
+                        {
+                            "172.16.0.0/24",
+                            "172.17.0.0/24",
+                            $"172.{secondOctet}.0.0/24"
+                        });
+                    }
+                    break;
+
+                case 192:
+                    // 192.168.x.x aralığındaysa
+                    if (secondOctet == 168)
+                    {
+                        additionalRanges.AddRange(new[]
+                        {
+                            "192.168.0.0/24",
+                            "192.168.1.0/24",
+                            "192.168.2.0/24",
+                            $"192.168.{ipBytes[2]}.0/24"
+                        });
+                    }
+                    break;
+
+                case 100:
+                    // 100.64.x.x - 100.127.x.x (Carrier-grade NAT)
+                    if (secondOctet >= 64 && secondOctet <= 127)
+                    {
+                        additionalRanges.AddRange(new[]
+                        {
+                            "100.64.0.0/24",
+                            $"100.{secondOctet}.0.0/24"
+                        });
+                    }
+                    break;
+
+                // Kullanıcının belirttiği özel aralıklar
+                case 105:
+                    additionalRanges.AddRange(new[]
+                    {
+                        "105.0.0.0/24",
+                        $"105.{secondOctet}.0.0/24",
+                        $"105.{secondOctet}.{ipBytes[2]}.0/24"
+                    });
+                    break;
+
+                case 112:
+                    additionalRanges.AddRange(new[]
+                    {
+                        "112.0.0.0/24",
+                        $"112.{secondOctet}.0.0/24",
+                        $"112.{secondOctet}.{ipBytes[2]}.0/24"
+                    });
+                    break;
+
+                // Diğer kurumsal aralıklar (Class A özel aralıkları)
+                default:
+                    if (firstOctet >= 1 && firstOctet <= 126 && firstOctet != 127)
+                    {
+                        // Muhtemelen özel/kurumsal ağ
+                        additionalRanges.Add($"{firstOctet}.{secondOctet}.{ipBytes[2]}.0/24");
+                    }
+                    break;
+            }
+
+            return additionalRanges.Distinct().ToList();
+        }
+
+        /// <summary>
+        /// IP adresinin özel (private) aralıkta olup olmadığını kontrol eder
+        /// </summary>
+        /// <param name="ipAddress">Kontrol edilecek IP adresi</param>
+        /// <returns>Özel aralıktaysa true</returns>
+        public static bool IsPrivateIPAddress(IPAddress ipAddress)
+        {
+            var ipBytes = ipAddress.GetAddressBytes();
+            var firstOctet = ipBytes[0];
+            var secondOctet = ipBytes[1];
+
+            return firstOctet switch
+            {
+                10 => true, // 10.0.0.0/8
+                172 when secondOctet >= 16 && secondOctet <= 31 => true, // 172.16.0.0/12
+                192 when secondOctet == 168 => true, // 192.168.0.0/16
+                100 when secondOctet >= 64 && secondOctet <= 127 => true, // 100.64.0.0/10 (Carrier-grade NAT)
+                _ => false
+            };
         }
     }
 }
