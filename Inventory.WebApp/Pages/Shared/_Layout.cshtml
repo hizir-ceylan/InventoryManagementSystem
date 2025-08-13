@@ -1,50 +1,93 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Inventory.WebApp</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Inventory.WebApp.styles.css" asp-append-version="true" />
+    <title>@ViewData["Title"] - Çaykur Envanter Yönetim Sistemi</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="~/css/style.css" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">Inventory.WebApp</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <!-- Left side: Brand + Navigation -->
+            <div class="navbar-left">
+                <div class="navbar-brand">
+                    <div class="logo">
+                        <span>Çaykur</span>
+                    </div>
+                    <span class="subtitle">Envanter Yönetim Sistemi</span>
+                </div>
+                
+                <div class="navbar-toggle" id="navbar-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                
+                <div class="navbar-menu" id="navbar-menu">
+                    <ul class="navbar-nav">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Devices" ? "active" : "")" href="/Devices">
+                                <i class="bi bi-laptop"></i>
+                                <span>Cihazlar</span>
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/DeviceDetails" ? "active" : "")" href="/DeviceDetails">
+                                <i class="bi bi-info-circle"></i>
+                                <span>Cihaz Detayları</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/NetworkScan" ? "active" : "")" href="/NetworkScan">
+                                <i class="bi bi-wifi"></i>
+                                <span>Ağ Taraması</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/ChangeLogs" ? "active" : "")" href="/ChangeLogs">
+                                <i class="bi bi-clock-history"></i>
+                                <span>Değişiklik Logları</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link external" href="#" onclick="openApiDocumentation()" target="_blank">
+                                <i class="bi bi-code-square"></i>
+                                <span>API Dökümanları</span>
+                            </a>
                         </li>
                     </ul>
+                    <!-- Mobile status indicator -->
+                    <div class="navbar-status">
+                        <div class="status-indicator">
+                            <div class="status-dot"></div>
+                            <span id="last-update-mobile">Son güncelleme: --</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - Inventory.WebApp - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            
+            <!-- Right side: Status -->
+            <div class="navbar-right">
+                <div class="navbar-status">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span id="last-update">Son güncelleme: --</span>
+                    </div>
+                </div>
+            </div>
         </div>
-    </footer>
+    </nav>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <!-- Main Content -->
+    @RenderBody()
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

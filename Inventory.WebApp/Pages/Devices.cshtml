@@ -1,0 +1,211 @@
+@page
+@model DevicesModel
+@{
+    ViewData["Title"] = "Cihazlar";
+}
+
+<div class="main-content">
+    <!-- Loading Indicator -->
+    <div id="loading" class="loading-container d-none">
+        <div class="tea-loader">
+            <div class="tea-cup">
+                <div class="tea-steam"></div>
+                <div class="tea-steam"></div>
+                <div class="tea-steam"></div>
+            </div>
+        </div>
+        <p class="loading-text">Veriler yükleniyor...</p>
+    </div>
+
+    <!-- Error Alert -->
+    <div id="error-alert" class="error-alert d-none">
+        <div class="error-content">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span id="error-message">Bir hata oluştu.</span>
+            <button type="button" class="error-close" onclick="hideError()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div id="stats-cards" class="stats-section">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-card primary-card" onclick="app.handleStatCardClick('total')">
+                    <div class="stat-content">
+                        <div class="stat-info">
+                            <h3 class="stat-title">Toplam Cihaz</h3>
+                            <h2 class="stat-number" id="total-devices">-</h2>
+                            <p class="stat-description">Kayıtlı cihazlar</p>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-laptop"></i>
+                            <div class="icon-bg"></div>
+                        </div>
+                    </div>
+                    <div class="stat-waves">
+                        <div class="wave wave1"></div>
+                        <div class="wave wave2"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card success-card" onclick="app.handleStatCardClick('active')">
+                    <div class="stat-content">
+                        <div class="stat-info">
+                            <h3 class="stat-title">Aktif Cihazlar</h3>
+                            <h2 class="stat-number" id="active-devices">-</h2>
+                            <p class="stat-description">Çalışır durumda</p>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-check-circle"></i>
+                            <div class="icon-bg"></div>
+                        </div>
+                    </div>
+                    <div class="stat-waves">
+                        <div class="wave wave1"></div>
+                        <div class="wave wave2"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card update-card" onclick="app.handleStatCardClick('updates')">
+                    <div class="stat-content">
+                        <div class="stat-info">
+                            <h3 class="stat-title">Güncelleme Mevcut</h3>
+                            <h2 class="stat-number" id="update-devices">-</h2>
+                            <p class="stat-description">Güncellenmesi gereken</p>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-arrow-up-circle"></i>
+                            <div class="icon-bg"></div>
+                        </div>
+                    </div>
+                    <div class="stat-waves">
+                        <div class="wave wave1"></div>
+                        <div class="wave wave2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Devices Page -->
+    <div class="pages-container">
+        <div class="container">
+            <div class="page active">
+                <div class="page-card">
+                    <div class="page-header">
+                        <div class="page-title">
+                            <h2>
+                                <i class="bi bi-laptop"></i>
+                                Cihaz Listesi
+                            </h2>
+                            <p>Sistemdeki tüm cihazları görüntüleyin ve yönetin</p>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn-refresh" onclick="refreshDevices()">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                <span>Yenile</span>
+                            </button>
+                            <button class="btn-primary" onclick="app.showAddDeviceModal()">
+                                <i class="bi bi-plus"></i>
+                                <span>Boş Cihaz Ekle</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Search and Filter -->
+                    <div class="filters-section">
+                        <div class="filter-row">
+                            <div class="search-box">
+                                <i class="bi bi-search"></i>
+                                <input type="text" id="search-devices" placeholder="Cihaz adı, IP, MAC adresi ile arama...">
+                            </div>
+                            <div class="filter-group">
+                                <select id="filter-status" class="filter-select">
+                                    <option value="">Tüm Durumlar</option>
+                                    <option value="0">Aktif</option>
+                                    <option value="1">Pasif</option>
+                                    <option value="2">Bakım</option>
+                                    <option value="3">Arızalı</option>
+                                </select>
+                                <select id="filter-type" class="filter-select">
+                                    <option value="">Tüm Türler</option>
+                                    <option value="0">Bilinmiyor</option>
+                                    <option value="1">Laptop</option>
+                                    <option value="2">Masaüstü</option>
+                                    <option value="3">Sunucu</option>
+                                    <option value="4">Yazıcı</option>
+                                    <option value="5">Tarayıcı</option>
+                                    <option value="6">Kamera</option>
+                                    <option value="7">IP Telefon</option>
+                                    <option value="8">Ağ Cihazı</option>
+                                    <option value="9">Router</option>
+                                    <option value="10">Switch</option>
+                                    <option value="11">Access Point</option>
+                                    <option value="12">Depolama</option>
+                                    <option value="13">Tablet</option>
+                                    <option value="14">Akıllı Telefon</option>
+                                    <option value="15">Akıllı TV</option>
+                                    <option value="16">Projektör/Ekran</option>
+                                    <option value="17">Diğer</option>
+                                </select>
+                                <select id="filter-discovery" class="filter-select">
+                                    <option value="">Tüm Keşif Türleri</option>
+                                    <option value="agent">Ajan</option>
+                                    <option value="network">Ağ</option>
+                                </select>
+                                <button class="btn-clear" onclick="clearFilters()">
+                                    <i class="bi bi-x-circle"></i>
+                                    <span>Temizle</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Devices Table -->
+                    <div class="table-container">
+                        <table class="devices-table">
+                            <thead>
+                                <tr>
+                                    <th>Cihaz Adı</th>
+                                    <th>IP Adresi</th>
+                                    <th class="hide-mobile">MAC Adresi</th>
+                                    <th>Tür</th>
+                                    <th>Durum</th>
+                                    <th class="hide-mobile">Model</th>
+                                    <th class="hide-mobile">Konum</th>
+                                    <th class="hide-mobile">Keşif Türü</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody id="devices-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- No data message -->
+                    <div id="no-devices" class="no-data d-none">
+                        <div class="no-data-content">
+                            <i class="bi bi-inbox"></i>
+                            <h3>Henüz hiç cihaz bulunmuyor</h3>
+                            <p>Cihazlarınızı keşfetmek için ağ taraması başlatın veya agent kurun.</p>
+                            <a href="/NetworkScan" class="btn-primary">
+                                <i class="bi bi-wifi"></i>
+                                Ağ Taraması Başlat
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include modals -->
+@await Html.PartialAsync("_DeviceModals")
+
+@section Scripts {
+    <script src="~/js/config.js"></script>
+    <script src="~/js/devices.js"></script>
+}
