@@ -852,6 +852,64 @@ namespace Inventory.Api.Controllers
             
             return Ok(updatedDevice);
         }
+
+        /// <summary>
+        /// Cihaz istatistiklerini getirir
+        /// </summary>
+        [HttpGet("statistics")]
+        [SwaggerOperation(Summary = "Cihaz istatistikleri getir", Description = "Cihaz sayıları ve durumları hakkında istatistik döndürür")]
+        [SwaggerResponse(200, "Cihaz istatistiklerini döndürür")]
+        public async Task<ActionResult<object>> GetStatistics()
+        {
+            try
+            {
+                var devices = await _deviceService.GetAllDevicesAsync();
+                
+                var statistics = new
+                {
+                    TotalDevices = devices.Count(),
+                    ActiveDevices = devices.Count(d => d.Status == (int)DeviceStatus.Active),
+                    OfflineDevices = devices.Count(d => d.Status == (int)DeviceStatus.Inactive),
+                    MaintenanceDevices = devices.Count(d => d.Status == (int)DeviceStatus.Maintenance),
+                    RetiredDevices = devices.Count(d => d.Status == (int)DeviceStatus.Retired),
+                    VirtualDevices = devices.Count(d => d.IsVirtual),
+                    UpdatesAvailable = 0, // This would come from UpdateService if integrated
+                    DevicesByType = devices.GroupBy(d => d.DeviceType)
+                        .Select(g => new { Type = g.Key.ToString(), Count = g.Count() })
+                        .OrderByDescending(x => x.Count)
+                        .ToList(),
+                    LastUpdated = DateTime.UtcNow
+                };
+
+                return Ok(statistics);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting device statistics");
+                return StatusCode(500, new { error = "Cihaz istatistikleri getirilemedi", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Tüm cihaz değişiklik loglarını getirir
+        /// </summary>
+        [HttpGet("change-logs")]
+        [SwaggerOperation(Summary = "Cihaz değişiklik logları getir", Description = "Tüm cihazların değişiklik loglarını döndürür")]
+        [SwaggerResponse(200, "Değişiklik logları listesini döndürür")]
+        public async Task<ActionResult> GetChangeLogs()
+        {
+            try
+            {
+                // For now return empty array since the ChangeLogController exists but needs integration
+                var changeLogs = new List<object>();
+                return Ok(changeLogs);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting change logs");
+                return StatusCode(500, new { error = "Değişiklik logları getirilemedi", details = ex.Message });
+            }
+        }
         
         #endregion
     }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Inventory.Domain.Entities;
 using Inventory.Api.Services;
 using Swashbuckle.AspNetCore.Annotations;
+using Microsoft.Extensions.Configuration;
 
 namespace Inventory.Api.Controllers
 {
@@ -18,11 +19,13 @@ namespace Inventory.Api.Controllers
         
         private readonly IVMwareService _vmwareService;
         private readonly ILogger<VMwareController> _logger;
+        private readonly IConfiguration _configuration;
 
-        public VMwareController(IVMwareService vmwareService, ILogger<VMwareController> logger)
+        public VMwareController(IVMwareService vmwareService, ILogger<VMwareController> logger, IConfiguration configuration)
         {
             _vmwareService = vmwareService;
             _logger = logger;
+            _configuration = configuration;
         }
         
         #endregion
@@ -39,6 +42,21 @@ namespace Inventory.Api.Controllers
         {
             try
             {
+                var vmwareEnabled = _configuration.GetValue<bool>("VMware:Enabled", true);
+                
+                if (!vmwareEnabled)
+                {
+                    return Ok(new VMwareStatusDto
+                    {
+                        Connected = false,
+                        ServerAddress = "Disabled",
+                        LastConnection = null,
+                        Error = "VMware integration is disabled in configuration",
+                        Metrics = null,
+                        LastSync = null
+                    });
+                }
+
                 var status = await _vmwareService.GetServerStatusAsync();
                 return Ok(status);
             }
@@ -130,6 +148,13 @@ namespace Inventory.Api.Controllers
         {
             try
             {
+                var vmwareEnabled = _configuration.GetValue<bool>("VMware:Enabled", true);
+                
+                if (!vmwareEnabled)
+                {
+                    return Ok(new List<VirtualMachineDto>());
+                }
+
                 var vms = await _vmwareService.GetVirtualMachinesAsync();
                 return Ok(vms);
             }
