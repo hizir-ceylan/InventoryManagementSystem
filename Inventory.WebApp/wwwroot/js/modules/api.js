@@ -88,22 +88,22 @@ class ApiManager {
 
     // Network scan API methods
     async startNetworkScan(networkRange, timeout = 5, portScan = 'common') {
-        return await this.apiCall('api/network/scan', {
+        return await this.apiCall('api/NetworkScan/trigger-range', {
             method: 'POST',
             body: JSON.stringify({
-                networkRange,
-                timeout,
-                portScan
+                networkRange: networkRange,
+                timeoutSeconds: timeout,
+                portScanType: portScan
             })
         });
     }
 
-    async getNetworkScanStatus(scanId) {
-        return await this.apiCall(`api/network/scan/${scanId}/status`);
+    async getNetworkScanStatus() {
+        return await this.apiCall('api/NetworkScan/status');
     }
 
-    async getNetworkScanResults(scanId) {
-        return await this.apiCall(`api/network/scan/${scanId}/results`);
+    async getNetworkScanResults() {
+        return await this.apiCall('api/Device/network-discovered');
     }
 
     // VMware API methods

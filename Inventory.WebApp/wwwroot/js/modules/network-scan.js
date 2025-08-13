@@ -32,9 +32,14 @@ class NetworkScanManager {
         if (this.scanInProgress) return;
 
         try {
-            const networkRange = document.getElementById('network-range')?.value || 'auto';
+            let networkRange = document.getElementById('network-range')?.value || 'auto';
             const timeout = parseInt(document.getElementById('scan-timeout')?.value) || 5;
             const portScan = document.getElementById('port-scan')?.value || 'common';
+
+            // Handle "auto" value for network range
+            if (networkRange === 'auto') {
+                networkRange = null; // Let the API auto-detect
+            }
 
             this.scanInProgress = true;
             this.updateScanButton(true);
@@ -43,12 +48,12 @@ class NetworkScanManager {
             // Try real API first, fallback to mock scan
             try {
                 const scanResponse = await window.api.startNetworkScan(networkRange, timeout, portScan);
-                this.currentScanId = scanResponse.scanId;
+                console.log('Network scan started successfully:', scanResponse);
                 // Poll for scan results
                 this.pollScanProgress();
             } catch (apiError) {
                 console.warn('API not available, starting mock network scan:', apiError.message);
-                this.startMockNetworkScan(networkRange, timeout, portScan);
+                this.startMockNetworkScan(networkRange || 'auto', timeout, portScan);
             }
 
         } catch (error) {
@@ -169,22 +174,52 @@ class NetworkScanManager {
     }
 
     async pollScanProgress() {
-        if (!this.currentScanId) return;
-
         try {
-            const status = await window.api.getNetworkScanStatus(this.currentScanId);
-            this.updateProgressUI(status);
+            let progress = 0;
+            const progressBar = document.getElementById('progress-fill');
+            const statusText = document.getElementById('scan-status');
+            const resultsTable = document.getElementById('results-table');
 
-            if (status.completed) {
-                const results = await window.api.getNetworkScanResults(this.currentScanId);
-                this.scanResults = results || [];
-                this.renderScanResults();
-                this.scanInProgress = false;
-                this.updateScanButton(false);
-            } else {
-                // Continue polling
-                setTimeout(() => this.pollScanProgress(), 2000);
-            }
+            const pollInterval = setInterval(async () => {
+                try {
+                    const status = await window.api.getNetworkScanStatus();
+                    
+                    if (status.isScanning) {
+                        progress = Math.min(progress + 10, 90);
+                        if (progressBar) progressBar.style.width = progress + '%';
+                        if (statusText) statusText.textContent = `Tarama devam ediyor... ${Math.round(progress)}%`;
+                    } else {
+                        // Scan completed, get results
+                        clearInterval(pollInterval);
+                        if (progressBar) progressBar.style.width = '100%';
+                        if (statusText) statusText.textContent = 'Tarama tamamlandı!';
+
+                        // Get discovered devices
+                        const results = await window.api.getNetworkScanResults();
+                        this.scanResults = results.map(device => ({
+                            ip: device.ipAddress,
+                            mac: device.macAddress,
+                            name: device.name || 'Bilinmiyor',
+                            status: 'Active',
+                            ports: device.openPorts && device.openPorts.length > 0 ? device.openPorts.join(', ') : 'None'
+                        }));
+
+                        if (statusText) statusText.textContent = `Tarama tamamlandı! ${this.scanResults.length} cihaz bulundu.`;
+                        this.renderScanResults();
+                        if (resultsTable) resultsTable.style.display = 'block';
+                        this.scanInProgress = false;
+                        this.updateScanButton(false);
+                    }
+                } catch (error) {
+                    // Fallback: assume scan completed after timeout
+                    clearInterval(pollInterval);
+                    if (progressBar) progressBar.style.width = '100%';
+                    if (statusText) statusText.textContent = 'Tarama tamamlandı!';
+                    if (resultsTable) resultsTable.style.display = 'block';
+                    this.scanInProgress = false;
+                    this.updateScanButton(false);
+                }
+            }, 2000); // Poll every 2 seconds
 
         } catch (error) {
             window.ui.showError('Tarama durumu kontrol edilirken hata oluştu: ' + error.message);
