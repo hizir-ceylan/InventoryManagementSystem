@@ -134,6 +134,33 @@ class ApiManager {
         });
     }
 
+    // Device Updates API methods
+    async getDeviceUpdates(deviceId) {
+        return await this.apiCall(`api/update/device/${deviceId}`);
+    }
+
+    async scanDeviceUpdates(deviceId) {
+        return await this.apiCall(`api/update/scan/${deviceId}`, {
+            method: 'POST'
+        });
+    }
+
+    async getAllUpdates() {
+        return await this.apiCall('api/update');
+    }
+
+    async getAvailableUpdates() {
+        return await this.apiCall('api/update/available');
+    }
+
+    async getCriticalUpdates() {
+        return await this.apiCall('api/update/critical');
+    }
+
+    async getUpdateStatistics() {
+        return await this.apiCall('api/update/statistics');
+    }
+
     // Statistics API methods
     async getStatistics() {
         return await this.apiCall('api/device/statistics');

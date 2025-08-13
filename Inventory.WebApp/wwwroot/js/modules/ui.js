@@ -224,6 +224,9 @@ class UIManager {
 
     // Table utilities
     createActionButtons(deviceId, deviceName) {
+        // Safely escape device name for use in onclick handlers
+        const escapedDeviceName = (deviceName || '').replace(/'/g, "\\'");
+        
         return `
             <div class="action-buttons">
                 <button class="btn-sm btn-info" onclick="viewDeviceDetails('${deviceId}')" title="Detayları Görüntüle">
@@ -232,7 +235,10 @@ class UIManager {
                 <button class="btn-sm btn-warning" onclick="editDevice('${deviceId}')" title="Düzenle">
                     <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn-sm btn-danger" onclick="confirmDeleteDevice('${deviceId}', '${deviceName}')" title="Sil">
+                <button class="btn-sm btn-secondary" onclick="window.location.href='/ChangeLogs?deviceId=${deviceId}'" title="Değişiklik Logları">
+                    <i class="bi bi-journal-text"></i>
+                </button>
+                <button class="btn-sm btn-danger" onclick="confirmDeleteDevice('${deviceId}', '${escapedDeviceName}')" title="Sil">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
