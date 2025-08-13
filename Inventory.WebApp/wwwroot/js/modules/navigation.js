@@ -85,7 +85,7 @@ function navigateToDevices(filterType) {
 
 function openApiDocumentation() {
     const apiUrl = window.INVENTORY_CONFIG?.getApiUrl() || 'http://localhost:5093';
-    window.open(`${apiUrl}/swagger`, '_blank');
+    window.open(`${apiUrl}/index.html`, '_blank');
 }
 
 // Initialize navigation when DOM is loaded

@@ -50,45 +50,45 @@ class ApiManager {
 
     // Device API methods
     async getDevices() {
-        return await this.apiCall('device');
+        return await this.apiCall('api/device');
     }
 
     async getDevice(id) {
-        return await this.apiCall(`device/${id}`);
+        return await this.apiCall(`api/device/${id}`);
     }
 
     async createDevice(deviceData) {
-        return await this.apiCall('device', {
+        return await this.apiCall('api/device', {
             method: 'POST',
             body: JSON.stringify(deviceData)
         });
     }
 
     async updateDevice(id, deviceData) {
-        return await this.apiCall(`device/${id}`, {
+        return await this.apiCall(`api/device/${id}`, {
             method: 'PUT',
             body: JSON.stringify(deviceData)
         });
     }
 
     async deleteDevice(id) {
-        return await this.apiCall(`device/${id}`, {
+        return await this.apiCall(`api/device/${id}`, {
             method: 'DELETE'
         });
     }
 
     // Change logs API methods
     async getChangeLogs() {
-        return await this.apiCall('device/change-logs');
+        return await this.apiCall('api/device/change-logs');
     }
 
     async getDeviceChangeLogs(deviceId) {
-        return await this.apiCall(`device/${deviceId}/change-logs`);
+        return await this.apiCall(`api/device/${deviceId}/change-logs`);
     }
 
     // Network scan API methods
     async startNetworkScan(networkRange, timeout = 5, portScan = 'common') {
-        return await this.apiCall('network/scan', {
+        return await this.apiCall('api/network/scan', {
             method: 'POST',
             body: JSON.stringify({
                 networkRange,
@@ -99,36 +99,36 @@ class ApiManager {
     }
 
     async getNetworkScanStatus(scanId) {
-        return await this.apiCall(`network/scan/${scanId}/status`);
+        return await this.apiCall(`api/network/scan/${scanId}/status`);
     }
 
     async getNetworkScanResults(scanId) {
-        return await this.apiCall(`network/scan/${scanId}/results`);
+        return await this.apiCall(`api/network/scan/${scanId}/results`);
     }
 
     // VMware API methods
     async getVMwareStatus() {
-        return await this.apiCall('vmware/status');
+        return await this.apiCall('api/vmware/status');
     }
 
     async getVirtualMachines() {
-        return await this.apiCall('vmware/virtual-machines');
+        return await this.apiCall('api/vmware/virtual-machines');
     }
 
     async syncVirtualMachines() {
-        return await this.apiCall('vmware/sync', {
+        return await this.apiCall('api/vmware/sync', {
             method: 'POST'
         });
     }
 
     async testVMwareConnection() {
-        return await this.apiCall('vmware/test-connection', {
+        return await this.apiCall('api/vmware/test-connection', {
             method: 'POST'
         });
     }
 
     async updateVMwareConfiguration(config) {
-        return await this.apiCall('vmware/configuration', {
+        return await this.apiCall('api/vmware/configuration', {
             method: 'PUT',
             body: JSON.stringify(config)
         });
@@ -136,12 +136,12 @@ class ApiManager {
 
     // Statistics API methods
     async getStatistics() {
-        return await this.apiCall('device/statistics');
+        return await this.apiCall('api/device/statistics');
     }
 
     // Health check
     async healthCheck() {
-        return await this.apiCall('health');
+        return await this.apiCall('api/health');
     }
 }
 

@@ -101,6 +101,39 @@ body {
     }
 }
 
+/* Large desktop improvements for 1920x1080 and similar */
+@media (min-width: 1400px) {
+    .container {
+        max-width: 1200px;
+        padding: 0 20px;
+    }
+    
+    .navbar .container {
+        padding: 0 40px;
+    }
+    
+    .navbar-brand {
+        min-width: 250px;
+        margin-right: 30px;
+    }
+    
+    .navbar-nav {
+        gap: 16px;
+    }
+    
+    .nav-link {
+        padding: 12px 24px;
+        font-size: 0.95rem;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 30px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+}
+
 @media (min-width: 1200px) {
     .container {
         padding: 0 20px;
@@ -505,6 +538,7 @@ body {
 .warning-card::before { background: var(--warm-gradient); }
 .info-card::before { background: linear-gradient(135deg, var(--info), var(--mint-green)); }
 .update-card::before { background: linear-gradient(135deg, var(--danger), var(--sunset-red)); }
+.virtual-card::before { background: linear-gradient(135deg, var(--tea-green), var(--leaf-green)); }
 
 .stat-content {
     display: flex;
@@ -561,6 +595,7 @@ body {
 .warning-card .stat-icon { background: var(--warm-gradient); }
 .info-card .stat-icon { background: linear-gradient(135deg, var(--info), var(--mint-green)); }
 .update-card .stat-icon { background: linear-gradient(135deg, var(--danger), var(--sunset-red)); }
+.virtual-card .stat-icon { background: linear-gradient(135deg, var(--tea-green), var(--leaf-green)); }
 
 .stat-card:hover .stat-icon {
     transform: rotate(10deg) scale(1.1);
