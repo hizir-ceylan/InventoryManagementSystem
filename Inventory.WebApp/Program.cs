@@ -24,8 +24,8 @@ app.UseRouting();
 app.MapRazorPages();
 app.MapControllers();
 
-// Default route to devices page
-app.MapGet("/", () => Results.Redirect("/Devices"));
+// Default route to home page
+app.MapGet("/", () => Results.Redirect("/Index"));
 
 app.Run();
 

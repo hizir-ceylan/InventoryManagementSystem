@@ -1,10 +1,258 @@
-﻿@page
+@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Ana Sayfa";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="main-content">
+    <!-- Loading Indicator -->
+    <div id="loading" class="loading-container d-none">
+        <div class="tea-loader">
+            <div class="tea-cup">
+                <div class="tea-steam"></div>
+                <div class="tea-steam"></div>
+                <div class="tea-steam"></div>
+            </div>
+        </div>
+        <p class="loading-text">Veriler yükleniyor...</p>
+    </div>
+
+    <!-- Error Alert -->
+    <div id="error-alert" class="error-alert d-none">
+        <div class="error-content">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span id="error-message">Bir hata oluştu.</span>
+            <button type="button" class="error-close" onclick="hideError()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div id="stats-cards" class="stats-section">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-card primary-card" onclick="navigateToDevices('total')">
+                    <div class="stat-content">
+                        <div class="stat-info">
+                            <h3 class="stat-title">Toplam Cihaz</h3>
+                            <h2 class="stat-number" id="total-devices">-</h2>
+                            <p class="stat-description">Kayıtlı cihazlar</p>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-laptop"></i>
+                            <div class="icon-bg"></div>
+                        </div>
+                    </div>
+                    <div class="stat-waves">
+                        <div class="wave wave1"></div>
+                        <div class="wave wave2"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card success-card" onclick="navigateToDevices('active')">
+                    <div class="stat-content">
+                        <div class="stat-info">
+                            <h3 class="stat-title">Aktif Cihazlar</h3>
+                            <h2 class="stat-number" id="active-devices">-</h2>
+                            <p class="stat-description">Çalışır durumda</p>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-check-circle"></i>
+                            <div class="icon-bg"></div>
+                        </div>
+                    </div>
+                    <div class="stat-waves">
+                        <div class="wave wave1"></div>
+                        <div class="wave wave2"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card update-card" onclick="navigateToDevices('updates')">
+                    <div class="stat-content">
+                        <div class="stat-info">
+                            <h3 class="stat-title">Güncelleme Mevcut</h3>
+                            <h2 class="stat-number" id="update-devices">-</h2>
+                            <p class="stat-description">Güncellenmesi gereken</p>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-arrow-up-circle"></i>
+                            <div class="icon-bg"></div>
+                        </div>
+                    </div>
+                    <div class="stat-waves">
+                        <div class="wave wave1"></div>
+                        <div class="wave wave2"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card virtual-card" onclick="navigateToDevices('virtual')">
+                    <div class="stat-content">
+                        <div class="stat-info">
+                            <h3 class="stat-title">Sanal Cihazlar</h3>
+                            <h2 class="stat-number" id="virtual-devices">-</h2>
+                            <p class="stat-description">VMware ortamında</p>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-cloud"></i>
+                            <div class="icon-bg"></div>
+                        </div>
+                    </div>
+                    <div class="stat-waves">
+                        <div class="wave wave1"></div>
+                        <div class="wave wave2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Content Container -->
+    <div class="pages-container">
+        <div class="container">
+            <!-- Dashboard Home Page Content -->
+            <div class="page-card">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>
+                            <i class="bi bi-speedometer2"></i>
+                            Envanter Yönetim Paneli
+                        </h2>
+                        <p>Sistem durumuna genel bakış ve hızlı erişim</p>
+                    </div>
+                </div>
+                
+                <div class="dashboard-content">
+                    <!-- Quick Actions -->
+                    <div class="quick-actions">
+                        <h5><i class="bi bi-lightning"></i> Hızlı İşlemler</h5>
+                        <div class="action-grid">
+                            <a href="/Devices" class="action-card">
+                                <div class="action-icon">
+                                    <i class="bi bi-laptop"></i>
+                                </div>
+                                <div class="action-content">
+                                    <h6>Cihazları Görüntüle</h6>
+                                    <p>Tüm kayıtlı cihazları listele</p>
+                                </div>
+                            </a>
+                            
+                            <a href="/NetworkScan" class="action-card">
+                                <div class="action-icon">
+                                    <i class="bi bi-wifi"></i>
+                                </div>
+                                <div class="action-content">
+                                    <h6>Ağ Taraması</h6>
+                                    <p>Yeni cihazları keşfet</p>
+                                </div>
+                            </a>
+                            
+                            <a href="/VMwareStatus" class="action-card">
+                                <div class="action-icon">
+                                    <i class="bi bi-cloud"></i>
+                                </div>
+                                <div class="action-content">
+                                    <h6>VMware Durumu</h6>
+                                    <p>Sanal makine yönetimi</p>
+                                </div>
+                            </a>
+                            
+                            <a href="/ChangeLogs" class="action-card">
+                                <div class="action-icon">
+                                    <i class="bi bi-clock-history"></i>
+                                </div>
+                                <div class="action-content">
+                                    <h6>Değişiklik Logları</h6>
+                                    <p>Sistem değişikliklerini takip et</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="recent-activity">
+                        <h5><i class="bi bi-activity"></i> Son Aktiviteler</h5>
+                        <div class="activity-list" id="recent-activity-list">
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="bi bi-plus-circle text-success"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Yeni cihaz eklendi: <strong>LAPTOP-001</strong></p>
+                                    <small>2 dakika önce</small>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="bi bi-arrow-up-circle text-info"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Cihaz durumu güncellendi: <strong>SERVER-03</strong></p>
+                                    <small>15 dakika önce</small>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="bi bi-cloud text-primary"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>VMware senkronizasyonu tamamlandı</p>
+                                    <small>1 saat önce</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Status -->
+                    <div class="system-status">
+                        <h5><i class="bi bi-gear"></i> Sistem Durumu</h5>
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <div class="status-header">
+                                    <span class="status-title">API Sunucu</span>
+                                    <span class="status-indicator online"></span>
+                                </div>
+                                <p>Çalışıyor</p>
+                            </div>
+                            
+                            <div class="status-item">
+                                <div class="status-header">
+                                    <span class="status-title">Veritabanı</span>
+                                    <span class="status-indicator online"></span>
+                                </div>
+                                <p>Bağlı</p>
+                            </div>
+                            
+                            <div class="status-item">
+                                <div class="status-header">
+                                    <span class="status-title">VMware Bağlantısı</span>
+                                    <span class="status-indicator offline" id="vmware-connection-status"></span>
+                                </div>
+                                <p id="vmware-connection-text">Kontrol ediliyor...</p>
+                            </div>
+                            
+                            <div class="status-item">
+                                <div class="status-header">
+                                    <span class="status-title">Son Tarama</span>
+                                    <i class="bi bi-clock text-muted"></i>
+                                </div>
+                                <p id="last-scan-time">--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/config.js"></script>
+    <script src="~/js/modules/navigation.js"></script>
+    <script src="~/js/modules/api.js"></script>
+    <script src="~/js/modules/ui.js"></script>
+    <script src="~/js/modules/dashboard.js"></script>
+    <script src="~/js/app-modular.js"></script>
+}

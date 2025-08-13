@@ -1,0 +1,152 @@
+@page
+@model DeviceDetailsModel
+@{
+    ViewData["Title"] = "Cihaz Detayları";
+}
+
+<div class="main-content">
+    <!-- Loading Indicator -->
+    <div id="loading" class="loading-container d-none">
+        <div class="tea-loader">
+            <div class="tea-cup">
+                <div class="tea-steam"></div>
+                <div class="tea-steam"></div>
+                <div class="tea-steam"></div>
+            </div>
+        </div>
+        <p class="loading-text">Veriler yükleniyor...</p>
+    </div>
+
+    <!-- Error Alert -->
+    <div id="error-alert" class="error-alert d-none">
+        <div class="error-content">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span id="error-message">Bir hata oluştu.</span>
+            <button type="button" class="error-close" onclick="hideError()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div id="stats-cards" class="stats-section">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-card primary-card" onclick="app.handleStatCardClick('total')">
+                    <div class="stat-content">
+                        <div class="stat-info">
+                            <h3 class="stat-title">Toplam Cihaz</h3>
+                            <h2 class="stat-number" id="total-devices">-</h2>
+                            <p class="stat-description">Kayıtlı cihazlar</p>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-laptop"></i>
+                            <div class="icon-bg"></div>
+                        </div>
+                    </div>
+                    <div class="stat-waves">
+                        <div class="wave wave1"></div>
+                        <div class="wave wave2"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card success-card" onclick="app.handleStatCardClick('active')">
+                    <div class="stat-content">
+                        <div class="stat-info">
+                            <h3 class="stat-title">Aktif Cihazlar</h3>
+                            <h2 class="stat-number" id="active-devices">-</h2>
+                            <p class="stat-description">Çalışır durumda</p>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-check-circle"></i>
+                            <div class="icon-bg"></div>
+                        </div>
+                    </div>
+                    <div class="stat-waves">
+                        <div class="wave wave1"></div>
+                        <div class="wave wave2"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card update-card" onclick="app.handleStatCardClick('updates')">
+                    <div class="stat-content">
+                        <div class="stat-info">
+                            <h3 class="stat-title">Güncelleme Mevcut</h3>
+                            <h2 class="stat-number" id="update-devices">-</h2>
+                            <p class="stat-description">Güncellenmesi gereken</p>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-arrow-up-circle"></i>
+                            <div class="icon-bg"></div>
+                        </div>
+                    </div>
+                    <div class="stat-waves">
+                        <div class="wave wave1"></div>
+                        <div class="wave wave2"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card virtual-card" onclick="app.handleStatCardClick('virtual')">
+                    <div class="stat-content">
+                        <div class="stat-info">
+                            <h3 class="stat-title">Sanal Cihazlar</h3>
+                            <h2 class="stat-number" id="virtual-devices">-</h2>
+                            <p class="stat-description">VMware ortamında</p>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-cloud"></i>
+                            <div class="icon-bg"></div>
+                        </div>
+                    </div>
+                    <div class="stat-waves">
+                        <div class="wave wave1"></div>
+                        <div class="wave wave2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Details Page -->
+    <div class="pages-container">
+        <div class="container">
+            <div class="page active">
+                <!-- Device Details Page Content -->
+                <div class="page-card">
+                    <div class="page-header">
+                        <div class="page-title">
+                            <h2>
+                                <i class="bi bi-info-circle"></i>
+                                Cihaz Detayları
+                            </h2>
+                            <p>Seçili cihazın detaylı bilgilerini görüntüleyin</p>
+                        </div>
+                    </div>
+                    
+                    <div id="device-details-content">
+                        <div class="device-details-placeholder">
+                            <div class="placeholder-content">
+                                <i class="bi bi-laptop"></i>
+                                <h3>Cihaz Seçiniz</h3>
+                                <p>Detaylarını görüntülemek için cihazlar listesinden bir cihaz seçin.</p>
+                                <a href="/Devices" class="btn-primary">
+                                    <i class="bi bi-list-ul"></i>
+                                    Cihazlar Listesine Git
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/config.js"></script>
+    <script src="~/js/modules/navigation.js"></script>
+    <script src="~/js/modules/api.js"></script>
+    <script src="~/js/modules/ui.js"></script>
+    <script src="~/js/modules/device-details.js"></script>
+    <script src="~/js/app-modular.js"></script>
+}

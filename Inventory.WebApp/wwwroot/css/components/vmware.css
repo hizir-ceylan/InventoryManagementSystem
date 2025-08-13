@@ -1,4 +1,5 @@
 /* VMware and Virtual Device Styles */
+/* Import CSS variables from main style.css */
 
 /* VMware Status Cards */
 .vmware-section {
@@ -77,10 +78,10 @@
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--tea-green) 0%, var(--tea-green-light) 100%);
     color: white;
     border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px rgba(45, 80, 22, 0.3);
 }
 
 .metric-icon {
@@ -108,7 +109,7 @@
 /* Virtual Machine Badges */
 .vm-badge {
     display: inline-block;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--tea-green) 0%, var(--tea-green-light) 100%);
     color: white;
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
@@ -160,11 +161,11 @@
 
 /* Virtual Device Statistics Card */
 .virtual-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--tea-green) 0%, var(--tea-green-light) 100%);
 }
 
 .virtual-card .stat-icon i {
-    color: #667eea;
+    color: var(--tea-green);
 }
 
 /* Configuration Form Styles */
@@ -192,9 +193,9 @@
 }
 
 .config-form .form-control:focus {
-    border-color: #667eea;
+    border-color: var(--tea-green-light);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
+    box-shadow: 0 0 0 2px rgba(45, 80, 22, 0.25);
 }
 
 /* Loading states for VMware components */
