@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Çaykur Envanter Yönetim Sistemi - Ana Sayfa</title>
+    <title>Çaykur Envanter Yönetim Sistemi - Cihazlar</title>
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -36,13 +36,13 @@
                 <div class="navbar-menu" id="navbar-menu">
                     <ul class="navbar-nav">
                         <li class="nav-item">
-                            <a class="nav-link active" href="index.html">
+                            <a class="nav-link " href="index.html">
                                 <i class="bi bi-house"></i>
                                 <span>Ana Sayfa</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link " href="devices.html">
+                            <a class="nav-link active" href="devices.html">
                                 <i class="bi bi-laptop"></i>
                                 <span>Cihazlar</span>
                             </a>
@@ -207,137 +207,108 @@
         <!-- Page Content Container -->
         <div class="pages-container">
             <div class="container">
-                <!-- Dashboard Home Page Content -->
+                <!-- Devices Page Content -->
 <div class="page-card">
     <div class="page-header">
         <div class="page-title">
             <h2>
-                <i class="bi bi-speedometer2"></i>
-                Envanter Yönetim Paneli
+                <i class="bi bi-laptop"></i>
+                Cihaz Listesi
             </h2>
-            <p>Sistem durumuna genel bakış ve hızlı erişim</p>
+            <p>Sistemdeki tüm cihazları görüntüleyin ve yönetin</p>
         </div>
+        <button class="btn-refresh" onclick="refreshDevices()">
+            <i class="bi bi-arrow-clockwise"></i>
+            <span>Yenile</span>
+        </button>
+        <button class="btn-primary" onclick="app.showAddDeviceModal()">
+            <i class="bi bi-plus"></i>
+            <span>Boş Cihaz Ekle</span>
+        </button>
     </div>
     
-    <div class="dashboard-content">
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <h5><i class="bi bi-lightning"></i> Hızlı İşlemler</h5>
-            <div class="action-grid">
-                <a href="devices.html" class="action-card">
-                    <div class="action-icon">
-                        <i class="bi bi-laptop"></i>
-                    </div>
-                    <div class="action-content">
-                        <h6>Cihazları Görüntüle</h6>
-                        <p>Tüm kayıtlı cihazları listele</p>
-                    </div>
-                </a>
-                
-                <a href="network-scan.html" class="action-card">
-                    <div class="action-icon">
-                        <i class="bi bi-wifi"></i>
-                    </div>
-                    <div class="action-content">
-                        <h6>Ağ Taraması</h6>
-                        <p>Yeni cihazları keşfet</p>
-                    </div>
-                </a>
-                
-                <a href="vmware-status.html" class="action-card">
-                    <div class="action-icon">
-                        <i class="bi bi-cloud"></i>
-                    </div>
-                    <div class="action-content">
-                        <h6>VMware Durumu</h6>
-                        <p>Sanal makine yönetimi</p>
-                    </div>
-                </a>
-                
-                <a href="change-logs.html" class="action-card">
-                    <div class="action-icon">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <div class="action-content">
-                        <h6>Değişiklik Logları</h6>
-                        <p>Sistem değişikliklerini takip et</p>
-                    </div>
-                </a>
+    <!-- Search and Filter -->
+    <div class="filters-section">
+        <div class="filter-row">
+            <div class="search-box">
+                <i class="bi bi-search"></i>
+                <input type="text" id="search-devices" placeholder="Cihaz adı, IP, MAC adresi ile arama...">
+            </div>
+            <div class="filter-group">
+                <select id="filter-status" class="filter-select">
+                    <option value="">Tüm Durumlar</option>
+                    <option value="0">Aktif</option>
+                    <option value="1">Pasif</option>
+                    <option value="2">Bakım</option>
+                    <option value="3">Arızalı</option>
+                </select>
+                <select id="filter-type" class="filter-select">
+                    <option value="">Tüm Türler</option>
+                    <option value="0">Bilinmiyor</option>
+                    <option value="1">Laptop</option>
+                    <option value="2">Masaüstü</option>
+                    <option value="3">Sunucu</option>
+                    <option value="4">Yazıcı</option>
+                    <option value="5">Tarayıcı</option>
+                    <option value="6">Kamera</option>
+                    <option value="7">IP Telefon</option>
+                    <option value="8">Ağ Cihazı</option>
+                    <option value="9">Router</option>
+                    <option value="10">Switch</option>
+                    <option value="11">Access Point</option>
+                    <option value="12">Depolama</option>
+                    <option value="13">Tablet</option>
+                    <option value="14">Akıllı Telefon</option>
+                    <option value="15">Akıllı TV</option>
+                    <option value="16">Projektör/Ekran</option>
+                    <option value="17">Diğer</option>
+                    <option value="virtual">Sanal Cihaz (VMware)</option>
+                </select>
+                <select id="filter-discovery" class="filter-select">
+                    <option value="">Tüm Keşif Türleri</option>
+                    <option value="agent">Ajan</option>
+                    <option value="network">Ağ</option>
+                    <option value="vmware">VMware</option>
+                </select>
+                <button class="btn-clear" onclick="clearFilters()">
+                    <i class="bi bi-x-circle"></i>
+                    <span>Temizle</span>
+                </button>
             </div>
         </div>
+    </div>
 
-        <!-- Recent Activity -->
-        <div class="recent-activity">
-            <h5><i class="bi bi-activity"></i> Son Aktiviteler</h5>
-            <div class="activity-list" id="recent-activity-list">
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <i class="bi bi-plus-circle text-success"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>Yeni cihaz eklendi: <strong>LAPTOP-001</strong></p>
-                        <small>2 dakika önce</small>
-                    </div>
-                </div>
-                
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <i class="bi bi-arrow-up-circle text-info"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>Cihaz durumu güncellendi: <strong>SERVER-03</strong></p>
-                        <small>15 dakika önce</small>
-                    </div>
-                </div>
-                
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <i class="bi bi-cloud text-primary"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>VMware senkronizasyonu tamamlandı</p>
-                        <small>1 saat önce</small>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- Devices Table -->
+    <div class="table-container">
+        <table class="devices-table">
+            <thead>
+                <tr>
+                    <th>Cihaz Adı</th>
+                    <th>IP Adresi</th>
+                    <th class="hide-mobile">MAC Adresi</th>
+                    <th>Tür</th>
+                    <th>Durum</th>
+                    <th class="hide-mobile">Model</th>
+                    <th class="hide-mobile">Konum</th>
+                    <th class="hide-mobile">Keşif Türü</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody id="devices-table-body">
+            </tbody>
+        </table>
+    </div>
 
-        <!-- System Status -->
-        <div class="system-status">
-            <h5><i class="bi bi-gear"></i> Sistem Durumu</h5>
-            <div class="status-grid">
-                <div class="status-item">
-                    <div class="status-header">
-                        <span class="status-title">API Sunucu</span>
-                        <span class="status-indicator online"></span>
-                    </div>
-                    <p>Çalışıyor</p>
-                </div>
-                
-                <div class="status-item">
-                    <div class="status-header">
-                        <span class="status-title">Veritabanı</span>
-                        <span class="status-indicator online"></span>
-                    </div>
-                    <p>Bağlı</p>
-                </div>
-                
-                <div class="status-item">
-                    <div class="status-header">
-                        <span class="status-title">VMware Bağlantısı</span>
-                        <span class="status-indicator offline" id="vmware-connection-status"></span>
-                    </div>
-                    <p id="vmware-connection-text">Kontrol ediliyor...</p>
-                </div>
-                
-                <div class="status-item">
-                    <div class="status-header">
-                        <span class="status-title">Son Tarama</span>
-                        <i class="bi bi-clock text-muted"></i>
-                    </div>
-                    <p id="last-scan-time">--</p>
-                </div>
-            </div>
+    <!-- No data message -->
+    <div id="no-devices" class="no-data d-none">
+        <div class="no-data-content">
+            <i class="bi bi-inbox"></i>
+            <h3>Henüz hiç cihaz bulunmuyor</h3>
+            <p>Cihazlarınızı keşfetmek için ağ taraması başlatın veya agent kurun.</p>
+            <button class="btn-primary" onclick="window.location.href='network-scan.html'">
+                <i class="bi bi-wifi"></i>
+                Ağ Taraması Başlat
+            </button>
         </div>
     </div>
 </div>
@@ -414,7 +385,7 @@
     <script src="js/modules/api.js"></script>
     <script src="js/modules/ui.js"></script>
     <!-- Page-specific modules -->
-    <script src="js/modules/dashboard.js"></script>
+    <script src="js/modules/devices.js"></script>
     <!-- Main application -->
     <script src="js/app-modular.js"></script>
 </body>

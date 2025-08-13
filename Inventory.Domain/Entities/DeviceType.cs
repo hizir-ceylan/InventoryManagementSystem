@@ -19,6 +19,7 @@ namespace Inventory.Domain.Entities
         Smartphone,
         SmartTV,
         ProjectorDisplay,
+        VirtualMachine,
         Other
     }
 }

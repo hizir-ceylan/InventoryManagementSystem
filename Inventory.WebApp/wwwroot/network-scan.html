@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Çaykur Envanter Yönetim Sistemi - Ana Sayfa</title>
+    <title>Çaykur Envanter Yönetim Sistemi - Ağ Taraması</title>
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -36,7 +36,7 @@
                 <div class="navbar-menu" id="navbar-menu">
                     <ul class="navbar-nav">
                         <li class="nav-item">
-                            <a class="nav-link active" href="index.html">
+                            <a class="nav-link " href="index.html">
                                 <i class="bi bi-house"></i>
                                 <span>Ana Sayfa</span>
                             </a>
@@ -54,7 +54,7 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link " href="network-scan.html">
+                            <a class="nav-link active" href="network-scan.html">
                                 <i class="bi bi-wifi"></i>
                                 <span>Ağ Taraması</span>
                             </a>
@@ -207,136 +207,84 @@
         <!-- Page Content Container -->
         <div class="pages-container">
             <div class="container">
-                <!-- Dashboard Home Page Content -->
+                <!-- Network Scan Page Content -->
 <div class="page-card">
     <div class="page-header">
         <div class="page-title">
             <h2>
-                <i class="bi bi-speedometer2"></i>
-                Envanter Yönetim Paneli
+                <i class="bi bi-wifi"></i>
+                Ağ Taraması
             </h2>
-            <p>Sistem durumuna genel bakış ve hızlı erişim</p>
+            <p>Ağınızdaki cihazları keşfedin ve envantere ekleyin</p>
         </div>
     </div>
     
-    <div class="dashboard-content">
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <h5><i class="bi bi-lightning"></i> Hızlı İşlemler</h5>
-            <div class="action-grid">
-                <a href="devices.html" class="action-card">
-                    <div class="action-icon">
-                        <i class="bi bi-laptop"></i>
+    <div class="network-scan-content">
+        <div class="scan-config">
+            <h5><i class="bi bi-gear"></i> Tarama Ayarları</h5>
+            <div class="config-form">
+                <div class="form-group">
+                    <label for="network-range">Ağ Aralığı:</label>
+                    <div class="input-group">
+                        <select id="network-range-preset" class="form-control" onchange="app.updateNetworkRange()">
+                            <option value="">-- Özel Aralık --</option>
+                            <option value="auto">Otomatik Algıla</option>
+                            <option value="192.168.1.0/24">192.168.1.0/24 (Yaygın Ev Ağı)</option>
+                            <option value="192.168.0.0/24">192.168.0.0/24 (Yaygın Ev Ağı)</option>
+                            <option value="10.0.0.0/24">10.0.0.0/24 (Kurumsal Ağ)</option>
+                            <option value="172.16.0.0/24">172.16.0.0/24 (Özel Ağ)</option>
+                            <option value="100.64.0.0/24">100.64.0.0/24 (Carrier NAT)</option>
+                            <option value="105.0.0.0/24">105.0.0.0/24 (Özel Aralık)</option>
+                            <option value="112.0.0.0/24">112.0.0.0/24 (Özel Aralık)</option>
+                        </select>
+                        <input type="text" id="network-range" class="form-control" value="auto" placeholder="Örn: 192.168.1.0/24 veya 105.10.5.0/24">
                     </div>
-                    <div class="action-content">
-                        <h6>Cihazları Görüntüle</h6>
-                        <p>Tüm kayıtlı cihazları listele</p>
-                    </div>
-                </a>
-                
-                <a href="network-scan.html" class="action-card">
-                    <div class="action-icon">
-                        <i class="bi bi-wifi"></i>
-                    </div>
-                    <div class="action-content">
-                        <h6>Ağ Taraması</h6>
-                        <p>Yeni cihazları keşfet</p>
-                    </div>
-                </a>
-                
-                <a href="vmware-status.html" class="action-card">
-                    <div class="action-icon">
-                        <i class="bi bi-cloud"></i>
-                    </div>
-                    <div class="action-content">
-                        <h6>VMware Durumu</h6>
-                        <p>Sanal makine yönetimi</p>
-                    </div>
-                </a>
-                
-                <a href="change-logs.html" class="action-card">
-                    <div class="action-icon">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <div class="action-content">
-                        <h6>Değişiklik Logları</h6>
-                        <p>Sistem değişikliklerini takip et</p>
-                    </div>
-                </a>
+                    <small class="form-text text-muted">
+                        Taranacak ağ aralığını seçin veya özel aralık girin. "Otomatik Algıla" seçeneği yerel ağ arayüzlerinizi kullanır.
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label for="scan-timeout">Zaman Aşımı (saniye):</label>
+                    <input type="number" id="scan-timeout" class="form-control" value="5" min="1" max="30">
+                </div>
+                <div class="form-group">
+                    <label for="port-scan">Port Taraması:</label>
+                    <select id="port-scan" class="form-control">
+                        <option value="common">Yaygın Portlar</option>
+                        <option value="all">Tüm Portlar</option>
+                        <option value="none">Port Taraması Yok</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="app.startNetworkScan()" id="start-scan-btn">
+                    <i class="bi bi-play-fill"></i>
+                    Taramayı Başlat
+                </button>
             </div>
         </div>
 
-        <!-- Recent Activity -->
-        <div class="recent-activity">
-            <h5><i class="bi bi-activity"></i> Son Aktiviteler</h5>
-            <div class="activity-list" id="recent-activity-list">
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <i class="bi bi-plus-circle text-success"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>Yeni cihaz eklendi: <strong>LAPTOP-001</strong></p>
-                        <small>2 dakika önce</small>
-                    </div>
+        <div class="scan-results" id="scan-results" style="display: none;">
+            <h5><i class="bi bi-search"></i> Tarama Sonuçları</h5>
+            <div class="scan-progress" id="scan-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
                 </div>
-                
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <i class="bi bi-arrow-up-circle text-info"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>Cihaz durumu güncellendi: <strong>SERVER-03</strong></p>
-                        <small>15 dakika önce</small>
-                    </div>
-                </div>
-                
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <i class="bi bi-cloud text-primary"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>VMware senkronizasyonu tamamlandı</p>
-                        <small>1 saat önce</small>
-                    </div>
-                </div>
+                <p id="scan-status">Tarama başlatılıyor...</p>
             </div>
-        </div>
-
-        <!-- System Status -->
-        <div class="system-status">
-            <h5><i class="bi bi-gear"></i> Sistem Durumu</h5>
-            <div class="status-grid">
-                <div class="status-item">
-                    <div class="status-header">
-                        <span class="status-title">API Sunucu</span>
-                        <span class="status-indicator online"></span>
-                    </div>
-                    <p>Çalışıyor</p>
-                </div>
-                
-                <div class="status-item">
-                    <div class="status-header">
-                        <span class="status-title">Veritabanı</span>
-                        <span class="status-indicator online"></span>
-                    </div>
-                    <p>Bağlı</p>
-                </div>
-                
-                <div class="status-item">
-                    <div class="status-header">
-                        <span class="status-title">VMware Bağlantısı</span>
-                        <span class="status-indicator offline" id="vmware-connection-status"></span>
-                    </div>
-                    <p id="vmware-connection-text">Kontrol ediliyor...</p>
-                </div>
-                
-                <div class="status-item">
-                    <div class="status-header">
-                        <span class="status-title">Son Tarama</span>
-                        <i class="bi bi-clock text-muted"></i>
-                    </div>
-                    <p id="last-scan-time">--</p>
-                </div>
+            <div class="results-table" id="results-table" style="display: none;">
+                <table class="scan-results-table">
+                    <thead>
+                        <tr>
+                            <th>IP Adresi</th>
+                            <th>MAC Adresi</th>
+                            <th>Cihaz Adı</th>
+                            <th>Durum</th>
+                            <th>Açık Portlar</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scan-results-body">
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -414,7 +362,7 @@
     <script src="js/modules/api.js"></script>
     <script src="js/modules/ui.js"></script>
     <!-- Page-specific modules -->
-    <script src="js/modules/dashboard.js"></script>
+    <script src="js/modules/network-scan.js"></script>
     <!-- Main application -->
     <script src="js/app-modular.js"></script>
 </body>

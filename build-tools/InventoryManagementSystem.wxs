@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+    WiX Installer for Inventory Management System
+    Converts the current Inno Setup installer to MSI format for enterprise deployment
+    Excludes web app as specified (since it's in test mode)
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" 
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension"
+     xmlns:fire="http://schemas.microsoft.com/wix/FirewallExtension">
+
+  <!-- Product Information -->
+  <Product Id="*" 
+           Name="Inventory Management System" 
+           Language="1033" 
+           Version="1.1.0.0" 
+           Manufacturer="Hizir Ceylan" 
+           UpgradeCode="{8B9B2A1D-4F5E-4C3B-8A1D-2E3F4A5B6C7D}">
+
+    <!-- Package Information -->
+    <Package InstallerVersion="200" 
+             Compressed="yes" 
+             InstallScope="perMachine" 
+             Platform="x64"
+             Description="Enterprise Inventory Management System"
+             Comments="Device inventory, tracking and management system for corporate environments" />
+
+    <!-- Media Information -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Installation Properties -->
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/hizir-ceylan/InventoryManagementSystem" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/hizir-ceylan/InventoryManagementSystem" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
+    
+    <!-- System Requirements -->
+    <Condition Message="This application requires Windows 10 or Windows Server 2016 or newer.">
+      <![CDATA[Installed OR (VersionNT >= 1000)]]>
+    </Condition>
+    
+    <Condition Message="This application requires 64-bit Windows.">
+      <![CDATA[Installed OR VersionNT64]]>
+    </Condition>
+
+    <!-- .NET 8 Runtime Check -->
+    <PropertyRef Id="NETFRAMEWORK48" />
+    <Property Id="DOTNET8INSTALLED">
+      <RegistrySearch Id="DotNet8Search" 
+                      Root="HKLM" 
+                      Key="SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.NETCore.App" 
+                      Name="8.0" 
+                      Type="raw" />
+    </Property>
+
+    <!-- Features -->
+    <Feature Id="ProductFeature" Title="Inventory Management System" Level="1">
+      <ComponentGroupRef Id="ApiComponents" />
+      <ComponentGroupRef Id="AgentComponents" />
+      <ComponentGroupRef Id="ServiceComponents" />
+      <ComponentGroupRef Id="FirewallComponents" />
+    </Feature>
+
+    <!-- Directory Structure -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="Inventory Management System">
+          <Directory Id="APIFOLDER" Name="Api" />
+          <Directory Id="AGENTFOLDER" Name="Agent" />
+          <Directory Id="LOGSFOLDER" Name="Logs" />
+          <Directory Id="DATAFOLDER" Name="Data" />
+        </Directory>
+      </Directory>
+      
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Inventory Management System" />
+      </Directory>
+      
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+
+    <!-- API Components -->
+    <ComponentGroup Id="ApiComponents">
+      <Component Id="ApiExecutable" Guid="{A1234567-B234-C345-D456-E56789ABCDEF}" Directory="APIFOLDER">
+        <File Id="ApiExe" 
+              Source="Published\Api\Inventory.Api.exe" 
+              KeyPath="yes" 
+              Checksum="yes" />
+        <File Id="ApiConfig" 
+              Source="Published\Api\appsettings.json" />
+        <File Id="ApiPdb" 
+              Source="Published\Api\Inventory.Api.pdb" />
+      </Component>
+      
+      <Component Id="ApiDependencies" Guid="{B2345678-C345-D456-E567-F6789ABCDEF0}" Directory="APIFOLDER">
+        <File Id="ApiDll1" Source="Published\Api\Inventory.Data.dll" />
+        <File Id="ApiDll2" Source="Published\Api\Inventory.Domain.dll" />
+        <File Id="ApiDll3" Source="Published\Api\Inventory.Shared.dll" />
+        <!-- Add other API dependencies as needed -->
+      </Component>
+    </ComponentGroup>
+
+    <!-- Agent Components -->
+    <ComponentGroup Id="AgentComponents">
+      <Component Id="AgentExecutable" Guid="{C3456789-D456-E567-F678-9ABCDEF01234}" Directory="AGENTFOLDER">
+        <File Id="AgentExe" 
+              Source="Published\Agent\Inventory.Agent.Windows.exe" 
+              KeyPath="yes" 
+              Checksum="yes" />
+        <File Id="AgentConfig" 
+              Source="Published\Agent\appsettings.json" />
+        <File Id="AgentPdb" 
+              Source="Published\Agent\Inventory.Agent.Windows.pdb" />
+      </Component>
+      
+      <Component Id="AgentDependencies" Guid="{D4567890-E567-F678-9ABC-DEF012345678}" Directory="AGENTFOLDER">
+        <File Id="AgentDll1" Source="Published\Agent\Inventory.Shared.dll" />
+        <!-- Add other Agent dependencies as needed -->
+      </Component>
+    </ComponentGroup>
+
+    <!-- Windows Services -->
+    <ComponentGroup Id="ServiceComponents">
+      <!-- API Service -->
+      <Component Id="ApiService" Guid="{E5678901-F678-9ABC-DEF0-12345678ABCD}" Directory="APIFOLDER">
+        <ServiceInstall Id="ApiServiceInstaller"
+                        Type="ownProcess"
+                        Name="InventoryApiService"
+                        DisplayName="Inventory Management API Service"
+                        Description="Inventory Management System REST API Service"
+                        Start="auto"
+                        Account="LocalSystem"
+                        ErrorControl="normal"
+                        Interactive="no">
+          <ServiceDependency Id="Tcpip" />
+          <ServiceDependency Id="Dnscache" />
+        </ServiceInstall>
+        
+        <ServiceControl Id="ApiServiceControl"
+                        Start="install"
+                        Stop="both"
+                        Remove="uninstall"
+                        Name="InventoryApiService"
+                        Wait="yes" />
+        
+        <!-- Service arguments for API -->
+        <RegistryValue Root="HKLM" 
+                       Key="SYSTEM\CurrentControlSet\Services\InventoryApiService" 
+                       Name="ImagePath" 
+                       Type="string" 
+                       Value='"[APIFOLDER]Inventory.Api.exe" --urls "http://localhost:5093"' />
+      </Component>
+
+      <!-- Agent Service -->
+      <Component Id="AgentService" Guid="{F6789012-9ABC-DEF0-1234-5678ABCDEF01}" Directory="AGENTFOLDER">
+        <ServiceInstall Id="AgentServiceInstaller"
+                        Type="ownProcess"
+                        Name="InventoryAgentService"
+                        DisplayName="Inventory Management Agent Service"
+                        Description="Inventory Management System Windows Agent Service"
+                        Start="auto"
+                        Account="LocalSystem"
+                        ErrorControl="normal"
+                        Interactive="no">
+          <ServiceDependency Id="InventoryApiService" />
+        </ServiceInstall>
+        
+        <ServiceControl Id="AgentServiceControl"
+                        Start="install"
+                        Stop="both"
+                        Remove="uninstall"
+                        Name="InventoryAgentService"
+                        Wait="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Firewall Components -->
+    <ComponentGroup Id="FirewallComponents">
+      <Component Id="FirewallRule" Guid="{01234567-ABCD-EF01-2345-678ABCDEF012}" Directory="APIFOLDER">
+        <fire:FirewallException Id="ApiFirewallException"
+                                Name="Inventory Management API"
+                                Port="5093"
+                                Protocol="tcp"
+                                Scope="localSubnet"
+                                IgnoreFailure="yes"
+                                Description="Allow Inventory Management API communication on port 5093" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Start Menu Shortcuts -->
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut" Guid="{12345678-CDEF-0123-4567-8ABCDEF01234}">
+        <Shortcut Id="ApiServiceShortcut"
+                  Name="Inventory Management System"
+                  Description="Open Inventory Management Web Interface"
+                  Target="http://localhost:5093/swagger"
+                  WorkingDirectory="APIFOLDER" />
+        
+        <Shortcut Id="UninstallShortcut"
+                  Name="Uninstall Inventory Management System"
+                  Description="Uninstalls Inventory Management System"
+                  Target="[System64Folder]msiexec.exe"
+                  Arguments="/x [ProductCode]" />
+        
+        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" 
+                       Key="Software\Microsoft\InventoryManagementSystem" 
+                       Name="installed" 
+                       Type="integer" 
+                       Value="1" 
+                       KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Desktop Shortcut (Optional) -->
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="{23456789-DEF0-1234-5678-ABCDEF012345}">
+        <Condition>DESKTOPSHORTCUT</Condition>
+        <Shortcut Id="DesktopApiShortcut"
+                  Name="Inventory Management System"
+                  Description="Open Inventory Management Web Interface"
+                  Target="http://localhost:5093/swagger"
+                  WorkingDirectory="APIFOLDER" />
+        
+        <RegistryValue Root="HKCU" 
+                       Key="Software\Microsoft\InventoryManagementSystem" 
+                       Name="desktop" 
+                       Type="integer" 
+                       Value="1" 
+                       KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Custom Actions for .NET 8 Runtime Installation -->
+    <CustomAction Id="CheckDotNet8"
+                  Property="DOTNET8REQUIRED"
+                  Value="1">
+      <![CDATA[NOT DOTNET8INSTALLED]]>
+    </CustomAction>
+
+    <CustomAction Id="DownloadDotNet8"
+                  Property="DOTNET8URL"
+                  Value="https://download.microsoft.com/download/a/b/c/abc123.../dotnet-runtime-8.0-win-x64.exe" />
+
+    <!-- Installation Sequence -->
+    <InstallExecuteSequence>
+      <Custom Action="CheckDotNet8" Before="LaunchConditions">NOT Installed</Custom>
+    </InstallExecuteSequence>
+
+    <!-- User Interface -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <Property Id="DESKTOPSHORTCUT" Value="0" />
+    
+    <UI>
+      <UIRef Id="WixUI_InstallDir" />
+      
+      <!-- Custom dialog for desktop shortcut -->
+      <DialogRef Id="DesktopShortcutDlg" />
+      
+      <!-- License agreement (if needed) -->
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg">NOT Installed</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
+    </UI>
+
+    <!-- Custom Dialog for Desktop Shortcut -->
+    <Fragment>
+      <UI>
+        <Dialog Id="DesktopShortcutDlg" Width="370" Height="270" Title="[ProductName] Setup">
+          <Control Id="DesktopShortcutCheckBox" Type="CheckBox" X="20" Y="60" Width="290" Height="17" Property="DESKTOPSHORTCUT" CheckBoxValue="1" Text="Create a desktop shortcut" />
+          <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Next">
+            <Publish Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
+          </Control>
+          <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="Back">
+            <Publish Event="NewDialog" Value="InstallDirDlg">1</Publish>
+          </Control>
+          <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+            <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
+          </Control>
+        </Dialog>
+      </UI>
+    </Fragment>
+
+  </Product>
+</Wix>

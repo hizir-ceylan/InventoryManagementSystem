@@ -6,6 +6,7 @@ namespace Inventory.Domain.Entities
         NetworkDiscovery,
         Agent,
         Manual,
-        Import
+        Import,
+        VMware
     }
 }
