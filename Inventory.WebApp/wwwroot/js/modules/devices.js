@@ -185,7 +185,7 @@ async function viewDeviceDetails(deviceId) {
         if (device) {
             // Store device data and navigate to device details page
             sessionStorage.setItem('selectedDevice', JSON.stringify(device));
-            window.location.href = 'device-details.html';
+            window.location.href = `/DeviceDetails?id=${deviceId}`;
         }
     } catch (error) {
         window.ui.showError('Cihaz detayları yüklenirken hata oluştu: ' + error.message);

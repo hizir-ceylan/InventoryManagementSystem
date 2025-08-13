@@ -460,12 +460,15 @@ class DevicesPageApp {
 
     // Modal functionality
     showDeviceModal(deviceId) {
-        const device = this.devices.find(d => d.id === deviceId);
+        const device = this.devices.find(d => d.id == deviceId);
         if (!device) {
             this.showError('Cihaz bulunamadı');
             return;
         }
 
+        // Store device data in session storage for device details page
+        sessionStorage.setItem('selectedDevice', JSON.stringify(device));
+        
         // Redirect to device details page
         window.location.href = `/DeviceDetails?id=${deviceId}`;
     }
@@ -487,7 +490,7 @@ class DevicesPageApp {
         this.filterDevices();
     }
 
-    // Mock data for development
+    // Mock data for development with comprehensive hardware/software info
     getMockDevices() {
         return [
             {
@@ -499,10 +502,60 @@ class DevicesPageApp {
                 status: 0, // Active
                 model: 'Dell OptiPlex 7090',
                 location: 'IT Departmanı',
+                barcodeNumber: 'IT-DESK-001',
+                notes: 'Ana geliştirme bilgisayarı. Özel yazılım yüklü.',
                 lastSeen: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+                createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
                 managementType: 1,
                 discoveryMethod: 2,
-                agentInstalled: true
+                agentInstalled: true,
+                hardwareInfo: {
+                    cpu: 'Intel Core i7-11700',
+                    cpuCores: 8,
+                    cpuClockMHz: 2900,
+                    ramGB: 32,
+                    ramModules: [
+                        { slot: 'DIMM1', capacityGB: 16, manufacturer: 'Samsung', speedMHz: 3200 },
+                        { slot: 'DIMM2', capacityGB: 16, manufacturer: 'Samsung', speedMHz: 3200 }
+                    ],
+                    diskGB: 1024,
+                    disks: [
+                        { deviceId: 'C:', totalGB: 512, freeGB: 256 },
+                        { deviceId: 'D:', totalGB: 512, freeGB: 400 }
+                    ],
+                    gpus: [
+                        { name: 'Intel UHD Graphics 750', memoryGB: 1 },
+                        { name: 'NVIDIA GeForce RTX 3060', memoryGB: 12 }
+                    ],
+                    networkAdapters: [
+                        { description: 'Intel Ethernet Connection I219-LM', macAddress: '00:11:22:33:44:55', ipAddress: '192.168.101.100' },
+                        { description: 'Intel Wi-Fi 6 AX201', macAddress: '00:11:22:33:44:56', ipAddress: 'N/A' }
+                    ],
+                    motherboard: 'Dell Inc. 0K240Y',
+                    motherboardSerial: 'CN123456789',
+                    biosManufacturer: 'Dell Inc.',
+                    biosVersion: '2.18.0'
+                },
+                softwareInfo: {
+                    operatingSystem: 'Windows 11 Pro',
+                    osVersion: '22H2',
+                    osArchitecture: 'x64',
+                    registeredUser: 'Ahmet Yılmaz',
+                    activeUser: 'ayilmaz',
+                    serialNumber: 'WIN11-PRO-12345',
+                    users: ['ayilmaz', 'admin', 'guest', 'test_user', 'developer'],
+                    installedApps: [
+                        'Microsoft Office 365', 'Google Chrome', 'Mozilla Firefox', 'Adobe Acrobat Reader DC',
+                        'Visual Studio 2022', 'Visual Studio Code', 'Git for Windows', 'Node.js', 'Python 3.11',
+                        'Docker Desktop', 'Postman', 'FileZilla', 'WinRAR', '7-Zip', 'Notepad++',
+                        'VLC Media Player', 'Adobe Photoshop 2023', 'Adobe Illustrator 2023', 'Figma',
+                        'Zoom', 'Microsoft Teams', 'Slack', 'Discord', 'Spotify', 'Steam',
+                        'AutoCAD 2023', 'SolidWorks 2023', 'MATLAB R2023a', 'IntelliJ IDEA',
+                        'Eclipse IDE', 'Android Studio', 'Unity 3D', 'Blender', 'OBS Studio',
+                        'Wireshark', 'PuTTY', 'WinSCP', 'TeamViewer', 'AnyDesk', 'VirtualBox',
+                        'VMware Workstation', 'Hyper-V', 'SQL Server Management Studio', 'MySQL Workbench'
+                    ]
+                }
             },
             {
                 id: '2',
@@ -513,10 +566,110 @@ class DevicesPageApp {
                 status: 1, // Inactive
                 model: 'HP EliteBook 840',
                 location: 'Satış Departmanı',
-                lastSeen: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                barcodeNumber: 'SALES-LAP-005',
+                notes: 'Satış temsilcisi laptop\'ı. Mobil kullanım için.',
+                lastSeen: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+                createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), // 15 days ago
                 managementType: 1,
                 discoveryMethod: 2,
-                agentInstalled: false
+                agentInstalled: false,
+                hardwareInfo: {
+                    cpu: 'Intel Core i5-1135G7',
+                    cpuCores: 4,
+                    cpuClockMHz: 2400,
+                    ramGB: 16,
+                    ramModules: [
+                        { slot: 'SO-DIMM1', capacityGB: 16, manufacturer: 'Crucial', speedMHz: 3200 }
+                    ],
+                    diskGB: 512,
+                    disks: [
+                        { deviceId: 'C:', totalGB: 512, freeGB: 128 }
+                    ],
+                    gpus: [
+                        { name: 'Intel Iris Xe Graphics', memoryGB: 1 }
+                    ],
+                    networkAdapters: [
+                        { description: 'Intel Wi-Fi 6 AX201', macAddress: '00:AA:BB:CC:DD:EE', ipAddress: '192.168.102.150' }
+                    ],
+                    motherboard: 'HP 8846',
+                    motherboardSerial: 'HP123456789',
+                    biosManufacturer: 'HP',
+                    biosVersion: 'U74 Ver. 01.15.00'
+                },
+                softwareInfo: {
+                    operatingSystem: 'Windows 10 Pro',
+                    osVersion: '22H2',
+                    osArchitecture: 'x64',
+                    registeredUser: 'Fatma Kaya',
+                    activeUser: 'fkaya',
+                    serialNumber: 'WIN10-PRO-67890',
+                    users: ['fkaya', 'admin', 'guest'],
+                    installedApps: [
+                        'Microsoft Office 365', 'Google Chrome', 'Outlook', 'Excel', 'PowerPoint', 'Word',
+                        'Microsoft Teams', 'Zoom', 'Adobe Acrobat Reader DC', 'Salesforce Desktop',
+                        'CRM Software', 'QuickBooks', 'Slack', 'Skype for Business', 'OneDrive',
+                        'Dropbox', 'VLC Media Player', 'WinRAR', 'TeamViewer', 'AnyDesk'
+                    ]
+                }
+            },
+            {
+                id: '3',
+                name: 'SERVER-DB01',
+                ipAddress: '192.168.100.200',
+                macAddress: '00:FF:EE:DD:CC:BB',
+                deviceType: 3, // Server
+                status: 0, // Active
+                model: 'Dell PowerEdge R740',
+                location: 'Sunucu Odası',
+                barcodeNumber: 'SRV-DB-001',
+                notes: 'Ana veritabanı sunucusu. Kritik sistem.',
+                lastSeen: new Date(Date.now() - 30 * 1000).toISOString(), // 30 seconds ago
+                createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days ago
+                managementType: 2,
+                discoveryMethod: 1,
+                agentInstalled: false,
+                hardwareInfo: {
+                    cpu: 'Intel Xeon Silver 4214R',
+                    cpuCores: 24,
+                    cpuClockMHz: 2400,
+                    ramGB: 128,
+                    ramModules: [
+                        { slot: 'DIMM1', capacityGB: 32, manufacturer: 'Samsung', speedMHz: 2933 },
+                        { slot: 'DIMM2', capacityGB: 32, manufacturer: 'Samsung', speedMHz: 2933 },
+                        { slot: 'DIMM3', capacityGB: 32, manufacturer: 'Samsung', speedMHz: 2933 },
+                        { slot: 'DIMM4', capacityGB: 32, manufacturer: 'Samsung', speedMHz: 2933 }
+                    ],
+                    diskGB: 4000,
+                    disks: [
+                        { deviceId: 'C:', totalGB: 500, freeGB: 200 },
+                        { deviceId: 'D:', totalGB: 1750, freeGB: 800 },
+                        { deviceId: 'E:', totalGB: 1750, freeGB: 1500 }
+                    ],
+                    networkAdapters: [
+                        { description: 'Intel Ethernet Server Adapter I350-T4', macAddress: '00:FF:EE:DD:CC:BB', ipAddress: '192.168.100.200' },
+                        { description: 'Intel Ethernet Server Adapter I350-T4 #2', macAddress: '00:FF:EE:DD:CC:BC', ipAddress: '192.168.100.201' }
+                    ],
+                    motherboard: 'Dell Inc. 0C4Y3R',
+                    motherboardSerial: 'SRV123456789',
+                    biosManufacturer: 'Dell Inc.',
+                    biosVersion: '2.15.0'
+                },
+                softwareInfo: {
+                    operatingSystem: 'Windows Server 2022',
+                    osVersion: 'Standard',
+                    osArchitecture: 'x64',
+                    registeredUser: 'System Administrator',
+                    activeUser: 'SYSTEM',
+                    serialNumber: 'WINSRV-2022-001',
+                    users: ['Administrator', 'SYSTEM', 'NETWORK SERVICE', 'LOCAL SERVICE', 'srvadmin'],
+                    installedApps: [
+                        'Microsoft SQL Server 2022', 'SQL Server Management Studio', 'IIS 10.0',
+                        'Microsoft .NET Framework 4.8', '.NET 6.0 Runtime', '.NET 7.0 Runtime',
+                        'Windows PowerShell 5.1', 'PowerShell 7', 'Remote Desktop Services',
+                        'Hyper-V', 'Windows Server Backup', 'System Center Operations Manager Agent',
+                        'Microsoft Defender Antivirus', 'Windows Admin Center', 'Failover Clustering'
+                    ]
+                }
             }
         ];
     }
