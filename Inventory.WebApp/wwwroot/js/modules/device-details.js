@@ -111,6 +111,10 @@ class DeviceDetailsManager {
                         <i class="bi bi-pencil"></i>
                         Düzenle
                     </button>
+                    <button class="btn-info" onclick="window.location.href='/ChangeLogs?deviceId=${device.id}'">
+                        <i class="bi bi-journal-text"></i>
+                        Değişiklik Logları
+                    </button>
                     <button class="btn-danger" onclick="window.deviceDetails?.confirmDeleteDevice?.('${device.id}', '${device.name}')">
                         <i class="bi bi-trash"></i>
                         Cihazı Sil
@@ -171,18 +175,12 @@ class DeviceDetailsManager {
 
                 ${this.renderHardwareInfo(device)}
                 ${this.renderSoftwareInfo(device)}
-
-                <div class="detail-section">
-                    <h5><i class="bi bi-clock-history"></i> Değişiklik Geçmişi</h5>
-                    <div class="change-history">
-                        <button class="btn-info" onclick="window.location.href='/ChangeLogs?deviceId=${device.id}'">
-                            <i class="bi bi-journal-text"></i>
-                            Değişiklik Loglarını Görüntüle
-                        </button>
-                    </div>
-                </div>
+                ${this.renderDeviceUpdates(device)}
             </div>
         `;
+        
+        // Load device updates after rendering
+        setTimeout(() => this.loadDeviceUpdates(device.id), 500);
     }
 
     renderHardwareInfo(device) {
@@ -386,9 +384,9 @@ class DeviceDetailsManager {
                         </div>
                         ${sw.installedApps.length > 20 ? `
                             <div class="software-load-more">
-                                <button class="btn-load-more" onclick="window.deviceDetails.loadMoreSoftware('${device.id}', ${sw.installedApps.length})">
-                                    <i class="bi bi-chevron-down"></i>
-                                    Daha fazla yazılım göster (${sw.installedApps.length - 20} kalan)
+                                <button class="btn-load-more" onclick="window.deviceDetails.showAllSoftware('${device.id}')">
+                                    <i class="bi bi-list"></i>
+                                    Tümünü göster (${sw.installedApps.length} yazılım)
                                 </button>
                             </div>
                         ` : ''}
@@ -431,41 +429,219 @@ class DeviceDetailsManager {
         `;
     }
 
-    renderVMwareInfo(device) {
-        if (!device.isVirtual || !device.vmwareInfo) return '';
-
-        const vm = device.vmwareInfo;
+    renderDeviceUpdates(device) {
         return `
             <div class="detail-section">
-                <h5><i class="bi bi-cloud"></i> VMware Bilgileri</h5>
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <strong>VM Adı:</strong>
-                        <span>${vm.name || '--'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>Güç Durumu:</strong>
-                        <span>${vm.powerState || '--'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>vCPU:</strong>
-                        <span>${vm.cpuCount || '--'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>vRAM:</strong>
-                        <span>${vm.memoryGB ? vm.memoryGB + ' GB' : '--'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>Disk Boyutu:</strong>
-                        <span>${vm.diskGB ? vm.diskGB + ' GB' : '--'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>ESXi Host:</strong>
-                        <span>${vm.hostName || '--'}</span>
+                <h5><i class="bi bi-arrow-clockwise"></i> Cihaz Güncellemeleri</h5>
+                <div id="device-updates-${device.id}" class="device-updates-container">
+                    <div class="loading-updates">
+                        <i class="bi bi-hourglass-split"></i>
+                        Güncelleme bilgileri yükleniyor...
                     </div>
                 </div>
             </div>
         `;
+    }
+
+    async loadDeviceUpdates(deviceId) {
+        try {
+            const updatesContainer = document.getElementById(`device-updates-${deviceId}`);
+            if (!updatesContainer) return;
+
+            // Try to load updates from API
+            const updates = await window.api.getDeviceUpdates(deviceId);
+            
+            if (updates && updates.length > 0) {
+                const availableUpdates = updates.filter(update => update.status === 0); // Available updates
+                const installedUpdates = updates.filter(update => update.status === 2); // Installed updates
+                
+                let updatesHtml = '';
+                
+                if (availableUpdates.length > 0) {
+                    updatesHtml += `
+                        <div class="updates-section">
+                            <h6><i class="bi bi-download"></i> Mevcut Güncellemeler (${availableUpdates.length})</h6>
+                            <div class="updates-list">
+                                ${availableUpdates.slice(0, 5).map(update => `
+                                    <div class="update-item ${this.getUpdatePriorityClass(update.priority)}">
+                                        <div class="update-info">
+                                            <strong>${update.title}</strong>
+                                            <small>${update.updateType} - ${this.getUpdatePriorityText(update.priority)}</small>
+                                        </div>
+                                        <div class="update-status">
+                                            <span class="badge badge-warning">Mevcut</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                                ${availableUpdates.length > 5 ? `
+                                    <div class="updates-show-all">
+                                        <button class="btn-secondary" onclick="window.deviceDetails.showAllUpdates('${deviceId}', 'available')">
+                                            <i class="bi bi-list"></i>
+                                            Tüm mevcut güncellemeleri göster (${availableUpdates.length})
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (installedUpdates.length > 0) {
+                    updatesHtml += `
+                        <div class="updates-section">
+                            <h6><i class="bi bi-check-circle"></i> Yüklü Güncellemeler (${installedUpdates.length})</h6>
+                            <div class="updates-list">
+                                ${installedUpdates.slice(0, 3).map(update => `
+                                    <div class="update-item">
+                                        <div class="update-info">
+                                            <strong>${update.title}</strong>
+                                            <small>${update.updateType} - ${this.formatDateTime(update.lastChecked)}</small>
+                                        </div>
+                                        <div class="update-status">
+                                            <span class="badge badge-success">Yüklü</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                                ${installedUpdates.length > 3 ? `
+                                    <div class="updates-show-all">
+                                        <button class="btn-secondary" onclick="window.deviceDetails.showAllUpdates('${deviceId}', 'installed')">
+                                            <i class="bi bi-list"></i>
+                                            Tüm yüklü güncellemeleri göster (${installedUpdates.length})
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (updatesHtml === '') {
+                    updatesHtml = `
+                        <div class="no-updates">
+                            <i class="bi bi-check-circle"></i>
+                            <span>Tüm güncellemeler yüklü</span>
+                        </div>
+                    `;
+                }
+                
+                updatesContainer.innerHTML = updatesHtml;
+            } else {
+                updatesContainer.innerHTML = `
+                    <div class="no-updates">
+                        <i class="bi bi-info-circle"></i>
+                        <span>Güncelleme bilgisi bulunamadı</span>
+                        <button class="btn-primary" onclick="window.deviceDetails.refreshUpdates('${deviceId}')">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            Güncellemeleri kontrol et
+                        </button>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.warn('Device updates could not be loaded:', error);
+            const updatesContainer = document.getElementById(`device-updates-${deviceId}`);
+            if (updatesContainer) {
+                updatesContainer.innerHTML = `
+                    <div class="no-updates error">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <span>Güncelleme bilgileri yüklenemedi</span>
+                        <button class="btn-secondary" onclick="window.deviceDetails.refreshUpdates('${deviceId}')">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            Tekrar dene
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    getUpdatePriorityClass(priority) {
+        const priorityClasses = {
+            4: 'update-security',    // Security
+            3: 'update-critical',    // Critical
+            2: 'update-high',        // High
+            1: 'update-normal',      // Normal
+            0: 'update-low'          // Low
+        };
+        return priorityClasses[priority] || 'update-normal';
+    }
+
+    getUpdatePriorityText(priority) {
+        const priorityTexts = {
+            4: 'Güvenlik',
+            3: 'Kritik',
+            2: 'Yüksek',
+            1: 'Normal',
+            0: 'Düşük'
+        };
+        return priorityTexts[priority] || 'Normal';
+    }
+
+    async refreshUpdates(deviceId) {
+        const updatesContainer = document.getElementById(`device-updates-${deviceId}`);
+        if (updatesContainer) {
+            updatesContainer.innerHTML = `
+                <div class="loading-updates">
+                    <i class="bi bi-hourglass-split"></i>
+                    Güncellemeler kontrol ediliyor...
+                </div>
+            `;
+            
+            try {
+                // Trigger update scan
+                await window.api.scanDeviceUpdates(deviceId);
+                // Wait a bit and reload
+                setTimeout(() => this.loadDeviceUpdates(deviceId), 2000);
+            } catch (error) {
+                console.error('Update scan failed:', error);
+                this.loadDeviceUpdates(deviceId);
+            }
+        }
+    }
+
+    showAllUpdates(deviceId, type) {
+        // This would open a modal or navigate to a detailed updates page
+        window.open(`/DeviceUpdates?deviceId=${deviceId}&type=${type}`, '_blank');
+    }
+
+    // Device action functions
+    async editDevice(deviceId) {
+        try {
+            const device = await window.api.getDevice(deviceId);
+            if (device) {
+                // Store device data for editing
+                sessionStorage.setItem('editingDevice', JSON.stringify(device));
+                // Navigate to edit page or show modal
+                window.location.href = `/DeviceEdit?id=${deviceId}`;
+            }
+        } catch (error) {
+            window.ui.showError('Cihaz düzenleme sayfası açılırken hata oluştu: ' + error.message);
+        }
+    }
+
+    async confirmDeleteDevice(deviceId, deviceName) {
+        if (confirm(`"${deviceName}" cihazını silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz ve cihazın tüm verileri silinecektir.`)) {
+            await this.deleteDevice(deviceId);
+        }
+    }
+
+    async deleteDevice(deviceId) {
+        try {
+            window.ui.showLoading();
+            await window.api.deleteDevice(deviceId);
+            window.ui.hideLoading();
+            
+            window.ui.showSuccess('Cihaz başarıyla silindi');
+            
+            // Redirect to devices list after a short delay
+            setTimeout(() => {
+                window.location.href = '/Devices';
+            }, 1500);
+            
+        } catch (error) {
+            window.ui.hideLoading();
+            window.ui.showError('Cihaz silinirken hata oluştu: ' + error.message);
+        }
     }
 
     // Utility functions for rendering
@@ -533,22 +709,20 @@ class DeviceDetailsManager {
         }
     }
 
-    // Load more software functionality
-    loadMoreSoftware(deviceId, totalCount) {
+    // Show all software functionality
+    showAllSoftware(deviceId) {
         const device = this.currentDevice;
         if (!device || !device.softwareInfo || !device.softwareInfo.installedApps) return;
 
         const container = document.getElementById(`software-list-${deviceId}`);
         const loadMoreContainer = container?.parentElement.querySelector('.software-load-more');
-        const loadMoreBtn = loadMoreContainer?.querySelector('.btn-load-more');
 
-        if (!container || !loadMoreBtn) return;
+        if (!container) return;
 
-        const currentItems = container.children.length;
-        const nextBatch = device.softwareInfo.installedApps.slice(currentItems, currentItems + 20);
-
-        // Add new software items
-        nextBatch.forEach(app => {
+        // Clear current list and show all software
+        container.innerHTML = '';
+        
+        device.softwareInfo.installedApps.forEach(app => {
             const softwareItem = document.createElement('div');
             softwareItem.className = 'software-item';
             softwareItem.innerHTML = `
@@ -558,17 +732,16 @@ class DeviceDetailsManager {
             container.appendChild(softwareItem);
         });
 
-        // Update or remove the load more button
-        const remainingItems = device.softwareInfo.installedApps.length - container.children.length;
-        if (remainingItems > 0) {
-            loadMoreBtn.innerHTML = `
-                <i class="bi bi-chevron-down"></i>
-                Daha fazla yazılım göster (${remainingItems} kalan)
-            `;
-            loadMoreBtn.setAttribute('onclick', `window.deviceDetails.loadMoreSoftware('${deviceId}', ${device.softwareInfo.installedApps.length})`);
-        } else {
+        // Hide the load more button
+        if (loadMoreContainer) {
             loadMoreContainer.style.display = 'none';
         }
+    }
+
+    // Load more software functionality (kept for backward compatibility)
+    loadMoreSoftware(deviceId, totalCount) {
+        // This function is now replaced by showAllSoftware
+        this.showAllSoftware(deviceId);
     }
 }
 

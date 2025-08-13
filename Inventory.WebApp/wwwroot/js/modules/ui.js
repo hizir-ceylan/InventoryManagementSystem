@@ -232,6 +232,9 @@ class UIManager {
                 <button class="btn-sm btn-warning" onclick="editDevice('${deviceId}')" title="Düzenle">
                     <i class="bi bi-pencil"></i>
                 </button>
+                <button class="btn-sm btn-secondary" onclick="window.location.href='/ChangeLogs?deviceId=${deviceId}'" title="Değişiklik Logları">
+                    <i class="bi bi-journal-text"></i>
+                </button>
                 <button class="btn-sm btn-danger" onclick="confirmDeleteDevice('${deviceId}', '${deviceName}')" title="Sil">
                     <i class="bi bi-trash"></i>
                 </button>
