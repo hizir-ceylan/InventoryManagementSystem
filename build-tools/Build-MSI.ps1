@@ -50,7 +50,7 @@ $wixToolsPath = $null
 
 if ($WixPath) {
     $wixToolsPath = $WixPath
-    if (Test-Path "$wixToolsPath\candle.exe" -and Test-Path "$wixToolsPath\light.exe") {
+    if ((Test-Path "$wixToolsPath\candle.exe") -and (Test-Path "$wixToolsPath\light.exe")) {
         $wixFound = $true
     }
 } else {
@@ -64,7 +64,7 @@ if ($WixPath) {
     )
 
     foreach ($path in $commonWixPaths) {
-        if (Test-Path "$path\candle.exe" -and Test-Path "$path\light.exe") {
+        if ((Test-Path "$path\candle.exe") -and (Test-Path "$path\light.exe")) {
             $wixToolsPath = $path
             $wixFound = $true
             break
