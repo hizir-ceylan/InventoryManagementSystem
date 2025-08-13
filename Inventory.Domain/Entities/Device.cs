@@ -18,6 +18,10 @@ namespace Inventory.Domain.Entities
         public DeviceHardwareInfo? HardwareInfo { get; set; }
         public DeviceSoftwareInfo? SoftwareInfo { get; set; }
         
+        // Manual fields (not affected by automatic processes)
+        public string? BarcodeNumber { get; set; }
+        public string? Notes { get; set; }
+        
         // Agent/Agentless distinction fields
         public bool AgentInstalled { get; set; }
         public ManagementType ManagementType { get; set; }

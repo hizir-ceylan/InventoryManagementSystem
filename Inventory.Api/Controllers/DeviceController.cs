@@ -353,6 +353,8 @@ namespace Inventory.Api.Controllers
             device.Model = updatedDevice.Model;
             device.Location = updatedDevice.Location;
             device.Status = updatedDevice.Status;
+            device.BarcodeNumber = updatedDevice.BarcodeNumber;
+            device.Notes = updatedDevice.Notes;
             device.HardwareInfo = updatedDevice.HardwareInfo;
             device.SoftwareInfo = updatedDevice.SoftwareInfo;
             device.AgentInstalled = updatedDevice.AgentInstalled;

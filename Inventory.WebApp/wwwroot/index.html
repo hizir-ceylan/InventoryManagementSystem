@@ -192,6 +192,10 @@
                                 <i class="bi bi-arrow-clockwise"></i>
                                 <span>Yenile</span>
                             </button>
+                            <button class="btn-primary" onclick="app.showAddDeviceModal()">
+                                <i class="bi bi-plus"></i>
+                                <span>Boş Cihaz Ekle</span>
+                            </button>
                         </div>
                         
                         <!-- Search and Filter -->
@@ -211,13 +215,24 @@
                                     </select>
                                     <select id="filter-type" class="filter-select">
                                         <option value="">Tüm Türler</option>
-                                        <option value="0">PC</option>
+                                        <option value="0">Bilinmiyor</option>
                                         <option value="1">Laptop</option>
-                                        <option value="2">Server</option>
-                                        <option value="3">Printer</option>
-                                        <option value="4">Ağ Cihazı</option>
-                                        <option value="5">Mobil Cihaz</option>
-                                        <option value="6">Bilinmiyor</option>
+                                        <option value="2">Masaüstü</option>
+                                        <option value="3">Sunucu</option>
+                                        <option value="4">Yazıcı</option>
+                                        <option value="5">Tarayıcı</option>
+                                        <option value="6">Kamera</option>
+                                        <option value="7">IP Telefon</option>
+                                        <option value="8">Ağ Cihazı</option>
+                                        <option value="9">Router</option>
+                                        <option value="10">Switch</option>
+                                        <option value="11">Access Point</option>
+                                        <option value="12">Depolama</option>
+                                        <option value="13">Tablet</option>
+                                        <option value="14">Akıllı Telefon</option>
+                                        <option value="15">Akıllı TV</option>
+                                        <option value="16">Projektör/Ekran</option>
+                                        <option value="17">Diğer</option>
                                     </select>
                                     <select id="filter-discovery" class="filter-select">
                                         <option value="">Tüm Keşif Türleri</option>
@@ -470,6 +485,50 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" onclick="closeModal()">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Edit Modal -->
+    <div class="modal-overlay" id="deviceEditModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Cihaz Düzenle</h3>
+                <button type="button" class="modal-close" onclick="app.closeEditModal()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="device-edit-content">
+                <!-- Device edit form will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-primary" onclick="app.saveDeviceChanges()">
+                    <i class="bi bi-check"></i>
+                    Kaydet
+                </button>
+                <button type="button" class="btn-secondary" onclick="app.closeEditModal()">İptal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Device Modal -->
+    <div class="modal-overlay" id="deviceAddModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Boş Cihaz Ekle</h3>
+                <button type="button" class="modal-close" onclick="app.closeAddModal()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="device-add-content">
+                <!-- Device add form will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-primary" onclick="app.createEmptyDevice()">
+                    <i class="bi bi-plus"></i>
+                    Oluştur
+                </button>
+                <button type="button" class="btn-secondary" onclick="app.closeAddModal()">İptal</button>
             </div>
         </div>
     </div>

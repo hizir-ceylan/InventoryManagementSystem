@@ -351,7 +351,7 @@ class InventoryApp {
                     </span>
                 </td>
                 <td class="hide-mobile"><span class="text-truncate-mobile">${device.model || 'Bilinmiyor'}</span></td>
-                <td class="hide-mobile"><span class="text-truncate-mobile">${device.location || 'Bilinmiyor'}</span></td>
+                <td class="hide-mobile"><span class="text-truncate-mobile">${this.getLocationDisplay(device)}</span></td>
                 <td class="hide-mobile">
                     <span class="badge ${this.getDiscoveryTypeBadgeClass(device)}">
                         ${this.getDiscoveryTypeText(device)}
@@ -448,6 +448,10 @@ class InventoryApp {
                         </div>
                     </div>
                     <div class="device-actions">
+                        <button class="btn-primary" onclick="app.editDevice('${device.id}')">
+                            <i class="bi bi-pencil"></i>
+                            Düzenle
+                        </button>
                         <button class="btn-danger" onclick="app.confirmDeleteDevice('${device.id}', '${device.name || 'Bilinmeyen Cihaz'}')">
                             <i class="bi bi-trash"></i>
                             Cihazı Sil
@@ -578,12 +582,22 @@ class InventoryApp {
                 </div>
                 <div class="device-info-item">
                     <span class="device-info-label">Konum:</span>
-                    <span class="device-info-value">${device.location || 'Bilinmiyor'}</span>
+                    <span class="device-info-value">${this.getLocationDisplay(device)}</span>
+                </div>
+                <div class="device-info-item">
+                    <span class="device-info-label">Barkod Numarası:</span>
+                    <span class="device-info-value">${device.barcodeNumber || 'Girilmemiş'}</span>
                 </div>
                 <div class="device-info-item">
                     <span class="device-info-label">Keşif Yöntemi:</span>
                     <span class="device-info-value">${this.getDiscoveryMethodText(device.discoveryMethod)}</span>
                 </div>
+                ${device.notes ? `
+                <div class="device-info-item">
+                    <span class="device-info-label">Notlar:</span>
+                    <span class="device-info-value">${device.notes}</span>
+                </div>
+                ` : ''}
             </div>
 
             <div class="device-info-group">
@@ -1682,6 +1696,353 @@ class InventoryApp {
         }
     }
 }
+
+    // Floor mapping functionality
+    getFloorFromIP(ipAddress) {
+        if (!ipAddress) return null;
+        
+        const ipParts = ipAddress.split('.');
+        if (ipParts.length !== 4) return null;
+        
+        // Check if it's in the building network range (192.168.x.x)
+        if (ipParts[0] === '192' && ipParts[1] === '168') {
+            const subnet = parseInt(ipParts[2]);
+            
+            switch (subnet) {
+                case 100:
+                    return 'Zemin Kat';
+                case 101:
+                    return '1. Kat';
+                case 102:
+                    return '2. Kat';
+                case 103:
+                    return '3. Kat';
+                case 104:
+                    return '4. Kat';
+                case 105:
+                    return '5. Kat';
+                case 106:
+                    return '6. Kat';
+                case 107:
+                    return '7. Kat';
+                case 108:
+                    return '8. Kat';
+                case 109:
+                    return '9. Kat';
+                default:
+                    return null;
+            }
+        }
+        
+        return null;
+    }
+
+    // Enhanced location display with floor mapping
+    getLocationDisplay(device) {
+        const floor = this.getFloorFromIP(device.ipAddress);
+        const location = device.location || '';
+        
+        if (floor && location) {
+            return `${floor} - ${location}`;
+        } else if (floor) {
+            return floor;
+        } else if (location) {
+            return location;
+        } else {
+            return 'Bilinmiyor';
+        }
+    }
+
+    // Device edit functionality
+    editDevice(deviceId) {
+        const device = this.devices.find(d => d.id === deviceId);
+        if (!device) {
+            this.showError('Cihaz bulunamadı');
+            return;
+        }
+
+        this.currentEditDevice = { ...device }; // Clone the device for editing
+        this.showEditModal(device);
+    }
+
+    showEditModal(device) {
+        const editContent = document.getElementById('device-edit-content');
+        editContent.innerHTML = `
+            <div class="device-edit-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-device-name">Cihaz Adı:</label>
+                        <input type="text" id="edit-device-name" class="form-control" value="${device.name || ''}" maxlength="200">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-device-type">Cihaz Türü:</label>
+                        <select id="edit-device-type" class="form-control">
+                            <option value="0" ${device.deviceType === 0 ? 'selected' : ''}>Bilinmiyor</option>
+                            <option value="1" ${device.deviceType === 1 ? 'selected' : ''}>Laptop</option>
+                            <option value="2" ${device.deviceType === 2 ? 'selected' : ''}>Masaüstü</option>
+                            <option value="3" ${device.deviceType === 3 ? 'selected' : ''}>Sunucu</option>
+                            <option value="4" ${device.deviceType === 4 ? 'selected' : ''}>Yazıcı</option>
+                            <option value="5" ${device.deviceType === 5 ? 'selected' : ''}>Tarayıcı</option>
+                            <option value="6" ${device.deviceType === 6 ? 'selected' : ''}>Kamera</option>
+                            <option value="7" ${device.deviceType === 7 ? 'selected' : ''}>IP Telefon</option>
+                            <option value="8" ${device.deviceType === 8 ? 'selected' : ''}>Ağ Cihazı</option>
+                            <option value="9" ${device.deviceType === 9 ? 'selected' : ''}>Router</option>
+                            <option value="10" ${device.deviceType === 10 ? 'selected' : ''}>Switch</option>
+                            <option value="11" ${device.deviceType === 11 ? 'selected' : ''}>Access Point</option>
+                            <option value="12" ${device.deviceType === 12 ? 'selected' : ''}>Depolama</option>
+                            <option value="13" ${device.deviceType === 13 ? 'selected' : ''}>Tablet</option>
+                            <option value="14" ${device.deviceType === 14 ? 'selected' : ''}>Akıllı Telefon</option>
+                            <option value="15" ${device.deviceType === 15 ? 'selected' : ''}>Akıllı TV</option>
+                            <option value="16" ${device.deviceType === 16 ? 'selected' : ''}>Projektör/Ekran</option>
+                            <option value="17" ${device.deviceType === 17 ? 'selected' : ''}>Diğer</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-device-model">Model:</label>
+                        <input type="text" id="edit-device-model" class="form-control" value="${device.model || ''}" maxlength="200">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-device-location">Konum:</label>
+                        <input type="text" id="edit-device-location" class="form-control" value="${device.location || ''}" maxlength="200">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-device-barcode">Barkod Numarası:</label>
+                        <input type="text" id="edit-device-barcode" class="form-control" value="${device.barcodeNumber || ''}" maxlength="100" placeholder="Manuel olarak girilecek">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-device-status">Durum:</label>
+                        <select id="edit-device-status" class="form-control">
+                            <option value="0" ${device.status === 0 ? 'selected' : ''}>Aktif</option>
+                            <option value="1" ${device.status === 1 ? 'selected' : ''}>Pasif</option>
+                            <option value="2" ${device.status === 2 ? 'selected' : ''}>Bakım</option>
+                            <option value="3" ${device.status === 3 ? 'selected' : ''}>Arızalı</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-device-notes">Notlar:</label>
+                    <textarea id="edit-device-notes" class="form-control" rows="3" maxlength="1000" placeholder="Cihaz hakkında notlar...">${device.notes || ''}</textarea>
+                </div>
+                <div class="form-info">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i>
+                        Barkod numarası ve notlar sadece manuel olarak değiştirilebilir ve otomatik işlemlerden etkilenmez.
+                    </small>
+                </div>
+            </div>
+        `;
+
+        const modal = document.getElementById('deviceEditModal');
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeEditModal() {
+        const modal = document.getElementById('deviceEditModal');
+        modal.classList.remove('show');
+        document.body.style.overflow = 'auto';
+        this.currentEditDevice = null;
+    }
+
+    async saveDeviceChanges() {
+        if (!this.currentEditDevice) {
+            this.showError('Düzenlenecek cihaz bulunamadı');
+            return;
+        }
+
+        try {
+            // Get form values
+            const name = document.getElementById('edit-device-name').value.trim();
+            const deviceType = parseInt(document.getElementById('edit-device-type').value);
+            const model = document.getElementById('edit-device-model').value.trim();
+            const location = document.getElementById('edit-device-location').value.trim();
+            const barcodeNumber = document.getElementById('edit-device-barcode').value.trim();
+            const status = parseInt(document.getElementById('edit-device-status').value);
+            const notes = document.getElementById('edit-device-notes').value.trim();
+
+            // Prepare update data
+            const updateData = {
+                id: this.currentEditDevice.id,
+                name: name || null,
+                deviceType: deviceType,
+                model: model || null,
+                location: location || null,
+                barcodeNumber: barcodeNumber || null,
+                status: status,
+                notes: notes || null
+            };
+
+            // Call API to update device
+            const response = await this.apiCall(`device/${this.currentEditDevice.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+
+            if (response.success !== false) {
+                this.showSuccess('Cihaz başarıyla güncellendi');
+                this.closeEditModal();
+                
+                // Update local device data
+                const deviceIndex = this.devices.findIndex(d => d.id === this.currentEditDevice.id);
+                if (deviceIndex !== -1) {
+                    this.devices[deviceIndex] = { ...this.devices[deviceIndex], ...updateData };
+                    this.filterDevices(); // Refresh the table
+                }
+                
+                // If we're on device details page, refresh it
+                if (this.currentPage === 'device-details') {
+                    this.showDeviceDetailPage(this.currentEditDevice.id);
+                }
+            } else {
+                throw new Error(response.message || 'Cihaz güncellenirken hata oluştu');
+            }
+
+        } catch (error) {
+            this.showError('Cihaz güncellenirken hata oluştu: ' + error.message);
+        }
+    }
+
+    // Add device functionality
+    showAddDeviceModal() {
+        const addContent = document.getElementById('device-add-content');
+        addContent.innerHTML = `
+            <div class="device-edit-form">
+                <div class="form-info">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i>
+                        Bu özellik ajan kurulmadan önce planlanan cihazlar için boş kayıt oluşturmaya yarar. 
+                        Daha sonra ajan kurulduğunda otomatik olarak güncellenecektir.
+                    </small>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="add-device-name">Cihaz Adı: <span class="text-danger">*</span></label>
+                        <input type="text" id="add-device-name" class="form-control" maxlength="200" placeholder="Örn: DESKTOP-PLANLANAN01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-device-type">Cihaz Türü:</label>
+                        <select id="add-device-type" class="form-control">
+                            <option value="0">Bilinmiyor</option>
+                            <option value="1">Laptop</option>
+                            <option value="2" selected>Masaüstü</option>
+                            <option value="3">Sunucu</option>
+                            <option value="4">Yazıcı</option>
+                            <option value="5">Tarayıcı</option>
+                            <option value="6">Kamera</option>
+                            <option value="7">IP Telefon</option>
+                            <option value="8">Ağ Cihazı</option>
+                            <option value="9">Router</option>
+                            <option value="10">Switch</option>
+                            <option value="11">Access Point</option>
+                            <option value="12">Depolama</option>
+                            <option value="13">Tablet</option>
+                            <option value="14">Akıllı Telefon</option>
+                            <option value="15">Akıllı TV</option>
+                            <option value="16">Projektör/Ekran</option>
+                            <option value="17">Diğer</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="add-device-model">Model:</label>
+                        <input type="text" id="add-device-model" class="form-control" maxlength="200" placeholder="Örn: Dell OptiPlex 7090">
+                    </div>
+                    <div class="form-group">
+                        <label for="add-device-location">Konum:</label>
+                        <input type="text" id="add-device-location" class="form-control" maxlength="200" placeholder="Örn: IT Departmanı">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="add-device-barcode">Barkod Numarası:</label>
+                        <input type="text" id="add-device-barcode" class="form-control" maxlength="100" placeholder="Manuel olarak girilecek">
+                    </div>
+                    <div class="form-group">
+                        <label for="add-device-ip">Planlanan IP:</label>
+                        <input type="text" id="add-device-ip" class="form-control" maxlength="15" placeholder="Örn: 192.168.101.50">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="add-device-notes">Notlar:</label>
+                    <textarea id="add-device-notes" class="form-control" rows="3" maxlength="1000" placeholder="Kurulum planı, özel notlar vs..."></textarea>
+                </div>
+            </div>
+        `;
+
+        const modal = document.getElementById('deviceAddModal');
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeAddModal() {
+        const modal = document.getElementById('deviceAddModal');
+        modal.classList.remove('show');
+        document.body.style.overflow = 'auto';
+    }
+
+    async createEmptyDevice() {
+        try {
+            // Get form values
+            const name = document.getElementById('add-device-name').value.trim();
+            const deviceType = parseInt(document.getElementById('add-device-type').value);
+            const model = document.getElementById('add-device-model').value.trim();
+            const location = document.getElementById('add-device-location').value.trim();
+            const barcodeNumber = document.getElementById('add-device-barcode').value.trim();
+            const ipAddress = document.getElementById('add-device-ip').value.trim();
+            const notes = document.getElementById('add-device-notes').value.trim();
+
+            // Validation
+            if (!name) {
+                this.showError('Cihaz adı zorunludur');
+                return;
+            }
+
+            // Prepare device data
+            const deviceData = {
+                name: name,
+                deviceType: deviceType,
+                model: model || null,
+                location: location || null,
+                barcodeNumber: barcodeNumber || null,
+                ipAddress: ipAddress || null,
+                notes: notes || null,
+                status: 1, // Passive - not yet installed
+                agentInstalled: false,
+                managementType: 0, // Unknown
+                discoveryMethod: 3 // Manual
+            };
+
+            // Call API to create device
+            const response = await this.apiCall('device', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(deviceData)
+            });
+
+            if (response.success !== false) {
+                this.showSuccess('Boş cihaz başarıyla oluşturuldu');
+                this.closeAddModal();
+                
+                // Refresh devices list
+                this.loadDevices();
+            } else {
+                throw new Error(response.message || 'Cihaz oluşturulurken hata oluştu');
+            }
+
+        } catch (error) {
+            this.showError('Cihaz oluşturulurken hata oluştu: ' + error.message);
+        }
+    }
 
 // Global functions for HTML onclick events
 function showPage(pageId) {
