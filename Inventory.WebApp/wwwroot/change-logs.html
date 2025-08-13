@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Çaykur Envanter Yönetim Sistemi - Ana Sayfa</title>
+    <title>Çaykur Envanter Yönetim Sistemi - Değişiklik Logları</title>
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -36,7 +36,7 @@
                 <div class="navbar-menu" id="navbar-menu">
                     <ul class="navbar-nav">
                         <li class="nav-item">
-                            <a class="nav-link active" href="index.html">
+                            <a class="nav-link " href="index.html">
                                 <i class="bi bi-house"></i>
                                 <span>Ana Sayfa</span>
                             </a>
@@ -60,7 +60,7 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link " href="change-logs.html">
+                            <a class="nav-link active" href="change-logs.html">
                                 <i class="bi bi-clock-history"></i>
                                 <span>Değişiklik Logları</span>
                             </a>
@@ -207,136 +207,70 @@
         <!-- Page Content Container -->
         <div class="pages-container">
             <div class="container">
-                <!-- Dashboard Home Page Content -->
+                <!-- Change Logs Page Content -->
 <div class="page-card">
     <div class="page-header">
         <div class="page-title">
             <h2>
-                <i class="bi bi-speedometer2"></i>
-                Envanter Yönetim Paneli
+                <i class="bi bi-clock-history"></i>
+                Değişiklik Logları
             </h2>
-            <p>Sistem durumuna genel bakış ve hızlı erişim</p>
+            <p>Sistemdeki değişiklikleri takip edin</p>
         </div>
+        <button class="btn-refresh" onclick="app.refreshChangeLogs()">
+            <i class="bi bi-arrow-clockwise"></i>
+            <span>Yenile</span>
+        </button>
     </div>
     
-    <div class="dashboard-content">
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <h5><i class="bi bi-lightning"></i> Hızlı İşlemler</h5>
-            <div class="action-grid">
-                <a href="devices.html" class="action-card">
-                    <div class="action-icon">
-                        <i class="bi bi-laptop"></i>
-                    </div>
-                    <div class="action-content">
-                        <h6>Cihazları Görüntüle</h6>
-                        <p>Tüm kayıtlı cihazları listele</p>
-                    </div>
-                </a>
-                
-                <a href="network-scan.html" class="action-card">
-                    <div class="action-icon">
-                        <i class="bi bi-wifi"></i>
-                    </div>
-                    <div class="action-content">
-                        <h6>Ağ Taraması</h6>
-                        <p>Yeni cihazları keşfet</p>
-                    </div>
-                </a>
-                
-                <a href="vmware-status.html" class="action-card">
-                    <div class="action-icon">
-                        <i class="bi bi-cloud"></i>
-                    </div>
-                    <div class="action-content">
-                        <h6>VMware Durumu</h6>
-                        <p>Sanal makine yönetimi</p>
-                    </div>
-                </a>
-                
-                <a href="change-logs.html" class="action-card">
-                    <div class="action-icon">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <div class="action-content">
-                        <h6>Değişiklik Logları</h6>
-                        <p>Sistem değişikliklerini takip et</p>
-                    </div>
-                </a>
-            </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="recent-activity">
-            <h5><i class="bi bi-activity"></i> Son Aktiviteler</h5>
-            <div class="activity-list" id="recent-activity-list">
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <i class="bi bi-plus-circle text-success"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>Yeni cihaz eklendi: <strong>LAPTOP-001</strong></p>
-                        <small>2 dakika önce</small>
-                    </div>
-                </div>
-                
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <i class="bi bi-arrow-up-circle text-info"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>Cihaz durumu güncellendi: <strong>SERVER-03</strong></p>
-                        <small>15 dakika önce</small>
-                    </div>
-                </div>
-                
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <i class="bi bi-cloud text-primary"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>VMware senkronizasyonu tamamlandı</p>
-                        <small>1 saat önce</small>
-                    </div>
+    <div class="change-logs-content">
+        <div class="filters-section">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <select id="filter-change-type" class="filter-select">
+                        <option value="">Tüm Değişiklik Türleri</option>
+                        <option value="Name">Cihaz Adı</option>
+                        <option value="IpAddress">IP Adresi</option>
+                        <option value="Status">Durum</option>
+                        <option value="Location">Konum</option>
+                        <option value="HardwareInfo">Donanım</option>
+                        <option value="SoftwareInfo">Yazılım</option>
+                    </select>
+                    <select id="filter-device" class="filter-select">
+                        <option value="">Tüm Cihazlar</option>
+                    </select>
+                    <input type="date" id="filter-date-from" class="filter-select" title="Başlangıç Tarihi">
+                    <input type="date" id="filter-date-to" class="filter-select" title="Bitiş Tarihi">
+                    <button class="btn-clear" onclick="app.clearChangeLogFilters()">
+                        <i class="bi bi-x-circle"></i>
+                        <span>Temizle</span>
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- System Status -->
-        <div class="system-status">
-            <h5><i class="bi bi-gear"></i> Sistem Durumu</h5>
-            <div class="status-grid">
-                <div class="status-item">
-                    <div class="status-header">
-                        <span class="status-title">API Sunucu</span>
-                        <span class="status-indicator online"></span>
-                    </div>
-                    <p>Çalışıyor</p>
-                </div>
-                
-                <div class="status-item">
-                    <div class="status-header">
-                        <span class="status-title">Veritabanı</span>
-                        <span class="status-indicator online"></span>
-                    </div>
-                    <p>Bağlı</p>
-                </div>
-                
-                <div class="status-item">
-                    <div class="status-header">
-                        <span class="status-title">VMware Bağlantısı</span>
-                        <span class="status-indicator offline" id="vmware-connection-status"></span>
-                    </div>
-                    <p id="vmware-connection-text">Kontrol ediliyor...</p>
-                </div>
-                
-                <div class="status-item">
-                    <div class="status-header">
-                        <span class="status-title">Son Tarama</span>
-                        <i class="bi bi-clock text-muted"></i>
-                    </div>
-                    <p id="last-scan-time">--</p>
-                </div>
+        <div class="change-logs-table-container">
+            <table class="change-logs-table">
+                <thead>
+                    <tr>
+                        <th>Tarih/Saat</th>
+                        <th>Cihaz</th>
+                        <th>Değişiklik Türü</th>
+                        <th class="hide-mobile">Eski Değer</th>
+                        <th class="hide-mobile">Yeni Değer</th>
+                        <th class="hide-mobile">Değiştiren</th>
+                    </tr>
+                </thead>
+                <tbody id="change-logs-body">
+                </tbody>
+            </table>
+        </div>
+
+        <div id="no-change-logs" class="no-data d-none">
+            <div class="no-data-content">
+                <i class="bi bi-journal-text"></i>
+                <h3>Henüz değişiklik logu bulunmuyor</h3>
+                <p>Cihaz değişiklikleri burada görüntülenecek.</p>
             </div>
         </div>
     </div>
@@ -414,7 +348,7 @@
     <script src="js/modules/api.js"></script>
     <script src="js/modules/ui.js"></script>
     <!-- Page-specific modules -->
-    <script src="js/modules/dashboard.js"></script>
+    <script src="js/modules/change-logs.js"></script>
     <!-- Main application -->
     <script src="js/app-modular.js"></script>
 </body>

@@ -1,0 +1,174 @@
+<!-- VMware Status Page Content -->
+<div class="page-card">
+    <div class="page-header">
+        <div class="page-title">
+            <h2>
+                <i class="bi bi-cloud"></i>
+                VMware Durumu
+            </h2>
+            <p>VMware vSphere sunucu durumu ve sanal makine bilgileri</p>
+        </div>
+        <button class="btn-refresh" onclick="vmware.refreshData()">
+            <i class="bi bi-arrow-clockwise"></i>
+            <span>Yenile</span>
+        </button>
+    </div>
+    
+    <div class="vmware-content">
+        <!-- Server Connection Status -->
+        <div class="vmware-section">
+            <h5><i class="bi bi-server"></i> Sunucu Bağlantısı</h5>
+            <div class="server-status" id="server-status">
+                <div class="status-item">
+                    <span class="status-label">Sunucu Adresi:</span>
+                    <span class="status-value" id="server-address">10.0.0.10</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Bağlantı Durumu:</span>
+                    <span class="status-value" id="connection-status">
+                        <span class="status-indicator offline"></span>
+                        Bağlantı kontrol ediliyor...
+                    </span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Son Güncelleme:</span>
+                    <span class="status-value" id="last-sync">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Server Metrics -->
+        <div class="vmware-section">
+            <h5><i class="bi bi-speedometer2"></i> Sunucu Metrikleri</h5>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="bi bi-hdd"></i>
+                    </div>
+                    <div class="metric-content">
+                        <h6>Toplam Depolama</h6>
+                        <span class="metric-value" id="total-storage">-- GB</span>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="bi bi-hdd-fill"></i>
+                    </div>
+                    <div class="metric-content">
+                        <h6>Kullanılan Depolama</h6>
+                        <span class="metric-value" id="used-storage">-- GB</span>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="bi bi-hdd-stack"></i>
+                    </div>
+                    <div class="metric-content">
+                        <h6>Boş Depolama</h6>
+                        <span class="metric-value" id="free-storage">-- GB</span>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="bi bi-cpu"></i>
+                    </div>
+                    <div class="metric-content">
+                        <h6>CPU Kullanımı</h6>
+                        <span class="metric-value" id="cpu-usage">--%</span>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="bi bi-memory"></i>
+                    </div>
+                    <div class="metric-content">
+                        <h6>RAM Kullanımı</h6>
+                        <span class="metric-value" id="memory-usage">--%</span>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="bi bi-laptop"></i>
+                    </div>
+                    <div class="metric-content">
+                        <h6>Aktif VM'ler</h6>
+                        <span class="metric-value" id="active-vms">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Virtual Machines List -->
+        <div class="vmware-section">
+            <h5><i class="bi bi-cloud-arrow-down"></i> Sanal Makineler</h5>
+            <div class="vm-controls">
+                <button class="btn-primary" onclick="vmware.syncVirtualMachines()">
+                    <i class="bi bi-arrow-down-circle"></i>
+                    <span>VM'leri Senkronize Et</span>
+                </button>
+            </div>
+            
+            <div class="table-container">
+                <table class="vmware-table">
+                    <thead>
+                        <tr>
+                            <th>VM Adı</th>
+                            <th>IP Adresi</th>
+                            <th>Durum</th>
+                            <th class="hide-mobile">İşletim Sistemi</th>
+                            <th class="hide-mobile">CPU</th>
+                            <th class="hide-mobile">RAM (GB)</th>
+                            <th class="hide-mobile">Disk (GB)</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vm-table-body">
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="no-vms" class="no-data d-none">
+                <div class="no-data-content">
+                    <i class="bi bi-cloud-slash"></i>
+                    <h3>Hiç sanal makine bulunamadı</h3>
+                    <p>VMware sunucusuna bağlanın ve sanal makineleri senkronize edin.</p>
+                    <button class="btn-primary" onclick="vmware.testConnection()">
+                        <i class="bi bi-cloud-check"></i>
+                        Bağlantıyı Test Et
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration -->
+        <div class="vmware-section">
+            <h5><i class="bi bi-gear"></i> VMware Ayarları</h5>
+            <div class="config-form">
+                <div class="form-group">
+                    <label for="vmware-server">vSphere Sunucu Adresi:</label>
+                    <input type="text" id="vmware-server" class="form-control" value="10.0.0.10" placeholder="10.0.0.10">
+                </div>
+                <div class="form-group">
+                    <label for="vmware-username">Kullanıcı Adı:</label>
+                    <input type="text" id="vmware-username" class="form-control" placeholder="administrator@vsphere.local">
+                </div>
+                <div class="form-group">
+                    <label for="vmware-password">Şifre:</label>
+                    <input type="password" id="vmware-password" class="form-control" placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                    <label for="vmware-sync-interval">Senkronizasyon Aralığı (dakika):</label>
+                    <input type="number" id="vmware-sync-interval" class="form-control" value="30" min="5" max="1440">
+                </div>
+                <button class="btn-primary" onclick="vmware.saveConfiguration()">
+                    <i class="bi bi-check"></i>
+                    Ayarları Kaydet
+                </button>
+                <button class="btn-secondary" onclick="vmware.testConnection()">
+                    <i class="bi bi-cloud-check"></i>
+                    Bağlantıyı Test Et
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

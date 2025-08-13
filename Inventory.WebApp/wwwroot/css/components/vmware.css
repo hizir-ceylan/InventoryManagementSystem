@@ -1,0 +1,238 @@
+/* VMware and Virtual Device Styles */
+
+/* VMware Status Cards */
+.vmware-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.vmware-section h5 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Server Status */
+.server-status {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.status-label {
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.status-value {
+    font-weight: 600;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Status Indicators */
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.status-indicator.online {
+    background-color: #28a745;
+    box-shadow: 0 0 8px rgba(40, 167, 69, 0.6);
+}
+
+.status-indicator.offline {
+    background-color: #dc3545;
+    box-shadow: 0 0 8px rgba(220, 53, 69, 0.6);
+}
+
+/* Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.metric-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.metric-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    font-size: 1.5rem;
+}
+
+.metric-content h6 {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* Virtual Machine Badges */
+.vm-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+.vm-name {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* VMware Table Styles */
+.vmware-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.vmware-table th,
+.vmware-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.vmware-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.vmware-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* VM Controls */
+.vm-controls {
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Virtual Device Statistics Card */
+.virtual-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.virtual-card .stat-icon i {
+    color: #667eea;
+}
+
+/* Configuration Form Styles */
+.config-form {
+    max-width: 600px;
+}
+
+.config-form .form-group {
+    margin-bottom: 1rem;
+}
+
+.config-form label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+    color: #495057;
+}
+
+.config-form .form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.config-form .form-control:focus {
+    border-color: #667eea;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
+}
+
+/* Loading states for VMware components */
+.vmware-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.vmware-loading i {
+    margin-right: 0.5rem;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive design for VMware components */
+@media (max-width: 768px) {
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .server-status {
+        grid-template-columns: 1fr;
+    }
+    
+    .vm-controls {
+        flex-direction: column;
+    }
+    
+    .metric-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+}
