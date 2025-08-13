@@ -52,13 +52,14 @@ class NavigationManager {
     // Get current page name from URL
     getCurrentPageName() {
         const path = window.location.pathname;
-        const filename = path.split('/').pop();
-        return filename.replace('.html', '') || 'devices'; // default to devices
+        const segments = path.split('/');
+        const pageName = segments[segments.length - 1] || segments[segments.length - 2];
+        return pageName.toLowerCase() || 'index'; // default to index
     }
 
     // Navigate to devices page with optional filter
     navigateToDevices(filterType = null) {
-        const url = new URL('devices.html', window.location.origin);
+        const url = new URL('/Devices', window.location.origin);
         if (filterType) {
             url.searchParams.set('filter', filterType);
         }

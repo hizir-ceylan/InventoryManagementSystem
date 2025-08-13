@@ -88,6 +88,33 @@ class InventoryApp {
             window.ui.hideLoading();
         }
     }
+
+    // Handle stat card clicks to navigate to devices with filter
+    handleStatCardClick(filterType) {
+        if (window.navigation) {
+            window.navigation.navigateToDevices(filterType);
+        }
+    }
+
+    // Network scan methods - delegate to network scan module
+    updateNetworkRange() {
+        if (window.networkScan) {
+            window.networkScan.updateNetworkRange();
+        }
+    }
+
+    startNetworkScan() {
+        if (window.networkScan) {
+            window.networkScan.startNetworkScan();
+        }
+    }
+
+    // Device management methods - delegate to device manager
+    showAddDeviceModal() {
+        if (window.deviceManager) {
+            window.deviceManager.showAddDeviceModal();
+        }
+    }
 }
 
 // Global app instance
