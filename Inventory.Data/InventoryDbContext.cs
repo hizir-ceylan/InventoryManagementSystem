@@ -14,6 +14,9 @@ namespace Inventory.Data
         public DbSet<SystemUpdate> SystemUpdates { get; set; }
         public DbSet<NetworkScanHistory> NetworkScanHistories { get; set; }
         public DbSet<PredefinedNetworkRange> PredefinedNetworkRanges { get; set; }
+        public DbSet<VMwareServer> VMwareServers { get; set; }
+        public DbSet<VMwareInfo> VMwareInfos { get; set; }
+        public DbSet<VMwareSyncLog> VMwareSyncLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -167,6 +170,90 @@ namespace Inventory.Data
                 entity.HasIndex(e => e.IsActive);
                 entity.HasIndex(e => e.CreatedAt);
                 entity.HasIndex(e => e.LastScanTime);
+            });
+
+            // VMwareServer için temel yapılandırma
+            modelBuilder.Entity<VMwareServer>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(200);
+                entity.Property(e => e.ServerAddress).HasMaxLength(255).IsRequired();
+                entity.Property(e => e.Username).HasMaxLength(200);
+                entity.Property(e => e.ConnectionError).HasMaxLength(1000);
+                entity.Property(e => e.Version).HasMaxLength(100);
+                entity.Property(e => e.Build).HasMaxLength(100);
+                entity.Property(e => e.ProductType).HasMaxLength(50);
+                entity.Property(e => e.LicenseType).HasMaxLength(100);
+                entity.Property(e => e.LastSyncStatus).HasMaxLength(50);
+                entity.Property(e => e.LastSyncError).HasMaxLength(1000);
+                entity.HasIndex(e => e.ServerAddress);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.LastConnection);
+                entity.HasIndex(e => e.LastSyncDate);
+            });
+
+            // VMwareInfo için temel yapılandırma
+            modelBuilder.Entity<VMwareInfo>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.VMwareId).HasMaxLength(100);
+                entity.Property(e => e.InstanceUuid).HasMaxLength(100);
+                entity.Property(e => e.PowerState).HasMaxLength(20);
+                entity.Property(e => e.GuestOS).HasMaxLength(200);
+                entity.Property(e => e.GuestFullName).HasMaxLength(500);
+                entity.Property(e => e.HostName).HasMaxLength(200);
+                entity.Property(e => e.HostId).HasMaxLength(100);
+                entity.Property(e => e.DatastoreName).HasMaxLength(200);
+                entity.Property(e => e.DatastoreId).HasMaxLength(100);
+                entity.Property(e => e.ResourcePoolName).HasMaxLength(200);
+                entity.Property(e => e.ResourcePoolId).HasMaxLength(100);
+                entity.Property(e => e.ClusterName).HasMaxLength(200);
+                entity.Property(e => e.ClusterId).HasMaxLength(100);
+                entity.Property(e => e.VirtualHardwareVersion).HasMaxLength(50);
+                entity.Property(e => e.VMwareToolsStatus).HasMaxLength(50);
+                entity.Property(e => e.VMwareToolsVersion).HasMaxLength(100);
+                entity.Property(e => e.NetworkName).HasMaxLength(200);
+                entity.Property(e => e.NetworkType).HasMaxLength(50);
+                entity.Property(e => e.PortGroupName).HasMaxLength(200);
+                entity.Property(e => e.Annotation).HasMaxLength(2000);
+                entity.Property(e => e.Template).HasMaxLength(200);
+                entity.Property(e => e.SyncStatus).HasMaxLength(50);
+                entity.Property(e => e.SyncError).HasMaxLength(1000);
+                
+                entity.HasIndex(e => e.DeviceId).IsUnique();
+                entity.HasIndex(e => e.VMwareId);
+                entity.HasIndex(e => e.InstanceUuid);
+                entity.HasIndex(e => e.PowerState);
+                entity.HasIndex(e => e.LastSyncDate);
+                
+                // Device ile one-to-one ilişkisini yapılandır
+                entity.HasOne(e => e.Device)
+                    .WithOne(d => d.VMwareInfo)
+                    .HasForeignKey<VMwareInfo>(e => e.DeviceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // VMwareSyncLog için temel yapılandırma
+            modelBuilder.Entity<VMwareSyncLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Status).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+                entity.Property(e => e.ErrorDetails).HasMaxLength(5000);
+                entity.Property(e => e.SyncType).HasMaxLength(50);
+                entity.Property(e => e.SyncTrigger).HasMaxLength(50);
+                entity.Property(e => e.Version).HasMaxLength(100);
+                
+                entity.HasIndex(e => e.VMwareServerId);
+                entity.HasIndex(e => e.SyncStartTime);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.CreatedAt);
+                
+                // VMwareServer ile foreign key ilişkisini yapılandır
+                entity.HasOne(e => e.VMwareServer)
+                    .WithMany()
+                    .HasForeignKey(e => e.VMwareServerId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

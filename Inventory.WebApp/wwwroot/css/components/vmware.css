@@ -236,3 +236,37 @@
         gap: 0.5rem;
     }
 }
+
+/* Success Alert Styles */
+.success-alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #28a745;
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    z-index: 1000;
+    max-width: 400px;
+}
+
+.success-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.success-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    margin-left: auto;
+    padding: 0;
+}
+
+.success-close:hover {
+    opacity: 0.8;
+}

@@ -43,10 +43,50 @@ class UIManager {
         console.error('UI Error:', message);
     }
 
+    showSuccess(message, duration = 3000) {
+        // Create success alert if it doesn't exist
+        let successAlert = document.getElementById('success-alert');
+        if (!successAlert) {
+            successAlert = document.createElement('div');
+            successAlert.id = 'success-alert';
+            successAlert.className = 'success-alert';
+            successAlert.innerHTML = `
+                <div class="success-content">
+                    <i class="bi bi-check-circle"></i>
+                    <span id="success-message"></span>
+                    <button type="button" class="success-close" onclick="window.ui.hideSuccess()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(successAlert);
+        }
+        
+        const successMessage = document.getElementById('success-message');
+        if (successMessage) {
+            successMessage.textContent = message;
+            successAlert.classList.remove('d-none');
+            
+            // Auto-hide after duration
+            if (duration > 0) {
+                setTimeout(() => this.hideSuccess(), duration);
+            }
+        }
+        
+        console.log('UI Success:', message);
+    }
+
     hideError() {
         const errorAlert = document.getElementById('error-alert');
         if (errorAlert) {
             errorAlert.classList.add('d-none');
+        }
+    }
+
+    hideSuccess() {
+        const successAlert = document.getElementById('success-alert');
+        if (successAlert) {
+            successAlert.classList.add('d-none');
         }
     }
 
@@ -141,7 +181,7 @@ class UIManager {
             4: 'Yazıcı', 5: 'Tarayıcı', 6: 'Kamera', 7: 'IP Telefon',
             8: 'Ağ Cihazı', 9: 'Router', 10: 'Switch', 11: 'Access Point',
             12: 'Depolama', 13: 'Tablet', 14: 'Akıllı Telefon', 15: 'Akıllı TV',
-            16: 'Projektör/Ekran', 17: 'Diğer', 'virtual': 'Sanal Cihaz'
+            16: 'Projektör/Ekran', 17: 'Sanal Makine', 18: 'Diğer', 'virtual': 'Sanal Cihaz'
         };
         
         return typeMap[type] || 'Bilinmiyor';
@@ -152,7 +192,9 @@ class UIManager {
         const methodMap = {
             'agent': 'Ajan',
             'network': 'Ağ',
-            'vmware': 'VMware'
+            'vmware': 'VMware',
+            'manual': 'Manuel',
+            'import': 'İçe Aktarım'
         };
         
         return methodMap[method] || method || '--';
