@@ -460,12 +460,15 @@ class DevicesPageApp {
 
     // Modal functionality
     showDeviceModal(deviceId) {
-        const device = this.devices.find(d => d.id === deviceId);
+        const device = this.devices.find(d => d.id == deviceId);
         if (!device) {
             this.showError('Cihaz bulunamadı');
             return;
         }
 
+        // Store device data in session storage for device details page
+        sessionStorage.setItem('selectedDevice', JSON.stringify(device));
+        
         // Redirect to device details page
         window.location.href = `/DeviceDetails?id=${deviceId}`;
     }

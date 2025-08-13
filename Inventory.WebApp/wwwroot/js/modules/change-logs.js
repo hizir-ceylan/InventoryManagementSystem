@@ -117,7 +117,7 @@ class ChangeLogsManager {
                 <tr>
                     <td>${window.ui.formatDateTime(log.changeDate)}</td>
                     <td>
-                        <a href="device-details.html?id=${log.deviceId}" class="device-link">
+                        <a href="/DeviceDetails?id=${log.deviceId}" class="device-link">
                             ${deviceName}
                         </a>
                     </td>
