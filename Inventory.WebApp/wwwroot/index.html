@@ -192,6 +192,10 @@
                                 <i class="bi bi-arrow-clockwise"></i>
                                 <span>Yenile</span>
                             </button>
+                            <button class="btn-primary" onclick="app.showAddDeviceModal()">
+                                <i class="bi bi-plus"></i>
+                                <span>Boş Cihaz Ekle</span>
+                            </button>
                         </div>
                         
                         <!-- Search and Filter -->
@@ -503,6 +507,28 @@
                     Kaydet
                 </button>
                 <button type="button" class="btn-secondary" onclick="app.closeEditModal()">İptal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Device Modal -->
+    <div class="modal-overlay" id="deviceAddModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Boş Cihaz Ekle</h3>
+                <button type="button" class="modal-close" onclick="app.closeAddModal()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="device-add-content">
+                <!-- Device add form will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-primary" onclick="app.createEmptyDevice()">
+                    <i class="bi bi-plus"></i>
+                    Oluştur
+                </button>
+                <button type="button" class="btn-secondary" onclick="app.closeAddModal()">İptal</button>
             </div>
         </div>
     </div>
