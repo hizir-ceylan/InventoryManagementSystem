@@ -28,9 +28,12 @@ namespace Inventory.Data
                 entity.Property(e => e.IpAddress).HasMaxLength(15);
                 entity.Property(e => e.Model).HasMaxLength(200);
                 entity.Property(e => e.Location).HasMaxLength(200);
+                entity.Property(e => e.BarcodeNumber).HasMaxLength(100);
+                entity.Property(e => e.Notes).HasMaxLength(1000);
                 entity.Property(e => e.CreatedAt).IsRequired();
                 entity.HasIndex(e => e.MacAddress);
                 entity.HasIndex(e => e.IpAddress);
+                entity.HasIndex(e => e.BarcodeNumber);
                 entity.HasIndex(e => e.CreatedAt);
                 entity.HasIndex(e => e.LastSeen);
                 entity.HasIndex(e => e.LastUpdate);

@@ -448,6 +448,10 @@ class InventoryApp {
                         </div>
                     </div>
                     <div class="device-actions">
+                        <button class="btn-primary" onclick="app.editDevice('${device.id}')">
+                            <i class="bi bi-pencil"></i>
+                            Düzenle
+                        </button>
                         <button class="btn-danger" onclick="app.confirmDeleteDevice('${device.id}', '${device.name || 'Bilinmeyen Cihaz'}')">
                             <i class="bi bi-trash"></i>
                             Cihazı Sil
@@ -581,9 +585,19 @@ class InventoryApp {
                     <span class="device-info-value">${device.location || 'Bilinmiyor'}</span>
                 </div>
                 <div class="device-info-item">
+                    <span class="device-info-label">Barkod Numarası:</span>
+                    <span class="device-info-value">${device.barcodeNumber || 'Girilmemiş'}</span>
+                </div>
+                <div class="device-info-item">
                     <span class="device-info-label">Keşif Yöntemi:</span>
                     <span class="device-info-value">${this.getDiscoveryMethodText(device.discoveryMethod)}</span>
                 </div>
+                ${device.notes ? `
+                <div class="device-info-item">
+                    <span class="device-info-label">Notlar:</span>
+                    <span class="device-info-value">${device.notes}</span>
+                </div>
+                ` : ''}
             </div>
 
             <div class="device-info-group">
@@ -1682,6 +1696,162 @@ class InventoryApp {
         }
     }
 }
+
+    // Device edit functionality
+    editDevice(deviceId) {
+        const device = this.devices.find(d => d.id === deviceId);
+        if (!device) {
+            this.showError('Cihaz bulunamadı');
+            return;
+        }
+
+        this.currentEditDevice = { ...device }; // Clone the device for editing
+        this.showEditModal(device);
+    }
+
+    showEditModal(device) {
+        const editContent = document.getElementById('device-edit-content');
+        editContent.innerHTML = `
+            <div class="device-edit-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-device-name">Cihaz Adı:</label>
+                        <input type="text" id="edit-device-name" class="form-control" value="${device.name || ''}" maxlength="200">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-device-type">Cihaz Türü:</label>
+                        <select id="edit-device-type" class="form-control">
+                            <option value="0" ${device.deviceType === 0 ? 'selected' : ''}>Bilinmiyor</option>
+                            <option value="1" ${device.deviceType === 1 ? 'selected' : ''}>Laptop</option>
+                            <option value="2" ${device.deviceType === 2 ? 'selected' : ''}>Masaüstü</option>
+                            <option value="3" ${device.deviceType === 3 ? 'selected' : ''}>Sunucu</option>
+                            <option value="4" ${device.deviceType === 4 ? 'selected' : ''}>Yazıcı</option>
+                            <option value="5" ${device.deviceType === 5 ? 'selected' : ''}>Tarayıcı</option>
+                            <option value="6" ${device.deviceType === 6 ? 'selected' : ''}>Kamera</option>
+                            <option value="7" ${device.deviceType === 7 ? 'selected' : ''}>IP Telefon</option>
+                            <option value="8" ${device.deviceType === 8 ? 'selected' : ''}>Ağ Cihazı</option>
+                            <option value="9" ${device.deviceType === 9 ? 'selected' : ''}>Router</option>
+                            <option value="10" ${device.deviceType === 10 ? 'selected' : ''}>Switch</option>
+                            <option value="11" ${device.deviceType === 11 ? 'selected' : ''}>Access Point</option>
+                            <option value="12" ${device.deviceType === 12 ? 'selected' : ''}>Depolama</option>
+                            <option value="13" ${device.deviceType === 13 ? 'selected' : ''}>Tablet</option>
+                            <option value="14" ${device.deviceType === 14 ? 'selected' : ''}>Akıllı Telefon</option>
+                            <option value="15" ${device.deviceType === 15 ? 'selected' : ''}>Akıllı TV</option>
+                            <option value="16" ${device.deviceType === 16 ? 'selected' : ''}>Projektör/Ekran</option>
+                            <option value="17" ${device.deviceType === 17 ? 'selected' : ''}>Diğer</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-device-model">Model:</label>
+                        <input type="text" id="edit-device-model" class="form-control" value="${device.model || ''}" maxlength="200">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-device-location">Konum:</label>
+                        <input type="text" id="edit-device-location" class="form-control" value="${device.location || ''}" maxlength="200">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-device-barcode">Barkod Numarası:</label>
+                        <input type="text" id="edit-device-barcode" class="form-control" value="${device.barcodeNumber || ''}" maxlength="100" placeholder="Manuel olarak girilecek">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-device-status">Durum:</label>
+                        <select id="edit-device-status" class="form-control">
+                            <option value="0" ${device.status === 0 ? 'selected' : ''}>Aktif</option>
+                            <option value="1" ${device.status === 1 ? 'selected' : ''}>Pasif</option>
+                            <option value="2" ${device.status === 2 ? 'selected' : ''}>Bakım</option>
+                            <option value="3" ${device.status === 3 ? 'selected' : ''}>Arızalı</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-device-notes">Notlar:</label>
+                    <textarea id="edit-device-notes" class="form-control" rows="3" maxlength="1000" placeholder="Cihaz hakkında notlar...">${device.notes || ''}</textarea>
+                </div>
+                <div class="form-info">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i>
+                        Barkod numarası ve notlar sadece manuel olarak değiştirilebilir ve otomatik işlemlerden etkilenmez.
+                    </small>
+                </div>
+            </div>
+        `;
+
+        const modal = document.getElementById('deviceEditModal');
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeEditModal() {
+        const modal = document.getElementById('deviceEditModal');
+        modal.classList.remove('show');
+        document.body.style.overflow = 'auto';
+        this.currentEditDevice = null;
+    }
+
+    async saveDeviceChanges() {
+        if (!this.currentEditDevice) {
+            this.showError('Düzenlenecek cihaz bulunamadı');
+            return;
+        }
+
+        try {
+            // Get form values
+            const name = document.getElementById('edit-device-name').value.trim();
+            const deviceType = parseInt(document.getElementById('edit-device-type').value);
+            const model = document.getElementById('edit-device-model').value.trim();
+            const location = document.getElementById('edit-device-location').value.trim();
+            const barcodeNumber = document.getElementById('edit-device-barcode').value.trim();
+            const status = parseInt(document.getElementById('edit-device-status').value);
+            const notes = document.getElementById('edit-device-notes').value.trim();
+
+            // Prepare update data
+            const updateData = {
+                id: this.currentEditDevice.id,
+                name: name || null,
+                deviceType: deviceType,
+                model: model || null,
+                location: location || null,
+                barcodeNumber: barcodeNumber || null,
+                status: status,
+                notes: notes || null
+            };
+
+            // Call API to update device
+            const response = await this.apiCall(`device/${this.currentEditDevice.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+
+            if (response.success !== false) {
+                this.showSuccess('Cihaz başarıyla güncellendi');
+                this.closeEditModal();
+                
+                // Update local device data
+                const deviceIndex = this.devices.findIndex(d => d.id === this.currentEditDevice.id);
+                if (deviceIndex !== -1) {
+                    this.devices[deviceIndex] = { ...this.devices[deviceIndex], ...updateData };
+                    this.filterDevices(); // Refresh the table
+                }
+                
+                // If we're on device details page, refresh it
+                if (this.currentPage === 'device-details') {
+                    this.showDeviceDetailPage(this.currentEditDevice.id);
+                }
+            } else {
+                throw new Error(response.message || 'Cihaz güncellenirken hata oluştu');
+            }
+
+        } catch (error) {
+            this.showError('Cihaz güncellenirken hata oluştu: ' + error.message);
+        }
+    }
 
 // Global functions for HTML onclick events
 function showPage(pageId) {

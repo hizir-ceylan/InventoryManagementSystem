@@ -2758,3 +2758,79 @@ body {
   box-sizing: border-box;
 }
 
+
+
+/* =================================================================
+   Device Edit Form Styles
+   ================================================================= */
+.device-edit-form {
+    padding: 20px;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    flex: 1;
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: var(--tea-green);
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    transition: var(--transition-fast);
+    background: var(--white);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--tea-green);
+    box-shadow: 0 0 0 3px rgba(45, 80, 22, 0.1);
+}
+
+.form-control[readonly] {
+    background-color: #f8f9fa;
+    color: var(--gray);
+}
+
+.form-info {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--info);
+}
+
+.form-info small {
+    color: var(--gray);
+    font-size: 12px;
+}
+
+.form-info .bi {
+    margin-right: 5px;
+    color: var(--info);
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .device-edit-form {
+        padding: 15px;
+    }
+}
