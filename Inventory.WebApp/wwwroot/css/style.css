@@ -2706,6 +2706,156 @@ body {
   min-width: 0;         /* grid hücresi taşmasın */
   word-break: break-word;
 }
+
+/* ===================================================================
+   Device Details Module CSS - Updated responsive styling
+   =================================================================== */
+
+.device-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: var(--light-gray);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(45, 80, 22, 0.1);
+}
+
+.device-title h3 {
+    color: var(--tea-green);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.device-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.detail-section {
+    margin-bottom: 30px;
+    background: var(--light-gray);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    border: 1px solid rgba(45, 80, 22, 0.1);
+    transition: var(--transition-fast);
+}
+
+.detail-section:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.detail-section h5 {
+    color: var(--tea-green);
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--tea-gold);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(45, 80, 22, 0.1);
+    transition: var(--transition-fast);
+}
+
+.detail-item:hover {
+    background: rgba(45, 80, 22, 0.05);
+    padding-left: 12px;
+    padding-right: 12px;
+    border-radius: var(--radius-sm);
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-item strong {
+    font-weight: 500;
+    color: var(--gray);
+    min-width: 140px;
+    margin-right: 16px;
+}
+
+.detail-item span {
+    font-weight: 400;
+    color: var(--dark-gray);
+    text-align: right;
+    flex: 1;
+}
+
+.detail-subsection {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(45, 80, 22, 0.1);
+}
+
+.detail-subsection h6 {
+    color: var(--tea-green);
+    font-weight: 500;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+}
+
+.hardware-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Responsive design for detail grid */
+@media (max-width: 768px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .detail-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        border-bottom: 1px solid rgba(45, 80, 22, 0.1);
+        padding: 12px 0;
+    }
+    
+    .detail-item strong {
+        min-width: auto;
+        font-size: 0.85rem;
+        margin-right: 0;
+    }
+    
+    .detail-item span {
+        text-align: left;
+        font-size: 0.9rem;
+    }
+    
+    .device-detail-header {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .device-actions {
+        width: 100%;
+        justify-content: center;
+    }
+}
 @media (max-width: 768px) {
   .change-logs-table-container {
     overflow-x: auto;               /* Yatay scroll’u aç */
