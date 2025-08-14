@@ -30,38 +30,13 @@ namespace Inventory.Api.Controllers
         #region GET - Güncelleme Sorgulama İşlemleri
 
         /// <summary>
-        /// Tüm sistem güncellemelerini getirir
-        /// </summary>
-        [HttpGet]
-        [SwaggerOperation(Summary = "Tüm güncellemeleri getir", Description = "Sistemdeki tüm cihazlar için tespit edilen güncellemeleri döndürür")]
-        [SwaggerResponse(200, "Güncelleme listesini döndürür", typeof(IEnumerable<SystemUpdate>))]
-        public async Task<ActionResult<IEnumerable<SystemUpdate>>> GetAllUpdates(
-            [FromQuery] UpdateStatus? status = null,
-            [FromQuery] UpdatePriority? priority = null,
-            [FromQuery] string? updateType = null,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 50)
-        {
-            try
-            {
-                var updates = await _updateService.GetAllUpdatesAsync(status, priority, updateType, page, pageSize);
-                return Ok(updates);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Güncellemeler getirilemedi");
-                return StatusCode(500, new { error = "Güncellemeler getirilemedi", details = ex.Message });
-            }
-        }
-
-        /// <summary>
         /// Belirli cihaza ait güncellemeleri getirir
         /// </summary>
-        [HttpGet("device/{deviceId}")]
+        [HttpGet("{deviceId}")]
         [SwaggerOperation(Summary = "Cihaza ait güncellemeleri getir", Description = "Belirli bir cihaz için tespit edilen güncellemeleri döndürür")]
         [SwaggerResponse(200, "Cihaza ait güncelleme listesini döndürür", typeof(IEnumerable<SystemUpdate>))]
         [SwaggerResponse(404, "Cihaz bulunamadı")]
-        public async Task<ActionResult<IEnumerable<SystemUpdate>>> GetUpdatesByDevice(Guid deviceId)
+        public async Task<ActionResult<IEnumerable<SystemUpdate>>> GetUpdates(Guid deviceId)
         {
             try
             {
@@ -179,7 +154,7 @@ namespace Inventory.Api.Controllers
                 
                 _logger.LogInformation("{SavedCount} güncelleme kaydedildi", savedCount);
                 
-                return CreatedAtAction(nameof(GetAllUpdates), new { }, new 
+                return CreatedAtAction(nameof(GetUpdates), new { deviceId = updates.FirstOrDefault()?.DeviceId }, new 
                 { 
                     message = "Güncelleme raporu başarıyla kaydedildi",
                     savedCount = savedCount
