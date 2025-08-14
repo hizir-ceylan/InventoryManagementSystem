@@ -2263,17 +2263,21 @@ body {
         padding: 0 16px;
     }
     
+    /* Fix navbar container to prevent overlap and improve spacing */
     .navbar .container {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 12px;
-        padding: 0 16px;
+        gap: 8px;
+        padding: 0 12px;
+        flex: 1;
+        min-height: 60px;
     }
     
     .navbar-left {
-        justify-content: flex-start; /* Align Çaykur to left on mobile */
+        justify-content: flex-start;
         flex: 1;
+        overflow: hidden;
     }
     
     .navbar-center {
@@ -2284,52 +2288,81 @@ body {
         background: var(--tea-green);
         box-shadow: var(--shadow-lg);
         z-index: 1000;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     .navbar-right {
         display: flex;
         justify-content: flex-end;
         align-items: center;
+        flex-shrink: 0;
     }
     
+    /* Improve brand section to prevent text overflow */
     .navbar-brand {
         min-width: auto;
-        text-align: left; /* Left align brand text */
+        max-width: 65%;
+        text-align: left;
         justify-content: flex-start;
+        gap: 4px;
+        flex-shrink: 1;
+        overflow: hidden;
+    }
+    
+    .logo {
+        font-size: 1.4rem;
+        line-height: 1;
+        white-space: nowrap;
     }
     
     .subtitle {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
+        line-height: 1.1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
     }
     
+    /* Improve toggle button */
     .navbar-toggle {
         display: flex !important;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.15);
         border-radius: var(--radius-md);
-        padding: 8px;
+        padding: 10px;
         border: none;
         cursor: pointer;
         justify-content: center;
         align-items: center;
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
+        flex-shrink: 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.2s ease;
+    }
+    
+    .navbar-toggle:hover {
+        background: rgba(255, 255, 255, 0.25);
     }
     
     .navbar-toggle span {
         display: block;
-        width: 20px;
+        width: 22px;
         height: 2px;
         background: white;
-        margin: 2px 0;
+        margin: 3px 0;
         transition: 0.3s;
+        border-radius: 1px;
     }
     
+    /* Improve menu animation and spacing */
     .navbar-menu {
         padding: 20px;
         transform: translateY(-100%);
-        transition: var(--transition-normal);
+        transition: all 0.3s ease-in-out;
         opacity: 0;
         visibility: hidden;
+        background: var(--tea-green);
     }
     
     .navbar-menu.show {

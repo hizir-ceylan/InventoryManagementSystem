@@ -144,7 +144,19 @@ class InventoryApp {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            return await response.json();
+            // Handle empty responses (like 204 No Content from PUT/DELETE requests)
+            const contentLength = response.headers.get('content-length');
+            if (contentLength === '0' || response.status === 204) {
+                return { success: true };
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return await response.json();
+            }
+
+            // Return success for non-JSON responses
+            return { success: true };
         } catch (error) {
             console.error('API call failed:', error);
             throw error;
@@ -224,25 +236,19 @@ class InventoryApp {
     // Load update statistics
     async loadUpdateStatistics() {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/Update/statistics`);
-            if (response.ok) {
-                const stats = await response.json();
-                const availableUpdates = stats.availableCount || 0;
-                document.getElementById('update-devices').textContent = availableUpdates;
-            } else {
-                // Fallback to count devices with available updates
-                const updatesResponse = await fetch(`${this.apiBaseUrl}/api/Update/available`);
-                if (updatesResponse.ok) {
-                    const updates = await updatesResponse.json();
-                    const deviceIds = new Set(updates.map(u => u.deviceId));
-                    document.getElementById('update-devices').textContent = deviceIds.size;
-                } else {
-                    document.getElementById('update-devices').textContent = '0';
-                }
-            }
+            const stats = await this.apiCall('Update/statistics');
+            const availableUpdates = stats.availableCount || 0;
+            document.getElementById('update-devices').textContent = availableUpdates;
         } catch (error) {
-            console.warn('Could not load update statistics:', error);
-            document.getElementById('update-devices').textContent = '0';
+            try {
+                // Fallback to count devices with available updates
+                const updates = await this.apiCall('Update/available');
+                const deviceIds = new Set(updates.map(u => u.deviceId));
+                document.getElementById('update-devices').textContent = deviceIds.size;
+            } catch (fallbackError) {
+                console.warn('Could not load update statistics:', fallbackError);
+                document.getElementById('update-devices').textContent = '0';
+            }
         }
     }
 
@@ -887,20 +893,7 @@ class InventoryApp {
     // Render update information section
     async renderUpdateInfo(device) {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/Update/device/${device.id}`);
-            
-            if (!response.ok) {
-                return `
-                    <div class="device-info-group">
-                        <h6><i class="bi bi-arrow-up-circle"></i> Sistem Güncellemeleri</h6>
-                        <div class="device-info-item">
-                            <span class="device-info-value text-muted">Bu cihaz için güncelleme bilgisi alınamadı</span>
-                        </div>
-                    </div>
-                `;
-            }
-
-            const updates = await response.json();
+            const updates = await this.apiCall(`Update/device/${device.id}`);
             
             if (!updates || updates.length === 0) {
                 return `
@@ -977,7 +970,10 @@ class InventoryApp {
                 <div class="device-info-group">
                     <h6><i class="bi bi-arrow-up-circle"></i> Sistem Güncellemeleri</h6>
                     <div class="device-info-item">
-                        <span class="device-info-value text-muted">Güncelleme bilgisi yüklenirken hata oluştu</span>
+                        <span class="device-info-value text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            Güncelleme bilgisi yüklenemiyor
+                        </span>
                     </div>
                 </div>
             `;
