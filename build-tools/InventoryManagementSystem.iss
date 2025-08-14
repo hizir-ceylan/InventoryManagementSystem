@@ -271,12 +271,12 @@ begin
       'echo   Envanter Yönetim Sistemi - Servis Yönetimi' + #13#10 +
       'echo ================================================' + #13#10 +
       'echo.' + #13#10 +
-      'echo 1. Servisleri Başlat' + #13#10 +
+      'echo 1. Servisleri Baslat' + #13#10 +
       'echo 2. Servisleri Durdur' + #13#10 +
-      'echo 3. Servisleri Yeniden Başlat' + #13#10 +
+      'echo 3. Servisleri Yeniden Baslat' + #13#10 +
       'echo 4. Servis Durumunu Kontrol Et' + #13#10 +
-      'echo 5. Agent Loglarını Görüntüle' + #13#10 +
-      'echo 6. Çıkış' + #13#10 +
+      'echo 5. Agent Loglarini Goruntule' + #13#10 +
+      'echo 6. Cikis' + #13#10 +
       'echo.' + #13#10 +
       'set /p choice=Bir seçenek seçin (1-6): ' + #13#10 +
       'if "%choice%"=="1" goto start' + #13#10 +
