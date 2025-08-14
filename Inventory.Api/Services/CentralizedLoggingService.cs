@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Text;
 using Newtonsoft.Json;
+using Inventory.Shared.Utils;
 
 namespace Inventory.Api.Services
 {
@@ -32,7 +33,7 @@ namespace Inventory.Api.Services
             var logEntry = new LogEntry
             {
                 Id = Guid.NewGuid(),
-                Timestamp = DateTime.UtcNow,
+                Timestamp = TimeZoneHelper.GetUtcNowForStorage(),
                 Source = source,
                 Level = level,
                 Message = message,
@@ -78,7 +79,7 @@ namespace Inventory.Api.Services
         {
             try
             {
-                var currentHour = DateTime.UtcNow.ToString("yyyy-MM-dd-HH");
+                var currentHour = TimeZoneHelper.GetUtcNowForStorage().ToString("yyyy-MM-dd-HH");
                 var logFile = Path.Combine(_logFolder, $"api-log-{currentHour}.json");
                 
                 var logObject = new
@@ -110,7 +111,7 @@ namespace Inventory.Api.Services
         {
             try
             {
-                var cutoffTime = DateTime.UtcNow.AddHours(-48);
+                var cutoffTime = TimeZoneHelper.GetUtcNowForStorage().AddHours(-48);
                 var files = Directory.GetFiles(_logFolder, "api-log-*.json");
                 
                 foreach (var file in files)
