@@ -2,6 +2,7 @@ using Inventory.Data;
 using Inventory.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Inventory.Shared.Utils;
+using System.Linq;
 
 namespace Inventory.Api.Services
 {
@@ -117,14 +118,125 @@ namespace Inventory.Api.Services
             if (updates == null || updates.Count == 0)
                 return 0;
 
+            int savedCount = 0;
+
             try
             {
-                await _context.Set<SystemUpdate>().AddRangeAsync(updates);
-                return await _context.SaveChangesAsync();
+                // Group updates by DeviceId for batch processing
+                var updatesByDevice = updates.GroupBy(u => u.DeviceId);
+
+                foreach (var deviceGroup in updatesByDevice)
+                {
+                    var deviceId = deviceGroup.Key;
+                    var deviceUpdates = deviceGroup.ToList();
+
+                    // 1. Verify the device exists first
+                    var deviceExists = await _context.Set<Device>().AnyAsync(d => d.Id == deviceId);
+                    if (!deviceExists)
+                    {
+                        _logger.LogWarning("Device {DeviceId} not found. Skipping {Count} updates.", deviceId, deviceUpdates.Count);
+                        continue; // Skip updates for non-existent device
+                    }
+
+                    // 2. Handle each update with upsert logic to prevent duplicates
+                    foreach (var update in deviceUpdates)
+                    {
+                        try
+                        {
+                            // Check if an update with the same ID already exists
+                            var existingUpdate = await _context.Set<SystemUpdate>()
+                                .FirstOrDefaultAsync(u => u.Id == update.Id);
+
+                            if (existingUpdate != null)
+                            {
+                                // Update existing record
+                                existingUpdate.Title = update.Title;
+                                existingUpdate.Description = update.Description;
+                                existingUpdate.KBNumber = update.KBNumber;
+                                existingUpdate.CurrentVersion = update.CurrentVersion;
+                                existingUpdate.LatestVersion = update.LatestVersion;
+                                existingUpdate.SizeInMB = update.SizeInMB;
+                                existingUpdate.Status = update.Status;
+                                existingUpdate.Priority = update.Priority;
+                                existingUpdate.LastChecked = update.LastChecked;
+                                existingUpdate.ReleaseDate = update.ReleaseDate;
+                                existingUpdate.CanAutoInstall = update.CanAutoInstall;
+                                existingUpdate.RequiresRestart = update.RequiresRestart;
+                                existingUpdate.SecurityBulletinId = update.SecurityBulletinId;
+                                existingUpdate.UpdatedAt = TimeZoneHelper.GetUtcNowForStorage();
+                                
+                                _logger.LogDebug("Updated existing SystemUpdate {Id}", update.Id);
+                            }
+                            else
+                            {
+                                // Check for duplicate by DeviceId + UpdateType + Title + CurrentVersion
+                                var duplicateUpdate = await _context.Set<SystemUpdate>()
+                                    .FirstOrDefaultAsync(u => 
+                                        u.DeviceId == update.DeviceId && 
+                                        u.UpdateType == update.UpdateType && 
+                                        u.Title == update.Title && 
+                                        u.CurrentVersion == update.CurrentVersion);
+
+                                if (duplicateUpdate != null)
+                                {
+                                    // Update the existing duplicate
+                                    duplicateUpdate.LastChecked = update.LastChecked;
+                                    duplicateUpdate.Status = update.Status;
+                                    duplicateUpdate.UpdatedAt = TimeZoneHelper.GetUtcNowForStorage();
+                                    
+                                    _logger.LogDebug("Updated duplicate SystemUpdate {Id} (original: {OriginalId})", 
+                                        update.Id, duplicateUpdate.Id);
+                                }
+                                else
+                                {
+                                    // Insert new record
+                                    // Ensure timestamps are properly set
+                                    if (update.CreatedAt == default)
+                                        update.CreatedAt = TimeZoneHelper.GetUtcNowForStorage();
+                                    if (update.UpdatedAt == default)
+                                        update.UpdatedAt = TimeZoneHelper.GetUtcNowForStorage();
+                                    if (update.DetectedDate == default)
+                                        update.DetectedDate = TimeZoneHelper.GetUtcNowForStorage();
+                                    if (update.LastChecked == default)
+                                        update.LastChecked = TimeZoneHelper.GetUtcNowForStorage();
+
+                                    await _context.Set<SystemUpdate>().AddAsync(update);
+                                    _logger.LogDebug("Added new SystemUpdate {Id}", update.Id);
+                                }
+                            }
+                            
+                            savedCount++;
+                        }
+                        catch (Exception updateEx)
+                        {
+                            _logger.LogError(updateEx, "Error processing individual update {UpdateId} for device {DeviceId}", 
+                                update.Id, deviceId);
+                            // Continue with other updates
+                        }
+                    }
+                }
+
+                // Save all changes at once
+                await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("Successfully processed {SavedCount} updates", savedCount);
+                return savedCount;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error saving updates");
+                _logger.LogError(ex, "Error saving updates: {Message}", ex.Message);
+                
+                // Log additional details for troubleshooting
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError("Inner exception: {InnerMessage}", ex.InnerException.Message);
+                }
+                
+                // Log the problematic updates for debugging
+                _logger.LogError("Failed updates count: {Count}, DeviceIds: {DeviceIds}", 
+                    updates.Count, 
+                    string.Join(", ", updates.Select(u => u.DeviceId).Distinct()));
+                
                 throw;
             }
         }
