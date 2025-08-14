@@ -1,6 +1,7 @@
 using Inventory.Data;
 using Inventory.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Inventory.Shared.Utils;
 
 namespace Inventory.Api.Services
 {
@@ -167,7 +168,7 @@ namespace Inventory.Api.Services
                 return false;
 
             update.Status = status;
-            update.UpdatedAt = DateTime.UtcNow;
+            update.UpdatedAt = TimeZoneHelper.GetUtcNowForStorage();
             
             await _context.SaveChangesAsync();
             return true;
@@ -182,7 +183,7 @@ namespace Inventory.Api.Services
             foreach (var update in updates)
             {
                 update.Status = status;
-                update.UpdatedAt = DateTime.UtcNow;
+                update.UpdatedAt = TimeZoneHelper.GetUtcNowForStorage();
             }
 
             return await _context.SaveChangesAsync();
@@ -190,7 +191,7 @@ namespace Inventory.Api.Services
 
         public async Task<int> CleanupOldRecordsAsync(int daysOld)
         {
-            var cutoffDate = DateTime.UtcNow.AddDays(-daysOld);
+            var cutoffDate = TimeZoneHelper.GetUtcNowForStorage().AddDays(-daysOld);
             var oldUpdates = await _context.Set<SystemUpdate>()
                 .Where(u => u.CreatedAt < cutoffDate && u.Status == UpdateStatus.Installed)
                 .ToListAsync();
