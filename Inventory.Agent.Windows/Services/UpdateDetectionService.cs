@@ -5,6 +5,7 @@ using System.Management;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Inventory.Domain.Entities;
+using Inventory.Shared.Utils;
 
 namespace Inventory.Agent.Windows.Services
 {
@@ -100,13 +101,17 @@ namespace Inventory.Agent.Windows.Services
                         dynamic updateSession = Activator.CreateInstance(Type.GetTypeFromProgID("Microsoft.Update.Session"));
                         dynamic updateSearcher = updateSession.CreateUpdateSearcher();
 
-                        // Mevcut güncellemeleri ara - hem indirilmiş hem de mevcut olanları
+                        // Mevcut güncellemeleri ara - kapsamlı sorgular ile tüm pending güncellemeleri yakala
                         // IsInstalled=0: Yüklü olmayan güncellemeler
-                        // IsDownloaded=1: İndirilmiş güncellemeler (kullanıcının bahsettiği durum)
+                        // IsDownloaded=1: İndirilmiş güncellemeler
+                        // RebootRequired=1: Yeniden başlatma gerektiren güncellemeler (yüklü ama restart bekleyen)
                         var searchQueries = new[]
                         {
-                            "IsInstalled=0 and Type='Software'", // Mevcut güncellemeler
-                            "IsInstalled=0 and IsDownloaded=1 and Type='Software'" // İndirilmiş ama yüklenmemiş güncellemeler
+                            "IsInstalled=0 and Type='Software' and IsHidden=0", // Mevcut güncellemeler
+                            "IsInstalled=0 and IsDownloaded=1 and Type='Software' and IsHidden=0", // İndirilmiş ama yüklenmemiş
+                            "RebootRequired=1 and Type='Software' and IsHidden=0", // Restart bekleyen güncellemeler (yüklü ama restart gerekli)
+                            "IsInstalled=0 and Type='Driver' and IsHidden=0", // Driver güncellemeleri
+                            "RebootRequired=1 and Type='Driver' and IsHidden=0" // Restart bekleyen driver güncellemeleri
                         };
 
                         foreach (var searchQuery in searchQueries)
@@ -123,6 +128,25 @@ namespace Inventory.Agent.Windows.Services
                                     if (updates.Any(u => u.Title == update.Title || u.KBNumber == ExtractKBNumber(update.Title ?? "")))
                                         continue;
 
+                                    // Güncelleme durumunu daha doğru belirle
+                                    UpdateStatus status;
+                                    if (update.RebootRequired && update.IsInstalled)
+                                    {
+                                        status = UpdateStatus.PendingRestart; // Yüklü ama restart bekliyor
+                                    }
+                                    else if (update.IsDownloaded && !update.IsInstalled)
+                                    {
+                                        status = UpdateStatus.Downloaded; // İndirilmiş ama yüklenmemiş
+                                    }
+                                    else if (!update.IsInstalled)
+                                    {
+                                        status = UpdateStatus.Available; // Mevcut
+                                    }
+                                    else
+                                    {
+                                        status = UpdateStatus.Installed; // Yüklü
+                                    }
+
                                     var systemUpdate = new SystemUpdate
                                     {
                                         Id = Guid.NewGuid(),
@@ -132,10 +156,10 @@ namespace Inventory.Agent.Windows.Services
                                         Description = update.Description ?? "",
                                         KBNumber = ExtractKBNumber(update.Title ?? ""),
                                         SizeInMB = update.MaxDownloadSize > 0 ? Math.Round(update.MaxDownloadSize / (1024.0 * 1024.0), 2) : null,
-                                        Status = update.IsDownloaded ? UpdateStatus.Downloaded : UpdateStatus.Available,
+                                        Status = status,
                                         Priority = DeterminePriority(update),
-                                        DetectedDate = DateTime.UtcNow,
-                                        LastChecked = DateTime.UtcNow,
+                                        DetectedDate = TimeZoneHelper.GetUtcNowForStorage(),
+                                        LastChecked = TimeZoneHelper.GetUtcNowForStorage(),
                                         CanAutoInstall = update.AutoDownload,
                                         RequiresRestart = update.RebootRequired,
                                         SecurityBulletinId = ExtractSecurityBulletinId(update.SecurityBulletinIDs)
@@ -197,8 +221,8 @@ namespace Inventory.Agent.Windows.Services
                             KBNumber = hotfixId,
                             Status = UpdateStatus.Installed,
                             Priority = UpdatePriority.Normal,
-                            DetectedDate = DateTime.UtcNow,
-                            LastChecked = DateTime.UtcNow,
+                            DetectedDate = TimeZoneHelper.GetUtcNowForStorage(),
+                            LastChecked = TimeZoneHelper.GetUtcNowForStorage(),
                             CanAutoInstall = false,
                             RequiresRestart = false
                         };
@@ -319,8 +343,8 @@ namespace Inventory.Agent.Windows.Services
                         LatestVersion = regUpdate.LatestVersion,
                         Status = regUpdate.IsInstalled ? UpdateStatus.Installed : UpdateStatus.Available,
                         Priority = UpdatePriority.Normal,
-                        DetectedDate = DateTime.UtcNow,
-                        LastChecked = DateTime.UtcNow,
+                        DetectedDate = TimeZoneHelper.GetUtcNowForStorage(),
+                        LastChecked = TimeZoneHelper.GetUtcNowForStorage(),
                         CanAutoInstall = true,
                         RequiresRestart = false
                     };
@@ -368,8 +392,8 @@ namespace Inventory.Agent.Windows.Services
                             CurrentVersion = version.Version,
                             Status = UpdateStatus.Installed,
                             Priority = UpdatePriority.Normal,
-                            DetectedDate = DateTime.UtcNow,
-                            LastChecked = DateTime.UtcNow,
+                            DetectedDate = TimeZoneHelper.GetUtcNowForStorage(),
+                            LastChecked = TimeZoneHelper.GetUtcNowForStorage(),
                             CanAutoInstall = false,
                             RequiresRestart = false
                         };
