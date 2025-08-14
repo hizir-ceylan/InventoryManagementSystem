@@ -36,6 +36,20 @@ namespace Inventory.Agent.Windows
                 return;
             }
 
+            // Update detection test modu
+            if (args.Length > 0 && args[0].ToLower() == "--test-updates")
+            {
+                await RunUpdateDetectionTestAsync();
+                return;
+            }
+
+            // Update integration test modu
+            if (args.Length > 0 && args[0].ToLower() == "--test-integration")
+            {
+                await RunUpdateIntegrationTestAsync();
+                return;
+            }
+
             // Service modu kontrolü - Windows service olarak çalışıp çalışmadığını kontrol et
             bool isWindowsService = !Environment.UserInteractive || 
                                    (args.Length > 0 && args[0].ToLower() == "--service");
@@ -66,12 +80,15 @@ namespace Inventory.Agent.Windows
             Console.WriteLine("  network              Ağ keşfi modunda çalışır");
             Console.WriteLine("  --service            Servis modunda çalışır (otomatik algılanır)");
             Console.WriteLine("  --test-software      Yazılım değişiklik tespiti testini çalıştırır");
+            Console.WriteLine("  --test-updates       Windows güncelleme tespiti testini çalıştırır");
+            Console.WriteLine("  --test-integration   Güncelleme entegrasyonu testini çalıştırır");
             Console.WriteLine("  --help, -h           Bu yardım mesajını gösterir");
             Console.WriteLine();
             Console.WriteLine("Örnekler (Examples):");
             Console.WriteLine("  Inventory.Agent.Windows.exe                    # Tek seferlik çalıştır");
             Console.WriteLine("  Inventory.Agent.Windows.exe --continuous       # Sürekli modda çalıştır");
             Console.WriteLine("  Inventory.Agent.Windows.exe network            # Ağ keşfi yap");
+            Console.WriteLine("  Inventory.Agent.Windows.exe --test-updates     # Güncelleme tespiti test et");
             Console.WriteLine();
             Console.WriteLine("Servis kurulumu için: build-tools/Build-Setup.ps1");
         }
@@ -212,6 +229,38 @@ namespace Inventory.Agent.Windows
             try
             {
                 await Testing.SoftwareChangeDetectionTest.RunTestAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Test failed: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            }
+            
+            Console.WriteLine("\nPress any key to exit...");
+            Console.ReadKey();
+        }
+
+        static async Task RunUpdateDetectionTestAsync()
+        {
+            try
+            {
+                await Testing.UpdateDetectionTest.RunTestAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Test failed: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            }
+            
+            Console.WriteLine("\nPress any key to exit...");
+            Console.ReadKey();
+        }
+
+        static async Task RunUpdateIntegrationTestAsync()
+        {
+            try
+            {
+                await Testing.UpdateIntegrationTest.RunTestAsync();
             }
             catch (Exception ex)
             {

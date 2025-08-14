@@ -23,9 +23,9 @@ namespace Inventory.Agent.Windows.Services
 
         #region Constructor
 
-        public UpdateDetectionService(ILogger<UpdateDetectionService> logger)
+        public UpdateDetectionService(ILogger<UpdateDetectionService>? logger = null)
         {
-            _logger = logger;
+            _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<UpdateDetectionService>.Instance;
             _logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), 
                 "InventoryManagementSystem", "UpdateLogs");
             
