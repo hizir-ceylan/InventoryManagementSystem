@@ -196,12 +196,72 @@ async function editDevice(deviceId) {
     try {
         const device = await window.api.getDevice(deviceId);
         if (device) {
-            // This would populate and show the edit modal
+            // Show the edit modal
             window.ui.showModal('deviceEditModal');
-            // Additional logic to populate form would go here
+            // Populate the edit form using the same logic as device-details module
+            if (window.deviceDetails && window.deviceDetails.populateEditForm) {
+                window.deviceDetails.populateEditForm(device);
+            } else {
+                // Fallback form population
+                populateEditForm(device);
+            }
         }
     } catch (error) {
         window.ui.showError('Cihaz bilgileri yüklenirken hata oluştu: ' + error.message);
+    }
+}
+
+function populateEditForm(device) {
+    const editContent = document.getElementById('device-edit-content');
+    if (editContent) {
+        editContent.innerHTML = `
+            <div class="device-edit-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-device-name">Cihaz Adı: <span class="text-danger">*</span></label>
+                        <input type="text" id="edit-device-name" class="form-control" value="${device.deviceName || ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-device-type">Cihaz Türü:</label>
+                        <select id="edit-device-type" class="form-control">
+                            <option value="0" ${device.deviceType === 0 ? 'selected' : ''}>Bilinmiyor</option>
+                            <option value="1" ${device.deviceType === 1 ? 'selected' : ''}>Laptop</option>
+                            <option value="2" ${device.deviceType === 2 ? 'selected' : ''}>Masaüstü</option>
+                            <option value="3" ${device.deviceType === 3 ? 'selected' : ''}>Sunucu</option>
+                            <option value="4" ${device.deviceType === 4 ? 'selected' : ''}>Yazıcı</option>
+                            <option value="5" ${device.deviceType === 5 ? 'selected' : ''}>Tarayıcı</option>
+                            <option value="6" ${device.deviceType === 6 ? 'selected' : ''}>Kamera</option>
+                            <option value="7" ${device.deviceType === 7 ? 'selected' : ''}>IP Telefon</option>
+                            <option value="8" ${device.deviceType === 8 ? 'selected' : ''}>Ağ Cihazı</option>
+                            <option value="9" ${device.deviceType === 9 ? 'selected' : ''}>Router</option>
+                            <option value="10" ${device.deviceType === 10 ? 'selected' : ''}>Switch</option>
+                            <option value="11" ${device.deviceType === 11 ? 'selected' : ''}>Access Point</option>
+                            <option value="12" ${device.deviceType === 12 ? 'selected' : ''}>Depolama</option>
+                            <option value="13" ${device.deviceType === 13 ? 'selected' : ''}>Tablet</option>
+                            <option value="14" ${device.deviceType === 14 ? 'selected' : ''}>Akıllı Telefon</option>
+                            <option value="15" ${device.deviceType === 15 ? 'selected' : ''}>Akıllı TV</option>
+                            <option value="16" ${device.deviceType === 16 ? 'selected' : ''}>Projektör/Ekran</option>
+                            <option value="17" ${device.deviceType === 17 ? 'selected' : ''}>Diğer</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-ip-address">IP Adresi:</label>
+                        <input type="text" id="edit-ip-address" class="form-control" value="${device.ipAddress || ''}" placeholder="Örn: 192.168.1.100">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-location">Konum:</label>
+                        <input type="text" id="edit-location" class="form-control" value="${device.location || ''}" placeholder="Örn: İkinci Kat - Muhasebe">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-notes">Notlar:</label>
+                    <textarea id="edit-notes" class="form-control" rows="3" placeholder="Cihazla ilgili notlar...">${device.notes || ''}</textarea>
+                </div>
+                <input type="hidden" id="edit-device-id" value="${device.id}">
+            </div>
+        `;
     }
 }
 
