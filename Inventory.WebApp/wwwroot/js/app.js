@@ -2021,7 +2021,7 @@ class InventoryApp {
 
             // Prepare device data
             const deviceData = {
-                name: name,
+                deviceName: name,
                 deviceType: deviceType,
                 model: model || null,
                 location: location || null,
@@ -2031,7 +2031,10 @@ class InventoryApp {
                 status: 1, // Passive - not yet installed
                 agentInstalled: false,
                 managementType: 0, // Unknown
-                discoveryMethod: 3 // Manual
+                discoveryMethod: 3, // Manual
+                macAddress: null, // Will be filled when agent is installed
+                lastSeen: new Date().toISOString(),
+                createdAt: new Date().toISOString()
             };
 
             // Call API to create device

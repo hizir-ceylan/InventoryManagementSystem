@@ -448,8 +448,8 @@ class DeviceDetailsManager {
             const updatesContainer = document.getElementById(`device-updates-${deviceId}`);
             if (!updatesContainer) return;
 
-            // Try to load updates from API
-            const updates = await window.api.getDeviceUpdates(deviceId);
+            // Try to load updates from real API
+            const updates = await window.api.apiCall(`update/${deviceId}`);
             
             if (updates && updates.length > 0) {
                 const availableUpdates = updates.filter(update => update.status === 0); // Available updates
@@ -588,13 +588,16 @@ class DeviceDetailsManager {
             `;
             
             try {
-                // Trigger update scan
-                await window.api.scanDeviceUpdates(deviceId);
+                // Trigger real update scan using API
+                await window.api.apiCall(`update/scan/${deviceId}`, {
+                    method: 'POST'
+                });
                 // Wait a bit and reload
-                setTimeout(() => this.loadDeviceUpdates(deviceId), 2000);
+                setTimeout(() => this.loadDeviceUpdates(deviceId), 3000);
             } catch (error) {
                 console.error('Update scan failed:', error);
-                this.loadDeviceUpdates(deviceId);
+                // Still try to reload updates even if scan failed
+                setTimeout(() => this.loadDeviceUpdates(deviceId), 1000);
             }
         }
     }
@@ -609,13 +612,88 @@ class DeviceDetailsManager {
         try {
             const device = await window.api.getDevice(deviceId);
             if (device) {
-                // Store device data for editing
-                sessionStorage.setItem('editingDevice', JSON.stringify(device));
-                // Navigate to edit page or show modal
-                window.location.href = `/DeviceEdit?id=${deviceId}`;
+                // Use the app's edit modal functionality
+                if (window.app && window.app.editDevice) {
+                    window.app.editDevice(deviceId);
+                } else {
+                    // Fallback: show device edit modal
+                    window.ui.showModal('deviceEditModal');
+                    // Populate edit form
+                    this.populateEditForm(device);
+                }
             }
         } catch (error) {
-            window.ui.showError('Cihaz düzenleme sayfası açılırken hata oluştu: ' + error.message);
+            window.ui.showError('Cihaz düzenleme açılırken hata oluştu: ' + error.message);
+        }
+    }
+
+    populateEditForm(device) {
+        const editContent = document.getElementById('device-edit-content');
+        if (editContent) {
+            editContent.innerHTML = `
+                <div class="device-edit-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-device-name">Cihaz Adı: <span class="text-danger">*</span></label>
+                            <input type="text" id="edit-device-name" class="form-control" value="${device.deviceName || ''}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-device-type">Cihaz Türü:</label>
+                            <select id="edit-device-type" class="form-control">
+                                <option value="0" ${device.deviceType === 0 ? 'selected' : ''}>Bilinmiyor</option>
+                                <option value="1" ${device.deviceType === 1 ? 'selected' : ''}>Laptop</option>
+                                <option value="2" ${device.deviceType === 2 ? 'selected' : ''}>Masaüstü</option>
+                                <option value="3" ${device.deviceType === 3 ? 'selected' : ''}>Sunucu</option>
+                                <option value="4" ${device.deviceType === 4 ? 'selected' : ''}>Yazıcı</option>
+                                <option value="5" ${device.deviceType === 5 ? 'selected' : ''}>Tarayıcı</option>
+                                <option value="6" ${device.deviceType === 6 ? 'selected' : ''}>Kamera</option>
+                                <option value="7" ${device.deviceType === 7 ? 'selected' : ''}>IP Telefon</option>
+                                <option value="8" ${device.deviceType === 8 ? 'selected' : ''}>Ağ Cihazı</option>
+                                <option value="9" ${device.deviceType === 9 ? 'selected' : ''}>Router</option>
+                                <option value="10" ${device.deviceType === 10 ? 'selected' : ''}>Switch</option>
+                                <option value="11" ${device.deviceType === 11 ? 'selected' : ''}>Access Point</option>
+                                <option value="12" ${device.deviceType === 12 ? 'selected' : ''}>Depolama</option>
+                                <option value="13" ${device.deviceType === 13 ? 'selected' : ''}>Tablet</option>
+                                <option value="14" ${device.deviceType === 14 ? 'selected' : ''}>Akıllı Telefon</option>
+                                <option value="15" ${device.deviceType === 15 ? 'selected' : ''}>Akıllı TV</option>
+                                <option value="16" ${device.deviceType === 16 ? 'selected' : ''}>Projektör/Ekran</option>
+                                <option value="17" ${device.deviceType === 17 ? 'selected' : ''}>Diğer</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-ip-address">IP Adresi:</label>
+                            <input type="text" id="edit-ip-address" class="form-control" value="${device.ipAddress || ''}" placeholder="Örn: 192.168.1.100">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-mac-address">MAC Adresi:</label>
+                            <input type="text" id="edit-mac-address" class="form-control" value="${device.macAddress || ''}" placeholder="Örn: AA:BB:CC:DD:EE:FF" readonly>
+                            <small class="text-muted">MAC adresi sistem tarafından otomatik belirlenir</small>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-location">Konum:</label>
+                            <input type="text" id="edit-location" class="form-control" value="${device.location || ''}" placeholder="Örn: İkinci Kat - Muhasebe">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-status">Durum:</label>
+                            <select id="edit-status" class="form-control">
+                                <option value="0" ${device.status === 0 ? 'selected' : ''}>Aktif</option>
+                                <option value="1" ${device.status === 1 ? 'selected' : ''}>Pasif</option>
+                                <option value="2" ${device.status === 2 ? 'selected' : ''}>Bakım</option>
+                                <option value="3" ${device.status === 3 ? 'selected' : ''}>Arızalı</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-notes">Notlar:</label>
+                        <textarea id="edit-notes" class="form-control" rows="3" placeholder="Cihazla ilgili notlar...">${device.notes || ''}</textarea>
+                    </div>
+                    <input type="hidden" id="edit-device-id" value="${device.id}">
+                </div>
+            `;
         }
     }
 
