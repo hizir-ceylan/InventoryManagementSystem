@@ -142,12 +142,14 @@ namespace Inventory.Api.Services
                     throw new ArgumentException($"Device with ID {deviceId} not found");
                 }
                 
-                // In a real implementation, this would send a command to the agent
-                // For now, we'll simulate triggering a scan by logging the action
-                _logger.LogInformation("Update scan initiated for device {DeviceId}. Agent should detect and report updates.", deviceId);
+                // The Windows agent automatically runs update detection every 60 minutes
+                // This API call acknowledges the scan request but doesn't trigger immediate detection
+                _logger.LogInformation("Update scan request logged for device {DeviceId}. " +
+                    "The Windows agent automatically detects and reports updates every 60 minutes. " +
+                    "Check the update reports endpoint for detected updates.", deviceId);
                 
-                // TODO: Implement actual agent communication to trigger update detection
-                // This could be done via SignalR, message queue, or polling mechanism
+                // TODO: For real-time triggering, implement agent communication via SignalR, message queue, 
+                // or a polling mechanism where agents check for scan requests
                 
                 return scanId;
             }

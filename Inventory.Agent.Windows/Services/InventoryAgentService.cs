@@ -18,12 +18,15 @@ namespace Inventory.Agent.Windows.Services
         private ConnectivityMonitorService? _connectivityMonitor;
         private readonly int _inventoryIntervalMinutes = 30; // Her 30 dakikada bir
         private readonly int _hardwareChangeCheckMinutes = 5; // Hardware değişiklik kontrolü her 5 dakikada bir
+        private readonly int _updateDetectionIntervalMinutes = 60; // Update detection her 60 dakikada bir
         private readonly int _initialDelaySeconds = 15; // Service startup'tan sonra ilk tarama için bekleme süresi (azaltıldı)
         private readonly int _apiCheckIntervalSeconds = 3; // API hazır olma kontrolü aralığı (azaltıldı)
         private readonly int _maxApiCheckAttempts = 5; // Maksimum API kontrol deneme sayısı (15 saniye toplam)
         private OfflineStorageService? _offlineStorage;
         private DeviceStateService? _deviceStateService;
         private LocalChangeLogService? _localChangeLogService;
+        private UpdateDetectionService? _updateDetectionService;
+        private UpdateApiClient? _updateApiClient;
         private readonly CancellationTokenSource _startupCancellation = new();
 
         public InventoryAgentService(ILogger<InventoryAgentService> logger)
@@ -65,8 +68,11 @@ namespace Inventory.Agent.Windows.Services
                 // Start hardware change monitoring loop
                 var hardwareMonitorTask = RunHardwareChangeMonitoringAsync(cancellationToken);
 
+                // Start update detection monitoring loop
+                var updateDetectionTask = RunUpdateDetectionMonitoringAsync(cancellationToken);
+
                 // Wait for either task to complete or cancellation
-                await Task.WhenAny(backgroundTask, serviceTask, hardwareMonitorTask);
+                await Task.WhenAny(backgroundTask, serviceTask, hardwareMonitorTask, updateDetectionTask);
                 
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -126,6 +132,28 @@ namespace Inventory.Agent.Windows.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Local Change Log Service başlatılırken hata oluştu. Devam edilecek.");
+            }
+
+            // Initialize update detection service
+            try
+            {
+                _updateDetectionService = new UpdateDetectionService();
+                _logger.LogInformation("Update Detection Service başlatıldı.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Update Detection Service başlatılırken hata oluştu. Devam edilecek.");
+            }
+
+            // Initialize update API client
+            try
+            {
+                _updateApiClient = new UpdateApiClient(_apiSettings);
+                _logger.LogInformation("Update API Client başlatıldı.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Update API Client başlatılırken hata oluştu. Devam edilecek.");
             }
         }
 
@@ -406,6 +434,118 @@ namespace Inventory.Agent.Windows.Services
             {
                 _logger.LogError(ex, "Hardware değişiklik kontrolü sırasında hata oluştu.");
             }
+        }
+
+        private async Task RunUpdateDetectionMonitoringAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogInformation($"Update detection monitoring başlatıldı, {_updateDetectionIntervalMinutes} dakikada bir kontrol edilecek.");
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    // İlk update detection için biraz bekle (sistem başlangıcından sonra)
+                    await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
+                    
+                    if (!cancellationToken.IsCancellationRequested)
+                    {
+                        _logger.LogInformation("Update detection başlatılıyor...");
+                        await RunUpdateDetectionAsync();
+                    }
+
+                    // Sonraki kontrol için bekle
+                    await Task.Delay(TimeSpan.FromMinutes(_updateDetectionIntervalMinutes), cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Normal shutdown, break the loop
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Update detection sırasında hata oluştu. Bir sonraki döngüde devam edilecek.");
+                    
+                    // Hata sonrası kısa bekleme
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        private async Task RunUpdateDetectionAsync()
+        {
+            try
+            {
+                if (_updateDetectionService == null)
+                {
+                    _logger.LogWarning("Update Detection Service kullanılamıyor, güncelleme tespiti atlanıyor.");
+                    return;
+                }
+
+                // Get current device information to extract device ID
+                var currentDevice = CrossPlatformSystemInfo.GatherSystemInformation();
+                
+                // Generate a consistent device ID based on MAC address (this should ideally be stored/retrieved consistently)
+                var deviceId = GenerateDeviceIdFromMac(currentDevice.MacAddress ?? "unknown");
+
+                _logger.LogInformation("Sistem güncellemeleri tespit ediliyor...");
+                
+                // Detect all available updates
+                var detectedUpdates = await _updateDetectionService.DetectAllUpdatesAsync(deviceId);
+                
+                if (detectedUpdates.Any())
+                {
+                    _logger.LogInformation($"{detectedUpdates.Count} güncelleme tespit edildi.");
+                    
+                    // Send updates to API
+                    if (_updateApiClient != null)
+                    {
+                        var success = await _updateApiClient.SendUpdatesAsync(detectedUpdates);
+                        if (success)
+                        {
+                            _logger.LogInformation("Tespit edilen güncellemeler başarıyla API'ye gönderildi.");
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Tespit edilen güncellemeler API'ye gönderilemedi.");
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Update API Client kullanılamıyor, güncellemeler sadece lokal kaydedildi.");
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("Hiç güncelleme tespit edilmedi.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Update detection sırasında hata oluştu.");
+            }
+        }
+
+        /// <summary>
+        /// Generates a consistent device ID based on MAC address
+        /// </summary>
+        private Guid GenerateDeviceIdFromMac(string macAddress)
+        {
+            if (string.IsNullOrWhiteSpace(macAddress))
+                return Guid.NewGuid();
+
+            // Create a deterministic GUID from MAC address
+            using var sha1 = System.Security.Cryptography.SHA1.Create();
+            var hash = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(macAddress));
+            var guid = new byte[16];
+            Array.Copy(hash, 0, guid, 0, 16);
+            return new Guid(guid);
         }
 
         private async Task CleanupAsync()
