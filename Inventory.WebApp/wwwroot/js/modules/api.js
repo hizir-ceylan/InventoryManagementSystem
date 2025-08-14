@@ -79,11 +79,11 @@ class ApiManager {
 
     // Change logs API methods
     async getChangeLogs() {
-        return await this.apiCall('api/device/change-logs');
+        return await this.apiCall('api/ChangeLog');
     }
 
     async getDeviceChangeLogs(deviceId) {
-        return await this.apiCall(`api/device/${deviceId}/change-logs`);
+        return await this.apiCall(`api/ChangeLog/device/${deviceId}`);
     }
 
     // Network scan API methods
