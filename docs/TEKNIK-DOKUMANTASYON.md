@@ -85,10 +85,17 @@ Sistemin kalbi olan merkezi API sunucusu. Tüm cihaz verilerini toplar, işler v
 #### 📁 **Controllers/** - API Endpoint Controllers
 **Dosyalar ve İşlevleri:**
 - `DeviceController.cs`: Cihaz CRUD işlemleri, envanter yönetimi
+- `UpdateController.cs`: Windows/Office güncelleme takibi ve raporlama **[YENİ ÖZELLIK]**
 - `NetworkScanController.cs`: Ağ tarama ve keşif işlemleri  
 - `ChangeLogController.cs`: Değişiklik geçmişi ve audit logları
 - `LocationController.cs`: Lokasyon bazlı cihaz gruplandırma
 - `LoggingController.cs`: Sistem log görüntüleme ve filtreleme
+
+**🆕 UpdateController.cs Yeni Özellikleri:**
+- `GET /api/update/{deviceId}`: Basitleştirilmiş endpoint - gereksiz parametreler kaldırıldı
+- `POST /api/update/scan/{deviceId}`: Güncelleme tarama başlatma
+- `POST /api/update/report`: Agent'dan güncelleme raporu alma
+- `GET /api/update/statistics`: Güncelleme istatistikleri
 
 #### 📁 **Services/** - Business Logic Katmanı
 **Ana Servisler:**
@@ -181,6 +188,15 @@ Modern ASP.NET Core MVC tabanlı web arayüzü.
 - `js/`: jQuery ve custom JavaScript fonksiyonları
 - `lib/`: Third-party libraries (jQuery, Bootstrap)
 
+**🆕 UI İyileştirmeleri (v2.1):**
+- **1920x1080 Navbar Düzeltmesi**: Son güncelleme göstergesi için genişletilmiş alan
+- **Merkezi Cihaz Detay Tasarımı**: Cihaz adı/durumu ortada, işlem butonları altında
+- **Mobil Navbar İyileştirmeleri**: Çaykur logosu sol hizalama, düzenli hamburger menü
+- **Tablo Sütun Geri Yükleme**: Desktop'ta tüm sütunlar (MAC, Model, Konum) görünür
+- **Değişiklik Logları Genişletildi**: Eski/Yeni değer sütunları geri getirildi
+- **Ağ Tarama Düzeni**: Grid layout düzeltmeleri, hizalama sorunları giderildi
+- **Cache Busting**: Cihaz detay sayfasında önbellekleme sorunları çözüldü
+
 ### 📊 **Inventory.Data** - Entity Framework Veri Katmanı
 
 Veritabanı işlemleri ve ORM katmanı.
@@ -210,6 +226,11 @@ Veritabanı işlemleri ve ORM katmanı.
 - `SoftwareInfo.cs`: Yazılım bilgileri (OS, Version, vb.)
 - `DeviceChangeLog.cs`: Değişiklik geçmişi modeli
 - `NetworkAdapter.cs`, `RamModule.cs`, `Disk.cs`: Hardware detay modelleri
+
+**🆕 Device Entity Yeni Alanları:**
+- `BarcodeNumber`: Manuel barkod numarası (agent tarafından değiştirilemez)
+- `Notes`: Cihaz notları (manuel giriş, agent korumalı)
+- Bu alanlar sadece manuel işlemlerle güncellenebilir, otomatik agent işlemlerinden korunmuştur
 
 #### 📁 **Enums/** - System Enumerations
 ```csharp
