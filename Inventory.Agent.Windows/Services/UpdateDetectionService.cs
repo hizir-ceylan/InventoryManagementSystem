@@ -100,30 +100,54 @@ namespace Inventory.Agent.Windows.Services
                         dynamic updateSession = Activator.CreateInstance(Type.GetTypeFromProgID("Microsoft.Update.Session"));
                         dynamic updateSearcher = updateSession.CreateUpdateSearcher();
 
-                        // Mevcut güncellemeleri ara
-                        dynamic searchResult = updateSearcher.Search("IsInstalled=0 and Type='Software'");
-
-                        foreach (dynamic update in searchResult.Updates)
+                        // Mevcut güncellemeleri ara - hem indirilmiş hem de mevcut olanları
+                        // IsInstalled=0: Yüklü olmayan güncellemeler
+                        // IsDownloaded=1: İndirilmiş güncellemeler (kullanıcının bahsettiği durum)
+                        var searchQueries = new[]
                         {
-                            var systemUpdate = new SystemUpdate
-                            {
-                                Id = Guid.NewGuid(),
-                                DeviceId = deviceId,
-                                UpdateType = "Windows",
-                                Title = update.Title ?? "Bilinmeyen Güncelleme",
-                                Description = update.Description ?? "",
-                                KBNumber = ExtractKBNumber(update.Title ?? ""),
-                                SizeInMB = update.MaxDownloadSize > 0 ? Math.Round(update.MaxDownloadSize / (1024.0 * 1024.0), 2) : null,
-                                Status = UpdateStatus.Available,
-                                Priority = DeterminePriority(update),
-                                DetectedDate = DateTime.UtcNow,
-                                LastChecked = DateTime.UtcNow,
-                                CanAutoInstall = update.AutoDownload,
-                                RequiresRestart = update.RebootRequired,
-                                SecurityBulletinId = ExtractSecurityBulletinId(update.SecurityBulletinIDs)
-                            };
+                            "IsInstalled=0 and Type='Software'", // Mevcut güncellemeler
+                            "IsInstalled=0 and IsDownloaded=1 and Type='Software'" // İndirilmiş ama yüklenmemiş güncellemeler
+                        };
 
-                            updates.Add(systemUpdate);
+                        foreach (var searchQuery in searchQueries)
+                        {
+                            try
+                            {
+                                _logger.LogDebug("Windows Update arama sorgusu: {Query}", searchQuery);
+                                dynamic searchResult = updateSearcher.Search(searchQuery);
+
+                                foreach (dynamic update in searchResult.Updates)
+                                {
+                                    // Aynı güncellemenin birden fazla kez eklenmesini önle
+                                    var updateId = update.Identity?.UpdateID?.ToString() ?? update.Title;
+                                    if (updates.Any(u => u.Title == update.Title || u.KBNumber == ExtractKBNumber(update.Title ?? "")))
+                                        continue;
+
+                                    var systemUpdate = new SystemUpdate
+                                    {
+                                        Id = Guid.NewGuid(),
+                                        DeviceId = deviceId,
+                                        UpdateType = "Windows",
+                                        Title = update.Title ?? "Bilinmeyen Güncelleme",
+                                        Description = update.Description ?? "",
+                                        KBNumber = ExtractKBNumber(update.Title ?? ""),
+                                        SizeInMB = update.MaxDownloadSize > 0 ? Math.Round(update.MaxDownloadSize / (1024.0 * 1024.0), 2) : null,
+                                        Status = update.IsDownloaded ? UpdateStatus.Downloaded : UpdateStatus.Available,
+                                        Priority = DeterminePriority(update),
+                                        DetectedDate = DateTime.UtcNow,
+                                        LastChecked = DateTime.UtcNow,
+                                        CanAutoInstall = update.AutoDownload,
+                                        RequiresRestart = update.RebootRequired,
+                                        SecurityBulletinId = ExtractSecurityBulletinId(update.SecurityBulletinIDs)
+                                    };
+
+                                    updates.Add(systemUpdate);
+                                }
+                            }
+                            catch (Exception searchEx)
+                            {
+                                _logger.LogWarning(searchEx, "Güncelleme arama sorgusu başarısız: {Query}", searchQuery);
+                            }
                         }
                     }
                     catch (Exception ex)

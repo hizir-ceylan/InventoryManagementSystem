@@ -453,6 +453,7 @@ class DeviceDetailsManager {
             
             if (updates && updates.length > 0) {
                 const availableUpdates = updates.filter(update => update.status === 0); // Available updates
+                const downloadedUpdates = updates.filter(update => update.status === 1); // Downloaded updates
                 const installedUpdates = updates.filter(update => update.status === 2); // Installed updates
                 
                 let updatesHtml = '';
@@ -478,6 +479,35 @@ class DeviceDetailsManager {
                                         <button class="btn-secondary" onclick="window.deviceDetails.showAllUpdates('${deviceId}', 'available')">
                                             <i class="bi bi-list"></i>
                                             Tüm mevcut güncellemeleri göster (${availableUpdates.length})
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (downloadedUpdates.length > 0) {
+                    updatesHtml += `
+                        <div class="updates-section">
+                            <h6><i class="bi bi-cloud-download"></i> İndirilmiş Güncellemeler (${downloadedUpdates.length})</h6>
+                            <div class="updates-list">
+                                ${downloadedUpdates.slice(0, 5).map(update => `
+                                    <div class="update-item ${this.getUpdatePriorityClass(update.priority)}">
+                                        <div class="update-info">
+                                            <strong>${update.title}</strong>
+                                            <small>${update.updateType} - ${this.getUpdatePriorityText(update.priority)}</small>
+                                        </div>
+                                        <div class="update-status">
+                                            <span class="badge badge-info">İndirildi</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                                ${downloadedUpdates.length > 5 ? `
+                                    <div class="updates-show-all">
+                                        <button class="btn-secondary" onclick="window.deviceDetails.showAllUpdates('${deviceId}', 'downloaded')">
+                                            <i class="bi bi-list"></i>
+                                            Tüm indirilmiş güncellemeleri göster (${downloadedUpdates.length})
                                         </button>
                                     </div>
                                 ` : ''}
@@ -545,10 +575,17 @@ class DeviceDetailsManager {
                     <div class="no-updates error">
                         <i class="bi bi-exclamation-triangle"></i>
                         <span>Güncelleme bilgileri yüklenemedi</span>
-                        <button class="btn-secondary" onclick="window.deviceDetails.refreshUpdates('${deviceId}')">
-                            <i class="bi bi-arrow-clockwise"></i>
-                            Tekrar dene
-                        </button>
+                        <small>Hata: ${error.message || 'API bağlantı sorunu'}</small>
+                        <div class="error-actions">
+                            <button class="btn-secondary" onclick="window.deviceDetails.refreshUpdates('${deviceId}')">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                Tekrar dene
+                            </button>
+                            <button class="btn-secondary" onclick="window.deviceDetails.loadDeviceUpdates('${deviceId}')">
+                                <i class="bi bi-cloud-download"></i>
+                                Yeniden yükle
+                            </button>
+                        </div>
                     </div>
                 `;
             }
