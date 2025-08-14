@@ -142,10 +142,10 @@ namespace Inventory.Api.Services
                     throw new ArgumentException($"Device with ID {deviceId} not found");
                 }
                 
-                // The Windows agent automatically runs update detection every 60 minutes
+                // The Windows agent automatically runs update detection every 30 minutes
                 // This API call acknowledges the scan request but doesn't trigger immediate detection
                 _logger.LogInformation("Update scan request logged for device {DeviceId}. " +
-                    "The Windows agent automatically detects and reports updates every 60 minutes. " +
+                    "The Windows agent automatically detects and reports updates every 30 minutes. " +
                     "Check the update reports endpoint for detected updates.", deviceId);
                 
                 // TODO: For real-time triggering, implement agent communication via SignalR, message queue, 

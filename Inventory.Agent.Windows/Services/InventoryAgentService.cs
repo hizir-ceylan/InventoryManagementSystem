@@ -18,7 +18,7 @@ namespace Inventory.Agent.Windows.Services
         private ConnectivityMonitorService? _connectivityMonitor;
         private readonly int _inventoryIntervalMinutes = 30; // Her 30 dakikada bir
         private readonly int _hardwareChangeCheckMinutes = 5; // Hardware değişiklik kontrolü her 5 dakikada bir
-        private readonly int _updateDetectionIntervalMinutes = 60; // Update detection her 60 dakikada bir
+        private readonly int _updateDetectionIntervalMinutes = 30; // Update detection her 30 dakikada bir
         private readonly int _initialDelaySeconds = 15; // Service startup'tan sonra ilk tarama için bekleme süresi (azaltıldı)
         private readonly int _apiCheckIntervalSeconds = 3; // API hazır olma kontrolü aralığı (azaltıldı)
         private readonly int _maxApiCheckAttempts = 5; // Maksimum API kontrol deneme sayısı (15 saniye toplam)
