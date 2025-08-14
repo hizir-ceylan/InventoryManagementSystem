@@ -420,34 +420,48 @@ class InventoryApp {
     async showDeviceDetailPage(deviceId) {
         try {
             this.showLoading();
+            
+            // Clear any previous device data to prevent caching issues
+            const detailsContent = document.getElementById('device-details-content');
+            if (detailsContent) {
+                detailsContent.innerHTML = '<div class="loading-text">Cihaz bilgileri yükleniyor...</div>';
+            }
 
             // Try to get device details from API first, fallback to mock data
             let device;
             try {
-                device = await this.apiCall(`device/${deviceId}`);
+                // Add timestamp to prevent caching
+                const timestamp = new Date().getTime();
+                device = await this.apiCall(`device/${deviceId}?t=${timestamp}`);
             } catch (apiError) {
+                console.log('API error, falling back to mock data:', apiError);
                 // Fallback to mock data if API is not available
                 device = this.devices.find(d => d.id == deviceId);
                 if (!device) {
                     throw new Error('Cihaz bulunamadı');
                 }
             }
+            
+            // Ensure we have the correct device
+            if (!device || device.id != deviceId) {
+                throw new Error(`Cihaz ID mismatch: expected ${deviceId}, got ${device?.id || 'null'}`);
+            }
 
             // Update device details page content
             const detailsContent = document.getElementById('device-details-content');
             detailsContent.innerHTML = `
                 <div class="device-details-header">
-                    <div class="device-header-info">
-                        <div class="device-title">
+                    <div class="device-header-center">
+                        <div class="device-title-center">
                             <i class="bi ${this.getDeviceIcon(device.deviceType)}"></i>
                             <h3>${device.name || 'Bilinmeyen Cihaz'}</h3>
                             <span class="badge ${this.getDeviceTypeBadgeClass(device.deviceType)}">${this.getDeviceTypeText(device.deviceType)}</span>
                         </div>
-                        <div class="device-status">
+                        <div class="device-status-center">
                             <span class="badge ${this.getStatusBadgeClass(this.getComputedStatus(device))}">${this.getStatusText(this.getComputedStatus(device))}</span>
                         </div>
                     </div>
-                    <div class="device-actions">
+                    <div class="device-actions-center">
                         <button class="btn-primary" onclick="app.editDevice('${device.id}')">
                             <i class="bi bi-pencil"></i>
                             Düzenle

@@ -104,17 +104,19 @@ body {
 /* Large desktop improvements for 1920x1080 and similar */
 @media (min-width: 1400px) {
     .container {
-        max-width: 1200px;
+        max-width: 1400px;
         padding: 0 20px;
     }
     
     .navbar .container {
         padding: 0 40px;
+        grid-template-columns: 280px 1fr 300px; /* Increased right column for status */
     }
     
     .navbar-brand {
-        min-width: 250px;
+        min-width: 260px;
         margin-right: 30px;
+        justify-content: flex-start; /* Align Çaykur text to left */
     }
     
     .navbar-nav {
@@ -126,10 +128,23 @@ body {
         font-size: 0.95rem;
     }
     
+    .navbar-status {
+        min-width: 250px; /* Ensure status indicator has enough space */
+    }
+    
+    .status-indicator {
+        padding: 8px 12px;
+        font-size: 0.8rem; /* Slightly larger font */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 250px;
+    }
+    
     .stats-grid {
         grid-template-columns: repeat(4, 1fr);
         gap: 30px;
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
     }
 }
@@ -716,6 +731,10 @@ body {
     align-items: center;
 }
 
+.page-title {
+    text-align: left;
+}
+
 .page-title h2 {
     color: var(--tea-green);
     font-size: 1.8rem;
@@ -724,6 +743,7 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    text-align: left;
 }
 
 .page-title h2 i {
@@ -1485,9 +1505,23 @@ body {
 
 .config-form {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
     align-items: end;
+}
+
+.config-form .btn-primary {
+    grid-column: span 1;
+    justify-self: start;
+    margin-top: 10px;
+}
+
+/* Desktop responsive for better layout */
+@media (min-width: 1200px) {
+    .config-form {
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 24px;
+    }
 }
 
 .form-group {
@@ -2188,6 +2222,11 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    /* Hide certain columns on mobile for better readability */
+    .hide-mobile {
+        display: none !important;
+    }
+    
     .container {
         padding: 0 16px;
     }
@@ -2199,7 +2238,7 @@ body {
     }
     
     .navbar-left {
-        justify-content: center;
+        justify-content: flex-start; /* Align Çaykur to left on mobile */
     }
     
     .navbar-center {
@@ -2220,7 +2259,8 @@ body {
     
     .navbar-brand {
         min-width: auto;
-        text-align: center;
+        text-align: left; /* Left align brand text */
+        justify-content: flex-start;
     }
     
     .subtitle {
@@ -2229,6 +2269,9 @@ body {
     
     .navbar-toggle {
         display: flex !important;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-md);
+        padding: 8px;
     }
     
     .navbar-menu {
@@ -2268,13 +2311,14 @@ body {
     .desktop-only {
         display: none;
     }
-        border-top: 1px solid rgba(255, 255, 255, 0.2);
-    }
     
     .navbar-menu .status-indicator {
         background: rgba(255, 255, 255, 0.15);
         padding: 12px 16px;
         border-radius: var(--radius-lg);
+        font-size: 0.8rem;
+    }
+}
         color: var(--white);
         font-size: 0.85rem;
         min-width: auto;
@@ -2330,8 +2374,9 @@ body {
         min-width: 120px;
     }
     
+    /* Desktop shows all columns */
     .hide-mobile {
-        display: none;
+        display: table-cell;
     }
     
     /* Make table more mobile-friendly */
@@ -3046,9 +3091,10 @@ body {
   }
 }
 @media (max-width: 768px) {
-  /* Change Logs tablosunda mobilde gizlenen tüm sütunları tekrar göster */
-  .change-logs-table .hide-mobile {
-    display: table-cell !important;
+  /* Change Logs tablosunda mobilde scroll kullan */
+  .change-logs-table-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 }
 /* ========== Change Logs Tablosu: Tüm Hücreleri Gerçekten Ortala ========== */
@@ -3164,8 +3210,98 @@ body {
 }
 
 /* =================================================================
-   DEVICE UPDATES SECTION STYLING
+   DEVICE DETAILS PAGE LAYOUT - CENTERED DESIGN
    ================================================================= */
+
+.device-details-header {
+    background: linear-gradient(135deg, var(--tea-cream), var(--white));
+    padding: 30px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.device-header-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.device-title-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.device-title-center i {
+    font-size: 3rem;
+    color: var(--tea-gold);
+    margin-bottom: 8px;
+}
+
+.device-title-center h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--tea-green);
+    margin: 0;
+    text-align: center;
+}
+
+.device-status-center {
+    text-align: center;
+}
+
+.device-status-center .badge {
+    font-size: 1rem;
+    padding: 8px 16px;
+}
+
+.device-actions-center {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.device-actions-center .btn-primary,
+.device-actions-center .btn-secondary,
+.device-actions-center .btn-danger {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    min-width: 140px;
+}
+
+/* Mobile responsive for device details */
+@media (max-width: 768px) {
+    .device-details-header {
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .device-title-center h3 {
+        font-size: 1.5rem;
+    }
+    
+    .device-title-center i {
+        font-size: 2.5rem;
+    }
+    
+    .device-actions-center {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .device-actions-center .btn-primary,
+    .device-actions-center .btn-secondary,
+    .device-actions-center .btn-danger {
+        width: 100%;
+        min-width: auto;
+    }
+}
 
 .device-updates-container {
     margin: 16px 0;

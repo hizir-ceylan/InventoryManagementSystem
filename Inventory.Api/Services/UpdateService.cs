@@ -130,12 +130,32 @@ namespace Inventory.Api.Services
 
         public async Task<Guid> StartUpdateScanAsync(Guid deviceId)
         {
-            // For now, just return a new GUID as scan ID
-            // In a real implementation, this would trigger an actual scan
-            var scanId = Guid.NewGuid();
-            _logger.LogInformation("Starting update scan for device {DeviceId} with scan ID {ScanId}", deviceId, scanId);
-            
-            return await Task.FromResult(scanId);
+            try
+            {
+                var scanId = Guid.NewGuid();
+                _logger.LogInformation("Starting update scan for device {DeviceId} with scan ID {ScanId}", deviceId, scanId);
+                
+                // Check if device exists
+                var deviceExists = await _context.Set<Device>().AnyAsync(d => d.Id == deviceId);
+                if (!deviceExists)
+                {
+                    throw new ArgumentException($"Device with ID {deviceId} not found");
+                }
+                
+                // In a real implementation, this would send a command to the agent
+                // For now, we'll simulate triggering a scan by logging the action
+                _logger.LogInformation("Update scan initiated for device {DeviceId}. Agent should detect and report updates.", deviceId);
+                
+                // TODO: Implement actual agent communication to trigger update detection
+                // This could be done via SignalR, message queue, or polling mechanism
+                
+                return scanId;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to start update scan for device {DeviceId}", deviceId);
+                throw;
+            }
         }
 
         public async Task<bool> UpdateStatusAsync(Guid updateId, UpdateStatus status, string? reason)
