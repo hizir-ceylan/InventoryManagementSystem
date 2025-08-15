@@ -250,9 +250,10 @@ begin
     Exec('setx', 'INVENTORY_DATA_PATH "' + ExpandConstant('{commonappdata}\Inventory Management System\Data') + '" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('setx', 'INVENTORY_LOG_PATH "' + ExpandConstant('{commonappdata}\Inventory Management System\Logs') + '" /M', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     
-    // Servis yönetimi için batch dosyası oluştur (yönetici yetkisi kontrolü ile)
+    // Servis yönetimi için batch dosyası oluştur (UTF-8 kodlama ile Türkçe karakter desteği)
     SaveStringToFile(ExpandConstant('{app}\ServiceManagement.bat'), 
       '@echo off' + #13#10 +
+      'chcp 65001 >nul' + #13#10 +
       'REM Yönetici yetkisi kontrolü' + #13#10 +
       'net session >nul 2>&1' + #13#10 +
       'if %errorLevel% == 0 (' + #13#10 +
@@ -265,39 +266,55 @@ begin
       ')' + #13#10 +
       ':admin' + #13#10 +
       'title Envanter Yönetim Sistemi - Servis Yönetimi' + #13#10 +
+      'REM Gerekli Windows servislerini kontrol et ve başlat' + #13#10 +
+      'echo Windows Update servisini kontrol ediliyor...' + #13#10 +
+      'sc query wuauserv | find "RUNNING" >nul || (echo Windows Update servisi başlatılıyor... && net start wuauserv)' + #13#10 +
+      'echo DCOM Server Process Launcher kontrol ediliyor...' + #13#10 +
+      'sc query DcomLaunch | find "RUNNING" >nul || (echo DCOM servisi başlatılıyor... && net start DcomLaunch)' + #13#10 +
+      'cls' + #13#10 +
       ':main' + #13#10 +
       'cls' + #13#10 +
-      'echo ================================================' + #13#10 +
-      'echo   Envanter Yönetim Sistemi - Servis Yönetimi' + #13#10 +
-      'echo ================================================' + #13#10 +
+      'echo ===============================================' + #13#10 +
+      'echo  Envanter Yönetim Sistemi - Servis Yönetimi' + #13#10 +
+      'echo ===============================================' + #13#10 +
       'echo.' + #13#10 +
-      'echo 1. Servisleri Baslat' + #13#10 +
-      'echo 2. Servisleri Durdur' + #13#10 +
-      'echo 3. Servisleri Yeniden Baslat' + #13#10 +
-      'echo 4. Servis Durumunu Kontrol Et' + #13#10 +
-      'echo 5. Agent Loglarini Goruntule' + #13#10 +
-      'echo 6. Cikis' + #13#10 +
+      'echo 1. Servis Durumunu Kontrol Et' + #13#10 +
+      'echo 2. Servisleri Yeniden Başlat' + #13#10 +
+      'echo 3. Agent Loglarını Görüntüle' + #13#10 +
+      'echo 4. API Loglarını Görüntüle' + #13#10 +
+      'echo 5. Windows Servislerini Kontrol Et' + #13#10 +
+      'echo 6. Servisleri Başlat' + #13#10 +
+      'echo 7. Servisleri Durdur' + #13#10 +
+      'echo 8. Çıkış' + #13#10 +
       'echo.' + #13#10 +
-      'set /p choice=Bir seçenek seçin (1-6): ' + #13#10 +
-      'if "%choice%"=="1" goto start' + #13#10 +
-      'if "%choice%"=="2" goto stop' + #13#10 +
-      'if "%choice%"=="3" goto restart' + #13#10 +
-      'if "%choice%"=="4" goto status' + #13#10 +
-      'if "%choice%"=="5" goto logs' + #13#10 +
-      'if "%choice%"=="6" goto exit' + #13#10 +
-      'echo Geçersiz seçim. Lütfen 1-6 arasında bir rakam girin.' + #13#10 +
+      'set /p choice=Bir seçenek seçin (1-8): ' + #13#10 +
+      'if "%choice%"=="1" goto status' + #13#10 +
+      'if "%choice%"=="2" goto restart' + #13#10 +
+      'if "%choice%"=="3" goto logs' + #13#10 +
+      'if "%choice%"=="4" goto apilogs' + #13#10 +
+      'if "%choice%"=="5" goto winservices' + #13#10 +
+      'if "%choice%"=="6" goto start' + #13#10 +
+      'if "%choice%"=="7" goto stop' + #13#10 +
+      'if "%choice%"=="8" goto exit' + #13#10 +
+      'echo Geçersiz seçim. Lütfen 1-8 arasında bir rakam girin.' + #13#10 +
       'pause' + #13#10 +
       'goto main' + #13#10 +
       ':start' + #13#10 +
       'echo Servisler başlatılıyor...' + #13#10 +
+      'echo Windows Update servisi kontrol ediliyor...' + #13#10 +
+      'sc query wuauserv | find "RUNNING" >nul || net start wuauserv' + #13#10 +
+      'echo API servisi başlatılıyor...' + #13#10 +
       'net start InventoryManagementApi' + #13#10 +
       'timeout /t 5 /nobreak >nul' + #13#10 +
+      'echo Agent servisi başlatılıyor...' + #13#10 +
       'net start InventoryManagementAgent' + #13#10 +
+      'echo Servisler başlatıldı.' + #13#10 +
       'goto end' + #13#10 +
       ':stop' + #13#10 +
       'echo Servisler durduruluyor...' + #13#10 +
       'net stop InventoryManagementAgent' + #13#10 +
       'net stop InventoryManagementApi' + #13#10 +
+      'echo Servisler durduruldu.' + #13#10 +
       'goto end' + #13#10 +
       ':restart' + #13#10 +
       'echo Servisler yeniden başlatılıyor...' + #13#10 +
@@ -307,6 +324,7 @@ begin
       'net start InventoryManagementApi' + #13#10 +
       'timeout /t 5 /nobreak >nul' + #13#10 +
       'net start InventoryManagementAgent' + #13#10 +
+      'echo Servisler yeniden başlatıldı.' + #13#10 +
       'goto end' + #13#10 +
       ':status' + #13#10 +
       'echo Servis Durumu:' + #13#10 +
@@ -316,8 +334,24 @@ begin
       'sc query InventoryManagementAgent' + #13#10 +
       'goto end' + #13#10 +
       ':logs' + #13#10 +
-      'echo Log klasörü açılıyor...' + #13#10 +
+      'echo Agent log klasörü açılıyor...' + #13#10 +
       'explorer "' + ExpandConstant('{commonappdata}\Inventory Management System\Logs') + '"' + #13#10 +
+      'goto end' + #13#10 +
+      ':apilogs' + #13#10 +
+      'echo API log klasörü açılıyor...' + #13#10 +
+      'explorer "' + ExpandConstant('{commonappdata}\Inventory Management System\Logs') + '"' + #13#10 +
+      'goto end' + #13#10 +
+      ':winservices' + #13#10 +
+      'echo Windows Servisleri Durumu:' + #13#10 +
+      'echo ===========================' + #13#10 +
+      'echo Windows Update (wuauserv):' + #13#10 +
+      'sc query wuauserv | find "STATE"' + #13#10 +
+      'echo.' + #13#10 +
+      'echo DCOM Server Process Launcher (DcomLaunch):' + #13#10 +
+      'sc query DcomLaunch | find "STATE"' + #13#10 +
+      'echo.' + #13#10 +
+      'echo WMI (Winmgmt):' + #13#10 +
+      'sc query Winmgmt | find "STATE"' + #13#10 +
       'goto end' + #13#10 +
       ':end' + #13#10 +
       'echo.' + #13#10 +

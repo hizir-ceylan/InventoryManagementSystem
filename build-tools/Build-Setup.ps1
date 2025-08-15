@@ -103,7 +103,7 @@ try {
 Write-Host ""
 Write-Host "Building solution..."
 try {
-    & dotnet build .. -p:Configuration=$Configuration -p:Platform="Any CPU" --verbosity normal --no-restore
+    & dotnet build .. --configuration $Configuration --verbosity normal --no-restore
     if ($LASTEXITCODE -eq 0) {
         Write-Status "Solution built successfully" "SUCCESS"
     } else {
