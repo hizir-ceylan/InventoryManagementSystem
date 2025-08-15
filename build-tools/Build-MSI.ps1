@@ -274,6 +274,11 @@ try {
         throw "Heat harvesting of API files failed with exit code $LASTEXITCODE"
     }
     
+    # Post-process API files to add Win64="yes" attribute
+    $apiWxsContent = Get-Content "$msiOutputDir\ApiFiles.wxs" -Raw
+    $apiWxsContent = $apiWxsContent -replace '<Component Id="([^"]+)" Guid="([^"]+)">', '<Component Id="$1" Guid="$2" Win64="yes">'
+    Set-Content "$msiOutputDir\ApiFiles.wxs" -Value $apiWxsContent -Encoding UTF8
+    
     # Generate component definitions for Agent files  
     Write-Status "Harvesting Agent files..."
     $heatAgentArgs = @(
@@ -290,6 +295,11 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "Heat harvesting of Agent files failed with exit code $LASTEXITCODE"
     }
+    
+    # Post-process Agent files to add Win64="yes" attribute
+    $agentWxsContent = Get-Content "$msiOutputDir\AgentFiles.wxs" -Raw
+    $agentWxsContent = $agentWxsContent -replace '<Component Id="([^"]+)" Guid="([^"]+)">', '<Component Id="$1" Guid="$2" Win64="yes">'
+    Set-Content "$msiOutputDir\AgentFiles.wxs" -Value $agentWxsContent -Encoding UTF8
     
     Write-Status "File harvesting successful" "SUCCESS"
     
