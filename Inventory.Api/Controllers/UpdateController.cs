@@ -150,14 +150,38 @@ namespace Inventory.Api.Controllers
                     return BadRequest(new { error = "Güncelleme verisi boş olamaz" });
                 }
 
-                var savedCount = await _updateService.SaveUpdatesAsync(updates);
+                // Güncelleme türlerine göre istatistik
+                var updateStats = updates
+                    .Where(u => u.Status == Domain.Entities.UpdateStatus.Available) // Sadece gerçek güncellemeleri say
+                    .GroupBy(u => u.UpdateType)
+                    .ToDictionary(g => g.Key, g => g.Count());
+
+                var totalAvailableUpdates = updateStats.Values.Sum();
                 
-                _logger.LogInformation("{SavedCount} güncelleme kaydedildi", savedCount);
+                if (totalAvailableUpdates > 0)
+                {
+                    _logger.LogInformation(
+                        "Güncelleme raporu alındı - Cihaz: {DeviceId}, Toplam mevcut güncelleme: {TotalUpdates}, Türler: {UpdateTypes}",
+                        updates.FirstOrDefault()?.DeviceId,
+                        totalAvailableUpdates,
+                        string.Join(", ", updateStats.Select(kvp => $"{kvp.Key}: {kvp.Value}"))
+                    );
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "Güncelleme raporu alındı - Cihaz: {DeviceId}, Sistem güncel (mevcut güncelleme yok)",
+                        updates.FirstOrDefault()?.DeviceId
+                    );
+                }
+
+                var savedCount = await _updateService.SaveUpdatesAsync(updates);
                 
                 return CreatedAtAction(nameof(GetUpdates), new { deviceId = updates.FirstOrDefault()?.DeviceId }, new 
                 { 
                     message = "Güncelleme raporu başarıyla kaydedildi",
-                    savedCount = savedCount
+                    savedCount = savedCount,
+                    availableUpdates = totalAvailableUpdates
                 });
             }
             catch (Exception ex)
