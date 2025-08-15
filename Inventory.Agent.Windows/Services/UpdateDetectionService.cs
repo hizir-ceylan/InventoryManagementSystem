@@ -287,7 +287,7 @@ namespace Inventory.Agent.Windows.Services
         }
 
         /// <summary>
-        /// Yüklü Office sürümlerini tespit eder
+        /// Yüklü Office sürümlerini tespit eder (hem MSI hem de C2R sürümler)
         /// </summary>
         private List<OfficeVersion> DetectInstalledOfficeVersions()
         {
@@ -295,9 +295,16 @@ namespace Inventory.Agent.Windows.Services
 
             try
             {
-                using var searcher = new ManagementObjectSearcher(
-                    "SELECT * FROM Win32_Product WHERE Name LIKE '%Microsoft Office%' OR Name LIKE '%Microsoft 365%'");
-                using var results = searcher.Get();
+                // İlk olarak C2R (Click-to-Run) sürümleri kontrol et
+                var c2rVersions = DetectOfficeC2RVersions();
+                versions.AddRange(c2rVersions);
+
+                // Sonra MSI tabanlı sürümleri kontrol et (sadece C2R bulunamadıysa)
+                if (!versions.Any())
+                {
+                    using var searcher = new ManagementObjectSearcher(
+                        "SELECT * FROM Win32_Product WHERE Name LIKE '%Microsoft Office%' OR Name LIKE '%Microsoft 365%'");
+                    using var results = searcher.Get();
 
                 foreach (ManagementObject result in results.Cast<ManagementObject>())
                 {
@@ -311,9 +318,11 @@ namespace Inventory.Agent.Windows.Services
                         {
                             ProductName = name,
                             Version = version,
-                            InstallPath = installLocation ?? ""
+                            InstallPath = installLocation ?? "",
+                            InstallationType = "MSI"
                         });
                     }
+                }
                 }
             }
             catch (Exception ex)
@@ -325,6 +334,101 @@ namespace Inventory.Agent.Windows.Services
         }
 
         /// <summary>
+        /// Office Click-to-Run (C2R) sürümlerini tespit eder
+        /// </summary>
+        private List<OfficeVersion> DetectOfficeC2RVersions()
+        {
+            var versions = new List<OfficeVersion>();
+
+            try
+            {
+                // C2R Office için kayıt defteri kontrol
+                using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Office\ClickToRun\Configuration");
+                if (key != null)
+                {
+                    var productIds = key.GetValue("ProductReleaseIds")?.ToString();
+                    var versionToReport = key.GetValue("VersionToReport")?.ToString();
+                    var platform = key.GetValue("Platform")?.ToString();
+                    var channel = key.GetValue("CDNBaseUrl")?.ToString();
+
+                    if (!string.IsNullOrEmpty(productIds) && !string.IsNullOrEmpty(versionToReport))
+                    {
+                        var officeVersion = new OfficeVersion
+                        {
+                            ProductName = $"Microsoft 365 Apps ({productIds})",
+                            Version = versionToReport,
+                            InstallPath = key.GetValue("InstallationPath")?.ToString() ?? "",
+                            InstallationType = "C2R",
+                            Platform = platform,
+                            UpdateChannel = ExtractChannelFromUrl(channel)
+                        };
+
+                        versions.Add(officeVersion);
+                        _logger.LogInformation("Office C2R tespit edildi: {Product} v{Version} - {Channel}", 
+                            officeVersion.ProductName, officeVersion.Version, officeVersion.UpdateChannel);
+                    }
+                }
+
+                // Office 2019/2021 C2R kontrol
+                using var officeKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Office");
+                if (officeKey != null)
+                {
+                    foreach (var subKeyName in officeKey.GetSubKeyNames().Where(name => name.Contains("16.0") || name.Contains("15.0")))
+                    {
+                        using var versionKey = officeKey.OpenSubKey($@"{subKeyName}\Common\InstallRoot");
+                        if (versionKey != null)
+                        {
+                            var path = versionKey.GetValue("Path")?.ToString();
+                            if (!string.IsNullOrEmpty(path) && System.IO.Directory.Exists(path))
+                            {
+                                var c2rConfigPath = System.IO.Path.Combine(path, "AppvIsvStream32.xml");
+                                if (System.IO.File.Exists(c2rConfigPath) && !versions.Any(v => v.InstallPath == path))
+                                {
+                                    var officeName = subKeyName.Contains("16.0") ? "Microsoft Office 2019/2021" : "Microsoft Office 2013";
+                                    versions.Add(new OfficeVersion
+                                    {
+                                        ProductName = officeName,
+                                        Version = subKeyName,
+                                        InstallPath = path,
+                                        InstallationType = "C2R"
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Office C2R tespit işleminde sorun");
+            }
+
+            return versions;
+        }
+
+        /// <summary>
+        /// Güncellenme kanalını URL'den çıkarır
+        /// </summary>
+        private string ExtractChannelFromUrl(string? channelUrl)
+        {
+            if (string.IsNullOrEmpty(channelUrl))
+                return "Unknown";
+
+            if (channelUrl.Contains("492350f6-3a01-4f97-b9c0-c7c6ddf67d60"))
+                return "Current Channel";
+            else if (channelUrl.Contains("7ffbc6bf-bc32-4f92-8982-f9dd17fd3114"))
+                return "Semi-Annual Enterprise Channel";
+            else if (channelUrl.Contains("64256afe-f5d9-4f86-8936-8840a6a4f5be"))
+                return "Monthly Enterprise Channel";
+            else if (channelUrl.Contains("55336b82-a18d-4dd6-b5f6-9e5095c314a6"))
+                return "Semi-Annual Enterprise Channel (Preview)";
+            else if (channelUrl.Contains("5440fd1f-7ecb-4221-8110-145efaa6372f"))
+                return "Beta Channel";
+            else
+                return "Custom";
+        }
+
+        /// <summary>
         /// Belirli Office sürümü için güncellemeleri kontrol eder
         /// </summary>
         private List<SystemUpdate> CheckOfficeUpdatesForVersion(Guid deviceId, OfficeVersion office)
@@ -333,34 +437,118 @@ namespace Inventory.Agent.Windows.Services
 
             try
             {
-                // Registry'den Office güncelleme bilgilerini oku
-                var registryUpdates = ReadOfficeUpdatesFromRegistry(office);
-
-                foreach (var regUpdate in registryUpdates)
+                if (office.InstallationType == "C2R")
                 {
-                    var update = new SystemUpdate
+                    // C2R sürümler için özel kontrol
+                    var c2rUpdates = CheckOfficeC2RUpdates(office);
+                    foreach (var c2rUpdate in c2rUpdates)
                     {
-                        Id = Guid.NewGuid(),
-                        DeviceId = deviceId,
-                        UpdateType = "Office",
-                        Title = $"{office.ProductName} - {regUpdate.Title}",
-                        Description = regUpdate.Description,
-                        CurrentVersion = office.Version,
-                        LatestVersion = regUpdate.LatestVersion,
-                        Status = regUpdate.IsInstalled ? UpdateStatus.Installed : UpdateStatus.Available,
-                        Priority = UpdatePriority.Normal,
-                        DetectedDate = TimeZoneHelper.GetUtcNowForStorage(),
-                        LastChecked = TimeZoneHelper.GetUtcNowForStorage(),
-                        CanAutoInstall = true,
-                        RequiresRestart = false
-                    };
+                        var update = new SystemUpdate
+                        {
+                            Id = Guid.NewGuid(),
+                            DeviceId = deviceId,
+                            UpdateType = "Office (C2R)",
+                            Title = $"{office.ProductName} - {c2rUpdate.Title}",
+                            Description = $"C2R Update via {office.UpdateChannel}: {c2rUpdate.Description}",
+                            CurrentVersion = office.Version,
+                            LatestVersion = c2rUpdate.LatestVersion,
+                            Status = c2rUpdate.IsInstalled ? UpdateStatus.Installed : UpdateStatus.Available,
+                            Priority = UpdatePriority.Normal,
+                            DetectedDate = TimeZoneHelper.GetUtcNowForStorage(),
+                            LastChecked = TimeZoneHelper.GetUtcNowForStorage(),
+                            CanAutoInstall = true,
+                            RequiresRestart = false
+                        };
 
-                    updates.Add(update);
+                        updates.Add(update);
+                    }
+                }
+                else
+                {
+                    // MSI sürümler için mevcut yöntem
+                    var registryUpdates = ReadOfficeUpdatesFromRegistry(office);
+
+                    foreach (var regUpdate in registryUpdates)
+                    {
+                        var update = new SystemUpdate
+                        {
+                            Id = Guid.NewGuid(),
+                            DeviceId = deviceId,
+                            UpdateType = "Office (MSI)",
+                            Title = $"{office.ProductName} - {regUpdate.Title}",
+                            Description = regUpdate.Description,
+                            CurrentVersion = office.Version,
+                            LatestVersion = regUpdate.LatestVersion,
+                            Status = regUpdate.IsInstalled ? UpdateStatus.Installed : UpdateStatus.Available,
+                            Priority = UpdatePriority.Normal,
+                            DetectedDate = TimeZoneHelper.GetUtcNowForStorage(),
+                            LastChecked = TimeZoneHelper.GetUtcNowForStorage(),
+                            CanAutoInstall = true,
+                            RequiresRestart = false
+                        };
+
+                        updates.Add(update);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Office {Product} için güncelleme kontrolünde sorun", office.ProductName);
+            }
+
+            return updates;
+        }
+
+        /// <summary>
+        /// Office C2R güncellemelerini kontrol eder
+        /// </summary>
+        private List<OfficeRegistryUpdate> CheckOfficeC2RUpdates(OfficeVersion office)
+        {
+            var updates = new List<OfficeRegistryUpdate>();
+
+            try
+            {
+                // C2R için ODT (Office Deployment Tool) kullanarak güncelleme kontrolü
+                using var configKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Office\ClickToRun\Configuration");
+                if (configKey != null)
+                {
+                    var updateUrl = configKey.GetValue("UpdateUrl")?.ToString();
+                    var currentVersion = configKey.GetValue("VersionToReport")?.ToString();
+                    var updateChannel = configKey.GetValue("UpdateChannel")?.ToString();
+
+                    // Eğer güncelleme kanalı ayarlanmışsa, güncelleme mevcut demektir
+                    if (!string.IsNullOrEmpty(updateChannel) && !string.IsNullOrEmpty(currentVersion))
+                    {
+                        updates.Add(new OfficeRegistryUpdate
+                        {
+                            Title = $"Office 365 Güncellemesi ({office.UpdateChannel})",
+                            Description = $"Mevcut sürüm: {currentVersion}. Güncellemeler {office.UpdateChannel} kanalından kontrol edilmektedir.",
+                            LatestVersion = "Otomatik güncelleme etkin",
+                            IsInstalled = true
+                        });
+                    }
+
+                    // Bekleyen güncellemeleri kontrol et
+                    using var updateKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Office\ClickToRun\Updates");
+                    if (updateKey != null)
+                    {
+                        var pendingUpdate = updateKey.GetValue("UpdateDetectionLastRunTime")?.ToString();
+                        if (!string.IsNullOrEmpty(pendingUpdate))
+                        {
+                            updates.Add(new OfficeRegistryUpdate
+                            {
+                                Title = "Bekleyen Office Güncellemesi",
+                                Description = "Office C2R güncellemesi bekleniyor. Güncelleme otomatik olarak uygulanacak.",
+                                LatestVersion = "Bekliyor",
+                                IsInstalled = false
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Office C2R güncelleme kontrolünde sorun");
             }
 
             return updates;
@@ -761,6 +949,9 @@ namespace Inventory.Agent.Windows.Services
             public string ProductName { get; set; } = string.Empty;
             public string Version { get; set; } = string.Empty;
             public string InstallPath { get; set; } = string.Empty;
+            public string InstallationType { get; set; } = string.Empty; // MSI or C2R
+            public string? Platform { get; set; } // x86 or x64
+            public string? UpdateChannel { get; set; } // For C2R installations
         }
 
         private class OfficeRegistryUpdate
