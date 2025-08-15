@@ -142,7 +142,7 @@ if (-not $SkipBuild) {
     Write-Status "Skipping build phase" "WARNING"
 }
 
-# Verify published files exist
+# Verify published files exist and handle executable naming
 Write-Host ""
 Write-Host "Verifying published files..."
 
@@ -151,10 +151,53 @@ $requiredPaths = @(
     "Published\Agent\Inventory.Agent.Windows.exe"
 )
 
+# Check if .exe files exist, if not, check for runtime files without .exe extension
+$apiExeExists = Test-Path "Published\Api\Inventory.Api.exe"
+$agentExeExists = Test-Path "Published\Agent\Inventory.Agent.Windows.exe"
+
+if (-not $apiExeExists) {
+    if (Test-Path "Published\Api\Inventory.Api") {
+        Write-Status "Creating Windows executable symlink for API..." "WARNING"
+        Copy-Item "Published\Api\Inventory.Api" "Published\Api\Inventory.Api.exe" -Force
+    } else {
+        Write-Status "API executable not found. Rebuilding with Windows runtime..." "WARNING"
+        # Rebuild with Windows runtime if needed
+        try {
+            & dotnet publish "..\Inventory.Api" --configuration $Configuration --runtime win-x64 --self-contained false --output "Published\Api"
+            if ($LASTEXITCODE -ne 0) {
+                throw "API rebuild failed"
+            }
+        } catch {
+            Write-Status "Failed to rebuild API with Windows runtime: $_" "ERROR"
+            exit 1
+        }
+    }
+}
+
+if (-not $agentExeExists) {
+    if (Test-Path "Published\Agent\Inventory.Agent.Windows") {
+        Write-Status "Creating Windows executable symlink for Agent..." "WARNING"
+        Copy-Item "Published\Agent\Inventory.Agent.Windows" "Published\Agent\Inventory.Agent.Windows.exe" -Force
+    } else {
+        Write-Status "Agent executable not found. Rebuilding with Windows runtime..." "WARNING"
+        # Rebuild with Windows runtime if needed
+        try {
+            & dotnet publish "..\Inventory.Agent.Windows" --configuration $Configuration --runtime win-x64 --self-contained false --output "Published\Agent"
+            if ($LASTEXITCODE -ne 0) {
+                throw "Agent rebuild failed"
+            }
+        } catch {
+            Write-Status "Failed to rebuild Agent with Windows runtime: $_" "ERROR"
+            exit 1
+        }
+    }
+}
+
+# Final verification
 foreach ($path in $requiredPaths) {
     if (-not (Test-Path $path)) {
         Write-Status "Required file not found: $path" "ERROR"
-        Write-Status "Please run the build script first without -SkipBuild" "ERROR"
+        Write-Status "MSI build requires Windows executable files" "ERROR"
         exit 1
     }
 }
@@ -169,18 +212,62 @@ if (-not (Test-Path $msiOutputDir)) {
 
 # WiX compilation step
 Write-Host ""
-Write-Host "Compiling WiX source files..."
+Write-Host "Harvesting published files with Heat..."
 
 $candleExe = if ($wixToolsPath) { "$wixToolsPath\candle.exe" } else { "candle" }
 $lightExe = if ($wixToolsPath) { "$wixToolsPath\light.exe" } else { "light" }
+$heatExe = if ($wixToolsPath) { "$wixToolsPath\heat.exe" } else { "heat" }
 
 try {
-    # Compile .wxs to .wixobj
+    # Generate component definitions for API files
+    Write-Status "Harvesting API files..."
+    $heatApiArgs = @(
+        "dir", "Published\Api",
+        "-cg", "ApiFilesGroup",
+        "-gg", "-sf", "-srd", "-sreg",
+        "-dr", "APIFOLDER",
+        "-var", "var.ApiSourceDir",
+        "-xf", "Published\Api\Inventory.Api.exe",
+        "-out", "$msiOutputDir\ApiFiles.wxs"
+    )
+    & $heatExe @heatApiArgs
+    
+    if ($LASTEXITCODE -ne 0) {
+        throw "Heat harvesting of API files failed with exit code $LASTEXITCODE"
+    }
+    
+    # Generate component definitions for Agent files  
+    Write-Status "Harvesting Agent files..."
+    $heatAgentArgs = @(
+        "dir", "Published\Agent",
+        "-cg", "AgentFilesGroup", 
+        "-gg", "-sf", "-srd", "-sreg",
+        "-dr", "AGENTFOLDER",
+        "-var", "var.AgentSourceDir",
+        "-xf", "Published\Agent\Inventory.Agent.Windows.exe",
+        "-out", "$msiOutputDir\AgentFiles.wxs"
+    )
+    & $heatAgentArgs
+    
+    if ($LASTEXITCODE -ne 0) {
+        throw "Heat harvesting of Agent files failed with exit code $LASTEXITCODE"
+    }
+    
+    Write-Status "File harvesting successful" "SUCCESS"
+    
+    Write-Host ""
+    Write-Host "Compiling WiX source files..."
+    
+    # Compile main .wxs file and harvested files to .wixobj
     $candleArgs = @(
         "InventoryManagementSystem.wxs",
-        "-out", "$msiOutputDir\InventoryManagementSystem.wixobj",
+        "$msiOutputDir\ApiFiles.wxs",
+        "$msiOutputDir\AgentFiles.wxs",
+        "-out", "$msiOutputDir\",
         "-ext", "WixUtilExtension",
-        "-ext", "WixFirewallExtension"
+        "-ext", "WixFirewallExtension",
+        "-dApiSourceDir=Published\Api",
+        "-dAgentSourceDir=Published\Agent"
     )
     
     Write-Status "Running candle.exe (WiX compiler)..."
@@ -192,9 +279,11 @@ try {
     
     Write-Status "WiX compilation successful" "SUCCESS"
     
-    # Link .wixobj to .msi
+    # Link .wixobj files to .msi
     $lightArgs = @(
         "$msiOutputDir\InventoryManagementSystem.wixobj",
+        "$msiOutputDir\ApiFiles.wixobj", 
+        "$msiOutputDir\AgentFiles.wixobj",
         "-out", "$msiOutputDir\InventoryManagementSystem.msi",
         "-ext", "WixUtilExtension",
         "-ext", "WixFirewallExtension",
