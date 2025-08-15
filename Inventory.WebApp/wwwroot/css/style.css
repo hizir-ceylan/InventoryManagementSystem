@@ -3190,6 +3190,64 @@ body {
 }
 
 
+/* =================================================================
+   Change Logs Table - Better Content Handling
+   ================================================================= */
+
+/* Change logs specific table tweaks for better content display */
+.change-logs-content .devices-table td {
+    max-width: 250px; /* Increased from default 200px for better content display */
+    word-wrap: break-word;
+    overflow-wrap: break-word; /* Better support for long words */
+    hyphens: auto; /* Add hyphenation for better text breaking */
+}
+
+/* Specific column width management for change logs */
+.change-logs-content .devices-table td:nth-child(1) { /* Date/Time */
+    min-width: 140px;
+    max-width: 160px;
+}
+
+.change-logs-content .devices-table td:nth-child(2) { /* Device Name */
+    min-width: 120px;
+    max-width: 180px;
+}
+
+.change-logs-content .devices-table td:nth-child(3) { /* Change Type */
+    min-width: 100px;
+    max-width: 140px;
+}
+
+.change-logs-content .devices-table td:nth-child(4), /* Old Value */
+.change-logs-content .devices-table td:nth-child(5) { /* New Value */
+    min-width: 150px;
+    max-width: 300px;
+    white-space: normal !important; /* Allow text wrapping for long content */
+    line-height: 1.4; /* Better line spacing for wrapped text */
+}
+
+.change-logs-content .devices-table td:nth-child(6) { /* Changed By */
+    min-width: 80px;
+    max-width: 120px;
+}
+
+/* Mobile optimizations for change logs */
+@media (max-width: 768px) {
+    .change-logs-content .devices-table {
+        min-width: 700px; /* Ensure adequate width for content */
+    }
+    
+    .change-logs-content .devices-table td {
+        padding: 12px 8px; /* More compact padding on mobile */
+        font-size: 0.85rem;
+        max-width: 200px;
+    }
+    
+    .change-logs-content .devices-table td:nth-child(4),
+    .change-logs-content .devices-table td:nth-child(5) {
+        max-width: 150px; /* Reduced for mobile */
+    }
+}
 
 /* =================================================================
    Device Edit Form Styles

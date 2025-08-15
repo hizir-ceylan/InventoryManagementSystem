@@ -449,7 +449,7 @@ class DeviceDetailsManager {
             if (!updatesContainer) return;
 
             // Try to load updates from real API
-            const updates = await window.api.apiCall(`update/${deviceId}`);
+            const updates = await window.api.apiCall(`api/update/device/${deviceId}`);
             
             if (updates && updates.length > 0) {
                 const availableUpdates = updates.filter(update => update.status === 0); // Available updates
@@ -626,7 +626,7 @@ class DeviceDetailsManager {
             
             try {
                 // Trigger real update scan using API
-                await window.api.apiCall(`update/scan/${deviceId}`, {
+                await window.api.apiCall(`api/update/scan/${deviceId}`, {
                     method: 'POST'
                 });
                 // Wait a bit and reload
@@ -647,17 +647,18 @@ class DeviceDetailsManager {
     // Device action functions
     async editDevice(deviceId) {
         try {
-            const device = await window.api.getDevice(deviceId);
+            // Use current device if available, otherwise fetch from API
+            let device = this.currentDevice;
+            if (!device || device.id !== deviceId) {
+                device = await window.api.getDevice(deviceId);
+            }
+            
             if (device) {
-                // Use the app's edit modal functionality
-                if (window.app && window.app.editDevice) {
-                    window.app.editDevice(deviceId);
-                } else {
-                    // Fallback: show device edit modal
-                    window.ui.showModal('deviceEditModal');
-                    // Populate edit form
-                    this.populateEditForm(device);
-                }
+                // Set current edit device for save functionality
+                this.currentEditDevice = { ...device };
+                
+                // Show device edit modal and populate form
+                this.showEditModal(device);
             }
         } catch (error) {
             window.ui.showError('Cihaz düzenleme açılırken hata oluştu: ' + error.message);
@@ -672,7 +673,7 @@ class DeviceDetailsManager {
                     <div class="form-row">
                         <div class="form-group">
                             <label for="edit-device-name">Cihaz Adı: <span class="text-danger">*</span></label>
-                            <input type="text" id="edit-device-name" class="form-control" value="${device.deviceName || ''}" required>
+                            <input type="text" id="edit-device-name" class="form-control" value="${device.name || ''}" required>
                         </div>
                         <div class="form-group">
                             <label for="edit-device-type">Cihaz Türü:</label>
@@ -700,23 +701,22 @@ class DeviceDetailsManager {
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="edit-ip-address">IP Adresi:</label>
-                            <input type="text" id="edit-ip-address" class="form-control" value="${device.ipAddress || ''}" placeholder="Örn: 192.168.1.100">
+                            <label for="edit-device-model">Model:</label>
+                            <input type="text" id="edit-device-model" class="form-control" value="${device.model || ''}" placeholder="Örn: Dell OptiPlex 7090">
                         </div>
                         <div class="form-group">
-                            <label for="edit-mac-address">MAC Adresi:</label>
-                            <input type="text" id="edit-mac-address" class="form-control" value="${device.macAddress || ''}" placeholder="Örn: AA:BB:CC:DD:EE:FF" readonly>
-                            <small class="text-muted">MAC adresi sistem tarafından otomatik belirlenir</small>
+                            <label for="edit-device-barcode">Barkod No:</label>
+                            <input type="text" id="edit-device-barcode" class="form-control" value="${device.barcodeNumber || ''}" placeholder="Barkod numarası">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="edit-location">Konum:</label>
-                            <input type="text" id="edit-location" class="form-control" value="${device.location || ''}" placeholder="Örn: İkinci Kat - Muhasebe">
+                            <label for="edit-device-location">Konum:</label>
+                            <input type="text" id="edit-device-location" class="form-control" value="${device.location || ''}" placeholder="Örn: İkinci Kat - Muhasebe">
                         </div>
                         <div class="form-group">
-                            <label for="edit-status">Durum:</label>
-                            <select id="edit-status" class="form-control">
+                            <label for="edit-device-status">Durum:</label>
+                            <select id="edit-device-status" class="form-control">
                                 <option value="0" ${device.status === 0 ? 'selected' : ''}>Aktif</option>
                                 <option value="1" ${device.status === 1 ? 'selected' : ''}>Pasif</option>
                                 <option value="2" ${device.status === 2 ? 'selected' : ''}>Bakım</option>
@@ -725,12 +725,117 @@ class DeviceDetailsManager {
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="edit-notes">Notlar:</label>
-                        <textarea id="edit-notes" class="form-control" rows="3" placeholder="Cihazla ilgili notlar...">${device.notes || ''}</textarea>
+                        <label for="edit-device-notes">Notlar:</label>
+                        <textarea id="edit-device-notes" class="form-control" rows="3" placeholder="Cihazla ilgili notlar...">${device.notes || ''}</textarea>
                     </div>
                     <input type="hidden" id="edit-device-id" value="${device.id}">
                 </div>
             `;
+        }
+    }
+
+    showEditModal(device) {
+        // Create modal if it doesn't exist
+        let modal = document.getElementById('deviceEditModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'deviceEditModal';
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Cihaz Düzenle</h3>
+                        <button type="button" class="modal-close" onclick="window.deviceDetails.closeEditModal()">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body" id="device-edit-content">
+                        <!-- Device edit form will be loaded here -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-primary" onclick="window.deviceDetails.saveDeviceChanges()">
+                            <i class="bi bi-check"></i>
+                            Kaydet
+                        </button>
+                        <button type="button" class="btn-secondary" onclick="window.deviceDetails.closeEditModal()">İptal</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // Populate the form
+        this.populateEditForm(device);
+        
+        // Show the modal
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeEditModal() {
+        const modal = document.getElementById('deviceEditModal');
+        if (modal) {
+            modal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+        this.currentEditDevice = null;
+    }
+
+    async saveDeviceChanges() {
+        if (!this.currentEditDevice) {
+            window.ui.showError('Düzenlenecek cihaz bulunamadı');
+            return;
+        }
+
+        try {
+            // Get form values
+            const name = document.getElementById('edit-device-name').value.trim();
+            const deviceType = parseInt(document.getElementById('edit-device-type').value);
+            const model = document.getElementById('edit-device-model').value.trim();
+            const location = document.getElementById('edit-device-location').value.trim();
+            const barcodeNumber = document.getElementById('edit-device-barcode').value.trim();
+            const status = parseInt(document.getElementById('edit-device-status').value);
+            const notes = document.getElementById('edit-device-notes').value.trim();
+
+            // Prepare update data
+            const updateData = {
+                id: this.currentEditDevice.id,
+                name: name || null,
+                deviceType: deviceType,
+                model: model || null,
+                location: location || null,
+                barcodeNumber: barcodeNumber || null,
+                status: status,
+                notes: notes || null
+            };
+
+            // Call API to update device
+            const response = await window.api.apiCall(`device/${this.currentEditDevice.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+
+            if (response.success !== false) {
+                window.ui.showSuccess('Cihaz başarıyla güncellendi');
+                this.closeEditModal();
+                
+                // Update current device data and refresh display
+                this.currentDevice = { ...this.currentDevice, ...updateData };
+                this.renderDeviceDetails();
+                
+                // Reload device updates
+                if (this.currentDevice.id) {
+                    this.loadDeviceUpdates(this.currentDevice.id);
+                }
+            } else {
+                throw new Error(response.message || 'Cihaz güncellenirken hata oluştu');
+            }
+
+        } catch (error) {
+            window.ui.showError('Cihaz güncellenirken hata oluştu: ' + error.message);
         }
     }
 
