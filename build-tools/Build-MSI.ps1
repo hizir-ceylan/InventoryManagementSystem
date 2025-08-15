@@ -119,11 +119,14 @@ if (-not $SkipBuild) {
     Write-Host ""
     Write-Host "Building solution using existing build script..."
     
-    $buildArgs = @()
-    if ($SelfContained) {
-        $buildArgs += "-SelfContained"
+    # Use hashtable for proper parameter splatting
+    $buildArgs = @{
+        Configuration = $Configuration
+        SkipInnoSetup = $true
     }
-    $buildArgs += "-Configuration", $Configuration, "-SkipInnoSetup"
+    if ($SelfContained) {
+        $buildArgs.SelfContained = $true
+    }
     
     try {
         & .\Build-Setup.ps1 @buildArgs
