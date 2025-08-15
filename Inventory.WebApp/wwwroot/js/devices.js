@@ -298,8 +298,50 @@ class DevicesPageApp {
         document.getElementById('error-alert').classList.remove('d-none');
     }
 
+    showSuccess(message) {
+        // Create or update success alert
+        let successAlert = document.getElementById('success-alert');
+        if (!successAlert) {
+            successAlert = document.createElement('div');
+            successAlert.id = 'success-alert';
+            successAlert.className = 'success-alert';
+            successAlert.innerHTML = `
+                <div class="success-content">
+                    <i class="bi bi-check-circle"></i>
+                    <span id="success-message"></span>
+                    <button type="button" class="success-close" onclick="app.hideSuccess()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+            
+            // Insert after the error alert
+            const errorAlert = document.getElementById('error-alert');
+            if (errorAlert && errorAlert.parentNode) {
+                errorAlert.parentNode.insertBefore(successAlert, errorAlert.nextSibling);
+            } else {
+                document.querySelector('.main-content').prepend(successAlert);
+            }
+        }
+        
+        document.getElementById('success-message').textContent = message;
+        successAlert.classList.remove('d-none');
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            this.hideSuccess();
+        }, 5000);
+    }
+
     hideError() {
         document.getElementById('error-alert').classList.add('d-none');
+    }
+
+    hideSuccess() {
+        const successAlert = document.getElementById('success-alert');
+        if (successAlert) {
+            successAlert.classList.add('d-none');
+        }
     }
 
     updateLastUpdateTime() {
