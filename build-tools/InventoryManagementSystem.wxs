@@ -29,7 +29,6 @@
     <MediaTemplate EmbedCab="yes" />
 
     <!-- Installation Properties -->
-    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
     <Property Id="ARPHELPLINK" Value="https://github.com/hizir-ceylan/InventoryManagementSystem" />
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/hizir-ceylan/InventoryManagementSystem" />
     <Property Id="ARPNOREPAIR" Value="1" />
@@ -55,29 +54,47 @@
 
     <!-- Features -->
     <Feature Id="ProductFeature" Title="Inventory Management System" Level="1">
-      <ComponentGroupRef Id="MainExecutables" />
       <ComponentGroupRef Id="ApiFilesGroup" />
       <ComponentGroupRef Id="AgentFilesGroup" />
       <ComponentGroupRef Id="ServiceComponents" />
       <ComponentGroupRef Id="FirewallComponents" />
+      <ComponentGroupRef Id="FolderComponents" />
     </Feature>
 
-    <!-- Main Executable Components (manually defined for service integration) -->
-    <ComponentGroup Id="MainExecutables">
-      <Component Id="ApiExecutable" Guid="{A1234567-B234-C345-D456-E56789ABCDEF}" Directory="APIFOLDER">
-        <File Id="ApiExe" 
-              Source="Published\Api\Inventory.Api.exe" 
-              KeyPath="yes" 
-              Checksum="yes" />
-      </Component>
+    <!-- Directory Structure -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="Inventory Management System">
+          <Directory Id="APIFOLDER" Name="Api" />
+          <Directory Id="AGENTFOLDER" Name="Agent" />
+          <Directory Id="LOGSFOLDER" Name="Logs" />
+          <Directory Id="DATAFOLDER" Name="Data" />
+        </Directory>
+      </Directory>
       
-      <Component Id="AgentExecutable" Guid="{C3456789-D456-E567-F678-9ABCDEF01234}" Directory="AGENTFOLDER">
-        <File Id="AgentExe" 
-              Source="Published\Agent\Inventory.Agent.Windows.exe" 
-              KeyPath="yes" 
-              Checksum="yes" />
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Inventory Management System" />
+      </Directory>
+      
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+
+    <!-- Create required folders -->
+    <DirectoryRef Id="LOGSFOLDER">
+      <Component Id="LogsFolder" Guid="{A1234567-B234-C345-D456-E56789ABCDEF}" Win64="yes">
+        <CreateFolder />
+        <RemoveFolder Id="RemoveLogsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\InventoryManagementSystem\Folders" Name="LogsCreated" Type="integer" Value="1" KeyPath="yes" />
       </Component>
-    </ComponentGroup>
+    </DirectoryRef>
+    
+    <DirectoryRef Id="DATAFOLDER">
+      <Component Id="DataFolder" Guid="{B2345678-C345-D456-E567-F6789ABCDEF0}" Win64="yes">
+        <CreateFolder />
+        <RemoveFolder Id="RemoveDataFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\InventoryManagementSystem\Folders" Name="DataCreated" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
 
     <!-- Directory Structure -->
     <Directory Id="TARGETDIR" Name="SourceDir">
@@ -155,10 +172,17 @@
     </ComponentGroup>
     -->
 
+    <!-- Folder Components -->
+    <ComponentGroup Id="FolderComponents">
+      <ComponentRef Id="LogsFolder" />
+      <ComponentRef Id="DataFolder" />
+    </ComponentGroup>
+
     <!-- Windows Services -->
     <ComponentGroup Id="ServiceComponents">
       <!-- API Service -->
-      <Component Id="ApiService" Guid="{E5678901-F678-9ABC-DEF0-12345678ABCD}" Directory="APIFOLDER">
+      <Component Id="ApiService" Guid="{E5678901-F678-9ABC-DEF0-12345678ABCD}" Directory="APIFOLDER" Win64="yes">
+        <CreateFolder />
         <ServiceInstall Id="ApiServiceInstaller"
                         Type="ownProcess"
                         Name="InventoryApiService"
@@ -184,11 +208,13 @@
                        Key="SYSTEM\CurrentControlSet\Services\InventoryApiService" 
                        Name="ImagePath" 
                        Type="string" 
-                       Value='"[APIFOLDER]Inventory.Api.exe" --urls "http://localhost:5093"' />
+                       Value='"[APIFOLDER]Inventory.Api.exe" --urls "http://localhost:5093"' 
+                       KeyPath="yes" />
       </Component>
 
       <!-- Agent Service -->
-      <Component Id="AgentService" Guid="{F6789012-9ABC-DEF0-1234-5678ABCDEF01}" Directory="AGENTFOLDER">
+      <Component Id="AgentService" Guid="{F6789012-9ABC-DEF0-1234-5678ABCDEF01}" Directory="AGENTFOLDER" Win64="yes">
+        <CreateFolder />
         <ServiceInstall Id="AgentServiceInstaller"
                         Type="ownProcess"
                         Name="InventoryAgentService"
@@ -207,12 +233,20 @@
                         Remove="uninstall"
                         Name="InventoryAgentService"
                         Wait="yes" />
+        
+        <RegistryValue Root="HKCU" 
+                       Key="Software\InventoryManagementSystem\Services" 
+                       Name="AgentInstalled" 
+                       Type="integer" 
+                       Value="1" 
+                       KeyPath="yes" />
       </Component>
     </ComponentGroup>
 
     <!-- Firewall Components -->
     <ComponentGroup Id="FirewallComponents">
-      <Component Id="FirewallRule" Guid="{01234567-ABCD-EF01-2345-678ABCDEF012}" Directory="APIFOLDER">
+      <Component Id="FirewallRule" Guid="{01234567-ABCD-EF01-2345-678ABCDEF012}" Directory="APIFOLDER" Win64="yes">
+        <CreateFolder />
         <fire:FirewallException Id="ApiFirewallException"
                                 Name="Inventory Management API"
                                 Port="5093"
@@ -220,17 +254,25 @@
                                 Scope="localSubnet"
                                 IgnoreFailure="yes"
                                 Description="Allow Inventory Management API communication on port 5093" />
+        <RegistryValue Root="HKCU" 
+                       Key="Software\InventoryManagementSystem\Firewall" 
+                       Name="RuleCreated" 
+                       Type="integer" 
+                       Value="1" 
+                       KeyPath="yes" />
       </Component>
     </ComponentGroup>
 
     <!-- Start Menu Shortcuts -->
     <DirectoryRef Id="ApplicationProgramsFolder">
-      <Component Id="ApplicationShortcut" Guid="{12345678-CDEF-0123-4567-8ABCDEF01234}">
+      <Component Id="ApplicationShortcut" Guid="{12345678-CDEF-0123-4567-8ABCDEF01234}" Win64="yes">
         <Shortcut Id="ApiServiceShortcut"
                   Name="Inventory Management System"
                   Description="Open Inventory Management Web Interface"
-                  Target="http://localhost:5093/swagger"
-                  WorkingDirectory="APIFOLDER" />
+                  Target="[SystemFolder]cmd.exe"
+                  Arguments="/c start http://localhost:5093/swagger"
+                  WorkingDirectory="APIFOLDER" 
+                  Icon="BrowserIcon" />
         
         <Shortcut Id="UninstallShortcut"
                   Name="Uninstall Inventory Management System"
@@ -250,13 +292,15 @@
 
     <!-- Desktop Shortcut (Optional) -->
     <DirectoryRef Id="DesktopFolder">
-      <Component Id="DesktopShortcut" Guid="{23456789-DEF0-1234-5678-ABCDEF012345}">
+      <Component Id="DesktopShortcut" Guid="{23456789-DEF0-1234-5678-ABCDEF012345}" Win64="yes">
         <Condition>DESKTOPSHORTCUT</Condition>
         <Shortcut Id="DesktopApiShortcut"
                   Name="Inventory Management System"
                   Description="Open Inventory Management Web Interface"
-                  Target="http://localhost:5093/swagger"
-                  WorkingDirectory="APIFOLDER" />
+                  Target="[SystemFolder]cmd.exe"
+                  Arguments="/c start http://localhost:5093/swagger"
+                  WorkingDirectory="APIFOLDER" 
+                  Icon="BrowserIcon" />
         
         <RegistryValue Root="HKCU" 
                        Key="Software\Microsoft\InventoryManagementSystem" 
@@ -266,6 +310,10 @@
                        KeyPath="yes" />
       </Component>
     </DirectoryRef>
+
+    <!-- Icon Definition -->
+    <Icon Id="BrowserIcon" SourceFile="[SystemFolder]shell32.dll" />
+    <Property Id="ARPPRODUCTICON" Value="BrowserIcon" />
 
     <!-- Custom Actions for .NET 8 Runtime Installation -->
     <CustomAction Id="CheckDotNet8"
