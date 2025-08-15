@@ -1,3 +1,25 @@
+# 
+# Inventory Management System - MSI Builder
+# 
+# This script creates enterprise MSI packages using WiX Toolset.
+# 
+# Features:
+# - Automatic file harvesting using WiX Heat tool
+# - Cross-platform executable handling
+# - Complete dependency inclusion (240+ files)
+# - Windows service integration
+# 
+# Prerequisites:
+# - WiX Toolset (installed via 'dotnet tool install --global wix')
+# - .NET 8 SDK
+# - Published application files (run Build-Setup.ps1 first)
+# 
+# Usage:
+#   .\Build-MSI.ps1                    # Build framework-dependent MSI
+#   .\Build-MSI.ps1 -SelfContained     # Build self-contained MSI  
+#   .\Build-MSI.ps1 -SkipBuild         # Use existing published files
+# 
+
 param(
     [string]$Configuration = "Release",
     [switch]$SelfContained = $false,
