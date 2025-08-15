@@ -236,9 +236,25 @@ if (-not (Test-Path $msiOutputDir)) {
 Write-Host ""
 Write-Host "Harvesting published files with Heat..."
 
-$candleExe = if ($wixToolsPath) { "$wixToolsPath\candle.exe" } else { "candle" }
-$lightExe = if ($wixToolsPath) { "$wixToolsPath\light.exe" } else { "light" }
-$heatExe = if ($wixToolsPath) { "$wixToolsPath\heat.exe" } else { "heat" }
+# --- WiX v3 detection (added) ---
+# WiX v3 (heat.exe içerir) varsa onu kullan
+$wix3Candidates = @(
+  "$Env:ProgramFiles(x86)\WiX Toolset v3.14\bin",
+  "$Env:ProgramFiles(x86)\WiX Toolset v3.11\bin"
+) | Where-Object { Test-Path $_ }
+
+if ($wix3Candidates.Count -gt 0) {
+  $wixToolsPath = $wix3Candidates[0]
+  Write-Host "[OK] WiX v3 found: $wixToolsPath"
+} else {
+  Write-Host "[WARN] WiX v3 not found; will try PATH"
+}
+
+$heatExe   = if ($wixToolsPath) { Join-Path $wixToolsPath 'heat.exe' }   else { 'heat' }
+$candleExe = if ($wixToolsPath) { Join-Path $wixToolsPath 'candle.exe' } else { 'candle' }
+$lightExe  = if ($wixToolsPath) { Join-Path $wixToolsPath 'light.exe' }  else { 'light' }
+# --- end WiX v3 detection ---
+
 
 try {
     # Generate component definitions for API files
@@ -269,7 +285,7 @@ try {
         "-xf", "Published\Agent\Inventory.Agent.Windows.exe",
         "-out", "$msiOutputDir\AgentFiles.wxs"
     )
-    & $heatAgentArgs
+    & $heatExe @heatAgentArgs
     
     if ($LASTEXITCODE -ne 0) {
         throw "Heat harvesting of Agent files failed with exit code $LASTEXITCODE"
@@ -288,6 +304,7 @@ try {
         "-out", "$msiOutputDir\",
         "-ext", "WixUtilExtension",
         "-ext", "WixFirewallExtension",
+        "-ext", "WixNetFxExtension",
         "-dApiSourceDir=Published\Api",
         "-dAgentSourceDir=Published\Agent"
     )
@@ -309,7 +326,8 @@ try {
         "-out", "$msiOutputDir\InventoryManagementSystem.msi",
         "-ext", "WixUtilExtension",
         "-ext", "WixFirewallExtension",
-        "-ext", "WixUIExtension"
+        "-ext", "WixUIExtension",
+        "-ext", "WixNetFxExtension"
     )
     
     Write-Status "Running light.exe (WiX linker)..."

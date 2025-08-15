@@ -32,7 +32,6 @@
     <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
     <Property Id="ARPHELPLINK" Value="https://github.com/hizir-ceylan/InventoryManagementSystem" />
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/hizir-ceylan/InventoryManagementSystem" />
-    <Property Id="ARPNOMODIFY" Value="1" />
     <Property Id="ARPNOREPAIR" Value="1" />
     <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
     
@@ -46,7 +45,6 @@
     </Condition>
 
     <!-- .NET 8 Runtime Check -->
-    <PropertyRef Id="NETFRAMEWORK48" />
     <Property Id="DOTNET8INSTALLED">
       <RegistrySearch Id="DotNet8Search" 
                       Root="HKLM" 
@@ -272,17 +270,18 @@
     <!-- Custom Actions for .NET 8 Runtime Installation -->
     <CustomAction Id="CheckDotNet8"
                   Property="DOTNET8REQUIRED"
-                  Value="1">
-      <![CDATA[NOT DOTNET8INSTALLED]]>
-    </CustomAction>
+                  Value="1" />
 
     <CustomAction Id="DownloadDotNet8"
                   Property="DOTNET8URL"
-                  Value="https://download.microsoft.com/download/a/b/c/abc123.../dotnet-runtime-8.0-win-x64.exe" />
+                  Value="https://download.microsoft.com/.../dotnet-runtime-8.0-win-x64.exe" />
 
     <!-- Installation Sequence -->
     <InstallExecuteSequence>
-      <Custom Action="CheckDotNet8" Before="LaunchConditions">NOT Installed</Custom>
+      <!-- Koşulu burada yaz: .NET 8 yoksa ve ilk kurulumsa -->
+      <Custom Action="CheckDotNet8" Before="LaunchConditions">
+        NOT DOTNET8INSTALLED AND NOT Installed
+      </Custom>
     </InstallExecuteSequence>
 
     <!-- User Interface -->
@@ -294,29 +293,36 @@
       
       <!-- Custom dialog for desktop shortcut -->
       <DialogRef Id="DesktopShortcutDlg" />
-      
-      <!-- License agreement (if needed) -->
-      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg">NOT Installed</Publish>
-      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
     </UI>
-
-    <!-- Custom Dialog for Desktop Shortcut -->
-    <Fragment>
-      <UI>
-        <Dialog Id="DesktopShortcutDlg" Width="370" Height="270" Title="[ProductName] Setup">
-          <Control Id="DesktopShortcutCheckBox" Type="CheckBox" X="20" Y="60" Width="290" Height="17" Property="DESKTOPSHORTCUT" CheckBoxValue="1" Text="Create a desktop shortcut" />
-          <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Next">
-            <Publish Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
-          </Control>
-          <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="Back">
-            <Publish Event="NewDialog" Value="InstallDirDlg">1</Publish>
-          </Control>
-          <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
-            <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
-          </Control>
-        </Dialog>
-      </UI>
-    </Fragment>
-
   </Product>
+    <!-- Custom Dialog for Desktop Shortcut -->
+  <Fragment>
+    <UI>
+      <Dialog Id="DesktopShortcutDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="DesktopShortcutText"
+                Type="Text"
+                X="20" Y="60" Width="330" Height="30"
+                TabSkip="yes"
+                Text="Create a desktop shortcut for quick access." />
+        
+        <!-- EKSİK OLAN ÖZNİTELİKLER EKLENDİ -->
+        <Control Id="DesktopShortcutCheckBox"
+                Type="CheckBox"
+                X="20" Y="100" Width="330" Height="17"
+                Property="DESKTOPSHORTCUT"
+                CheckBoxValue="1"
+                Text="Create a desktop shortcut" />
+
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Next">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
+        </Control>
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="Back">
+          <Publish Event="NewDialog" Value="InstallDirDlg">1</Publish>
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
+        </Control>
+      </Dialog>
+    </UI>
+  </Fragment>
 </Wix>
