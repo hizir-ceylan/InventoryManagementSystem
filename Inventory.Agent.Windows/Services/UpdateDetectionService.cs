@@ -111,7 +111,12 @@ namespace Inventory.Agent.Windows.Services
                             "IsInstalled=0 and IsDownloaded=1 and Type='Software' and IsHidden=0", // İndirilmiş ama yüklenmemiş
                             "RebootRequired=1 and Type='Software' and IsHidden=0", // Restart bekleyen güncellemeler (yüklü ama restart gerekli)
                             "IsInstalled=0 and Type='Driver' and IsHidden=0", // Driver güncellemeleri
-                            "RebootRequired=1 and Type='Driver' and IsHidden=0" // Restart bekleyen driver güncellemeleri
+                            "RebootRequired=1 and Type='Driver' and IsHidden=0", // Restart bekleyen driver güncellemeleri
+                            // Office ve diğer Microsoft ürünleri için özel aramalar
+                            "IsInstalled=0 and Categories.CategoryID='28BC880E-0592-4CBF-8F95-C79B17911D5F'", // Microsoft Office güncellemeleri
+                            "IsInstalled=0 and Categories.CategoryID='0FA1201D-4330-4FA8-8AE9-B877473B6441'", // Güvenlik güncellemeleri
+                            "IsInstalled=0 and Categories.CategoryID='E6CF1350-C01B-414D-A61F-263D14D133B4'", // Kritik güncellemeler
+                            "IsInstalled=0 and Categories.CategoryID='CD5FFD1E-E932-4E3A-BF74-18BF0B1BBD83'" // Windows güncellemeleri
                         };
 
                         foreach (var searchQuery in searchQueries)
@@ -151,17 +156,18 @@ namespace Inventory.Agent.Windows.Services
                                     {
                                         Id = Guid.NewGuid(),
                                         DeviceId = deviceId,
-                                        UpdateType = "Windows",
+                                        UpdateType = DetermineUpdateType(update),
                                         Title = update.Title ?? "Bilinmeyen Güncelleme",
                                         Description = update.Description ?? "",
                                         KBNumber = ExtractKBNumber(update.Title ?? ""),
-                                        SizeInMB = update.MaxDownloadSize > 0 ? Math.Round(update.MaxDownloadSize / (1024.0 * 1024.0), 2) : null,
+                                        SizeInMB = GetUpdateSizeInMB(update),
                                         Status = status,
                                         Priority = DeterminePriority(update),
                                         DetectedDate = TimeZoneHelper.GetUtcNowForStorage(),
                                         LastChecked = TimeZoneHelper.GetUtcNowForStorage(),
-                                        CanAutoInstall = update.AutoDownload,
-                                        RequiresRestart = update.RebootRequired,
+                                        ReleaseDate = GetReleaseDate(update),
+                                        CanAutoInstall = update.AutoDownload ?? false,
+                                        RequiresRestart = update.RebootRequired ?? false,
                                         SecurityBulletinId = ExtractSecurityBulletinId(update.SecurityBulletinIDs)
                                     };
 
@@ -366,6 +372,7 @@ namespace Inventory.Agent.Windows.Services
 
         /// <summary>
         /// .NET Framework güncellemelerini tespit eder
+        /// Sadece yeni sürüm mevcut olan .NET Framework güncellemelerini rapor eder
         /// </summary>
         private async Task<List<SystemUpdate>> DetectDotNetUpdatesAsync(Guid deviceId)
         {
@@ -377,39 +384,133 @@ namespace Inventory.Agent.Windows.Services
 
                 await Task.Run(() =>
                 {
-                    // Registry'den .NET sürümlerini oku
-                    var dotnetVersions = ReadDotNetVersionsFromRegistry();
+                    // Windows Update Agent'dan .NET Framework güncellemelerini ara
+                    try
+                    {
+                        // Windows Update Session oluştur
+                        dynamic updateSession = Activator.CreateInstance(Type.GetTypeFromProgID("Microsoft.Update.Session"));
+                        dynamic updateSearcher = updateSession.CreateUpdateSearcher();
 
-                    foreach (var version in dotnetVersions)
+                        // .NET Framework ile ilgili güncellemeleri ara
+                        var searchQuery = "IsInstalled=0 and Type='Software' and IsHidden=0";
+                        _logger.LogDebug(".NET Framework güncellemeleri aranıyor: {Query}", searchQuery);
+                        
+                        dynamic searchResult = updateSearcher.Search(searchQuery);
+
+                        foreach (dynamic update in searchResult.Updates)
+                        {
+                            string title = update.Title?.ToString() ?? "";
+                            string description = update.Description?.ToString() ?? "";
+                            
+                            // Sadece .NET Framework ile ilgili güncellemeleri filtrele
+                            if (title.Contains(".NET Framework") || title.Contains("Microsoft .NET Framework") || 
+                                description.Contains(".NET Framework"))
+                            {
+                                var systemUpdate = new SystemUpdate
+                                {
+                                    Id = Guid.NewGuid(),
+                                    DeviceId = deviceId,
+                                    UpdateType = ".NET Framework",
+                                    Title = title,
+                                    Description = description,
+                                    KBNumber = ExtractKBNumber(title),
+                                    SizeInMB = GetUpdateSizeInMB(update),
+                                    Status = UpdateStatus.Available,
+                                    Priority = DeterminePriority(update),
+                                    DetectedDate = TimeZoneHelper.GetUtcNowForStorage(),
+                                    LastChecked = TimeZoneHelper.GetUtcNowForStorage(),
+                                    ReleaseDate = GetReleaseDate(update),
+                                    CanAutoInstall = update.EulaAccepted ?? false,
+                                    RequiresRestart = update.RebootRequired ?? false,
+                                    SecurityBulletinId = ExtractSecurityBulletinId(update.SecurityBulletinIDs)
+                                };
+
+                                updates.Add(systemUpdate);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Windows Update Agent ile .NET Framework güncellemeleri aranamadı, registry kontrolüne geçiliyor");
+                        
+                        // Fallback: Sadece gerçekten eksik olan .NET Framework sürümlerini kontrol et
+                        CheckForMissingCriticalDotNetVersions(deviceId, updates);
+                    }
+                });
+
+                _logger.LogInformation("{Count} .NET Framework güncellemesi tespit edildi", updates.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ".NET Framework güncellemesi tespitinde hata");
+            }
+
+            return updates;
+        }
+
+        /// <summary>
+        /// Kritik .NET Framework sürümlerinin eksik olup olmadığını kontrol eder
+        /// </summary>
+        private void CheckForMissingCriticalDotNetVersions(Guid deviceId, List<SystemUpdate> updates)
+        {
+            try
+            {
+                // Registry'den yüklü .NET sürümlerini oku
+                var installedVersions = ReadDotNetVersionsFromRegistry();
+                var installedVersionStrings = installedVersions.Select(v => v.Version).ToHashSet();
+
+                // Güncel critical .NET Framework sürümlerini kontrol et
+                var criticalVersions = new Dictionary<string, string>
+                {
+                    { "4.8", "4.8.04161" },      // .NET Framework 4.8 (en güncel)
+                    { "4.7.2", "4.7.03062" },    // .NET Framework 4.7.2
+                    { "4.6.2", "4.6.01586" }     // .NET Framework 4.6.2
+                };
+
+                foreach (var criticalVersion in criticalVersions)
+                {
+                    bool hasThisVersionOrNewer = installedVersionStrings.Any(installed => 
+                        installed.StartsWith(criticalVersion.Key) && 
+                        string.Compare(installed, criticalVersion.Value, StringComparison.OrdinalIgnoreCase) >= 0);
+
+                    if (!hasThisVersionOrNewer)
                     {
                         var update = new SystemUpdate
                         {
                             Id = Guid.NewGuid(),
                             DeviceId = deviceId,
                             UpdateType = ".NET Framework",
-                            Title = $".NET Framework {version.Version}",
-                            Description = $".NET Framework {version.Version} - Yüklü",
-                            CurrentVersion = version.Version,
-                            Status = UpdateStatus.Installed,
-                            Priority = UpdatePriority.Normal,
+                            Title = $"Microsoft .NET Framework {criticalVersion.Key}",
+                            Description = $"Microsoft .NET Framework {criticalVersion.Key} is recommended for this system",
+                            CurrentVersion = GetHighestInstalledDotNetVersion(installedVersions, criticalVersion.Key),
+                            LatestVersion = criticalVersion.Value,
+                            Status = UpdateStatus.Available,
+                            Priority = UpdatePriority.High,
                             DetectedDate = TimeZoneHelper.GetUtcNowForStorage(),
                             LastChecked = TimeZoneHelper.GetUtcNowForStorage(),
-                            CanAutoInstall = false,
+                            CanAutoInstall = true,
                             RequiresRestart = false
                         };
 
                         updates.Add(update);
                     }
-                });
-
-                _logger.LogInformation("{Count} .NET Framework sürümü tespit edildi", updates.Count);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ".NET Framework tespitinde hata");
+                _logger.LogWarning(ex, "Kritik .NET Framework sürümleri kontrol edilemedi");
             }
+        }
 
-            return updates;
+        /// <summary>
+        /// Belirli bir major version için en yüksek yüklü .NET Framework sürümünü bulur
+        /// </summary>
+        private string? GetHighestInstalledDotNetVersion(List<DotNetVersion> installedVersions, string majorVersion)
+        {
+            return installedVersions
+                .Where(v => v.Version.StartsWith(majorVersion))
+                .OrderByDescending(v => v.Version)
+                .FirstOrDefault()?.Version;
         }
 
         #endregion
@@ -440,6 +541,115 @@ namespace Inventory.Agent.Windows.Services
             catch
             {
                 // Ignore error
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Güncelleme türünü belirler (Windows, Office, .NET Framework, vb.)
+        /// </summary>
+        private string DetermineUpdateType(dynamic update)
+        {
+            try
+            {
+                string title = update.Title?.ToString() ?? "";
+                string description = update.Description?.ToString() ?? "";
+                
+                // Office güncellemeleri
+                if (title.Contains("Office") || title.Contains("Microsoft Office") || 
+                    title.Contains("Word") || title.Contains("Excel") || title.Contains("PowerPoint") || 
+                    title.Contains("Outlook") || title.Contains("Access") || title.Contains("Publisher") ||
+                    title.Contains("OneNote") || title.Contains("Project") || title.Contains("Visio") ||
+                    description.Contains("Office") || description.Contains("Microsoft Office"))
+                {
+                    return "Office";
+                }
+                
+                // .NET Framework güncellemeleri
+                if (title.Contains(".NET Framework") || title.Contains("Microsoft .NET Framework") ||
+                    description.Contains(".NET Framework"))
+                {
+                    return ".NET Framework";
+                }
+                
+                // Visual C++ Redistributable güncellemeleri
+                if (title.Contains("Visual C++") || title.Contains("Microsoft Visual C++") ||
+                    title.Contains("VC++ Redistributable"))
+                {
+                    return "Visual C++";
+                }
+                
+                // SQL Server güncellemeleri
+                if (title.Contains("SQL Server") || title.Contains("Microsoft SQL Server"))
+                {
+                    return "SQL Server";
+                }
+                
+                // Driver güncellemeleri
+                if (update.Type?.ToString() == "Driver" || title.Contains("Driver") || 
+                    title.Contains("Sürücü"))
+                {
+                    return "Driver";
+                }
+                
+                // Windows Defender/Security güncellemeleri
+                if (title.Contains("Windows Defender") || title.Contains("Malicious Software Removal Tool") ||
+                    title.Contains("Security Essentials") || title.Contains("Antimalware"))
+                {
+                    return "Security";
+                }
+                
+                // Edge güncellemeleri
+                if (title.Contains("Microsoft Edge") || title.Contains("Edge"))
+                {
+                    return "Edge";
+                }
+                
+                // Varsayılan olarak Windows güncellemesi
+                return "Windows";
+            }
+            catch
+            {
+                return "Windows";
+            }
+        }
+
+        /// <summary>
+        /// Güncelleme boyutunu MB cinsinden alır
+        /// </summary>
+        private double? GetUpdateSizeInMB(dynamic update)
+        {
+            try
+            {
+                var maxDownloadSize = update.MaxDownloadSize;
+                if (maxDownloadSize != null && maxDownloadSize > 0)
+                {
+                    return Math.Round((double)maxDownloadSize / (1024.0 * 1024.0), 2);
+                }
+            }
+            catch
+            {
+                // Ignore errors
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Güncelleme yayın tarihini alır
+        /// </summary>
+        private DateTime? GetReleaseDate(dynamic update)
+        {
+            try
+            {
+                var lastDeploymentChangeTime = update.LastDeploymentChangeTime;
+                if (lastDeploymentChangeTime != null)
+                {
+                    return (DateTime)lastDeploymentChangeTime;
+                }
+            }
+            catch
+            {
+                // Ignore errors
             }
             return null;
         }
