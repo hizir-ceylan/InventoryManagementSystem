@@ -276,7 +276,14 @@ try {
     
     # Post-process API files to add Win64="yes" attribute
     $apiWxsContent = Get-Content "$msiOutputDir\ApiFiles.wxs" -Raw
-    $apiWxsContent = $apiWxsContent -replace '<Component Id="([^"]+)" Guid="([^"]+)">', '<Component Id="$1" Guid="$2" Win64="yes">'
+    # Simple approach: if Component tag doesn't contain Win64 attribute, add it
+    if ($apiWxsContent -notmatch 'Win64=') {
+        # No Win64 attributes found, add to all Component tags
+        $apiWxsContent = $apiWxsContent -replace '<Component\s+([^>]*?)>', '<Component $1 Win64="yes">'
+    } else {
+        # Some Win64 attributes exist, be more selective
+        $apiWxsContent = $apiWxsContent -replace '<Component\s+(?![^>]*Win64=)([^>]*?)>', '<Component $1 Win64="yes">'
+    }
     Set-Content "$msiOutputDir\ApiFiles.wxs" -Value $apiWxsContent -Encoding UTF8
     
     # Generate component definitions for Agent files  
@@ -298,7 +305,14 @@ try {
     
     # Post-process Agent files to add Win64="yes" attribute
     $agentWxsContent = Get-Content "$msiOutputDir\AgentFiles.wxs" -Raw
-    $agentWxsContent = $agentWxsContent -replace '<Component Id="([^"]+)" Guid="([^"]+)">', '<Component Id="$1" Guid="$2" Win64="yes">'
+    # Simple approach: if Component tag doesn't contain Win64 attribute, add it
+    if ($agentWxsContent -notmatch 'Win64=') {
+        # No Win64 attributes found, add to all Component tags
+        $agentWxsContent = $agentWxsContent -replace '<Component\s+([^>]*?)>', '<Component $1 Win64="yes">'
+    } else {
+        # Some Win64 attributes exist, be more selective
+        $agentWxsContent = $agentWxsContent -replace '<Component\s+(?![^>]*Win64=)([^>]*?)>', '<Component $1 Win64="yes">'
+    }
     Set-Content "$msiOutputDir\AgentFiles.wxs" -Value $agentWxsContent -Encoding UTF8
     
     Write-Status "File harvesting successful" "SUCCESS"
