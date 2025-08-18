@@ -449,7 +449,7 @@ class DeviceDetailsManager {
             if (!updatesContainer) return;
 
             // Try to load updates from real API
-            const updates = await window.api.apiCall(`api/update/device/${deviceId}`);
+            const updates = await window.api.apiCall(`api/update/${deviceId}`);
             
             if (updates && updates.length > 0) {
                 const availableUpdates = updates.filter(update => update.status === 0); // Available updates
@@ -571,11 +571,23 @@ class DeviceDetailsManager {
             console.warn('Device updates could not be loaded:', error);
             const updatesContainer = document.getElementById(`device-updates-${deviceId}`);
             if (updatesContainer) {
+                let errorMessage = 'API bağlantı sorunu';
+                let specificError = '';
+                
+                // Handle specific error types
+                if (error.message && error.message.includes('404')) {
+                    errorMessage = 'Cihaz bulunamadı';
+                    specificError = 'Bu cihaz sistemde kayıtlı değil veya silinmiş olabilir';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
                 updatesContainer.innerHTML = `
                     <div class="no-updates error">
                         <i class="bi bi-exclamation-triangle"></i>
                         <span>Güncelleme bilgileri yüklenemedi</span>
-                        <small>Hata: ${error.message || 'API bağlantı sorunu'}</small>
+                        <small>Hata: ${errorMessage}</small>
+                        ${specificError ? `<small>${specificError}</small>` : ''}
                         <div class="error-actions">
                             <button class="btn-secondary" onclick="window.deviceDetails.refreshUpdates('${deviceId}')">
                                 <i class="bi bi-arrow-clockwise"></i>

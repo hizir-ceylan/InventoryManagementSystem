@@ -22,6 +22,7 @@ namespace Inventory.Api.Services
         Task<bool> UpdateStatusAsync(Guid updateId, UpdateStatus status, string? reason);
         Task<int> BulkUpdateStatusAsync(List<Guid> updateIds, UpdateStatus status, string? reason);
         Task<int> CleanupOldRecordsAsync(int daysOld);
+        Task<bool> DeviceExistsAsync(Guid deviceId);
     }
 
     /// <summary>
@@ -310,6 +311,11 @@ namespace Inventory.Api.Services
 
             _context.Set<SystemUpdate>().RemoveRange(oldUpdates);
             return await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> DeviceExistsAsync(Guid deviceId)
+        {
+            return await _context.Set<Device>().AnyAsync(d => d.Id == deviceId);
         }
     }
 }
