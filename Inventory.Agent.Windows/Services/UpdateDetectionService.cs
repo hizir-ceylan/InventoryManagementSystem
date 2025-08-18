@@ -516,30 +516,28 @@ namespace Inventory.Agent.Windows.Services
                     var currentVersion = configKey.GetValue("VersionToReport")?.ToString();
                     var updateChannel = configKey.GetValue("UpdateChannel")?.ToString();
 
-                    // Eğer güncelleme kanalı ayarlanmışsa, güncelleme mevcut demektir
-                    if (!string.IsNullOrEmpty(updateChannel) && !string.IsNullOrEmpty(currentVersion))
-                    {
-                        updates.Add(new OfficeRegistryUpdate
-                        {
-                            Title = $"Office 365 Güncellemesi ({office.UpdateChannel})",
-                            Description = $"Mevcut sürüm: {currentVersion}. Güncellemeler {office.UpdateChannel} kanalından kontrol edilmektedir.",
-                            LatestVersion = "Otomatik güncelleme etkin",
-                            IsInstalled = true
-                        });
-                    }
+                    // Bu kısım kaldırıldı - sadece otomatik güncelleme etkin olması güncelleme mevcut demek değildir
+                    // Sadece gerçekten bekleyen güncellemeler raporlanacak
 
-                    // Bekleyen güncellemeleri kontrol et
+                    // Bekleyen güncellemeleri daha spesifik kontrol et
                     using var updateKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Office\ClickToRun\Updates");
                     if (updateKey != null)
                     {
-                        var pendingUpdate = updateKey.GetValue("UpdateDetectionLastRunTime")?.ToString();
-                        if (!string.IsNullOrEmpty(pendingUpdate))
+                        // Gerçek bir güncelleme var mı kontrol et
+                        var availableVersion = updateKey.GetValue("UpdatesAvailable")?.ToString();
+                        var updateToApply = updateKey.GetValue("UpdateToApply")?.ToString();
+                        var executionState = updateKey.GetValue("ExecutionState")?.ToString();
+                        
+                        // Sadece gerçekten bekleyen güncelleme varsa rapor et
+                        if (!string.IsNullOrEmpty(availableVersion) || 
+                            !string.IsNullOrEmpty(updateToApply) || 
+                            (executionState != null && executionState != "0" && executionState != "Idle"))
                         {
                             updates.Add(new OfficeRegistryUpdate
                             {
                                 Title = "Bekleyen Office Güncellemesi",
                                 Description = "Office C2R güncellemesi bekleniyor. Güncelleme otomatik olarak uygulanacak.",
-                                LatestVersion = "Bekliyor",
+                                LatestVersion = availableVersion ?? "Bekliyor",
                                 IsInstalled = false
                             });
                         }

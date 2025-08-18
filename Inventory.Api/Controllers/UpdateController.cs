@@ -40,6 +40,14 @@ namespace Inventory.Api.Controllers
         {
             try
             {
+                // Check if device exists first
+                var deviceExists = await _updateService.DeviceExistsAsync(deviceId);
+                if (!deviceExists)
+                {
+                    _logger.LogWarning("Device {DeviceId} not found when requesting updates", deviceId);
+                    return NotFound(new { error = "Cihaz bulunamadı", deviceId = deviceId });
+                }
+
                 var updates = await _updateService.GetUpdatesByDeviceAsync(deviceId);
                 return Ok(updates);
             }
