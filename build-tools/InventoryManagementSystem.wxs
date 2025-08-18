@@ -301,7 +301,7 @@
     </DirectoryRef>
 
     <!-- Icon Definition -->
-    <Icon Id="BrowserIcon" SourceFile="[SystemFolder]shell32.dll" />
+    <Icon Id="BrowserIcon" SourceFile="../Inventory.WebApp/wwwroot/favicon.ico" />
     <Property Id="ARPPRODUCTICON" Value="BrowserIcon" />
 
     <!-- Custom Actions for .NET 8 Runtime Installation -->
